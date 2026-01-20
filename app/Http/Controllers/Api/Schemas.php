@@ -49,8 +49,35 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: "id", type: "integer", example: 1),
         new OA\Property(property: "option_id", type: "integer", example: 1),
         new OA\Property(property: "name", type: "string", example: "Large"),
-        new OA\Property(property: "price_adjustment", type: "number", format: "float", example: 2.00),
-        new OA\Property(property: "sort_order", type: "integer", example: 1),
+        new OA\Property(property: "price", type: "number", format: "float", example: 2.00),
+        new OA\Property(property: "created_at", type: "string", format: "date-time"),
+        new OA\Property(property: "updated_at", type: "string", format: "date-time"),
+    ]
+)]
+#[OA\Schema(
+    schema: "ItemOption",
+    properties: [
+        new OA\Property(property: "id", type: "integer", example: 1),
+        new OA\Property(property: "item_id", type: "integer", example: 1),
+        new OA\Property(property: "option_id", type: "integer", example: 1),
+        new OA\Property(property: "required", type: "boolean", example: false),
+        new OA\Property(property: "type", type: "string", example: "single"),
+        new OA\Property(property: "range", type: "integer", example: 0),
+        new OA\Property(property: "max", type: "integer", nullable: true, example: 2),
+        new OA\Property(property: "min", type: "integer", nullable: true, example: 0),
+        new OA\Property(property: "created_at", type: "string", format: "date-time"),
+        new OA\Property(property: "updated_at", type: "string", format: "date-time"),
+    ]
+)]
+#[OA\Schema(
+    schema: "ItemOptionValue",
+    properties: [
+        new OA\Property(property: "id", type: "integer", example: 1),
+        new OA\Property(property: "item_option_id", type: "integer", example: 1),
+        new OA\Property(property: "option_value_id", type: "integer", example: 1),
+        new OA\Property(property: "price", type: "number", format: "float", example: 0.50),
+        new OA\Property(property: "in_stock", type: "boolean", example: true),
+        new OA\Property(property: "option_dependency_id", type: "integer", nullable: true, example: 2),
         new OA\Property(property: "created_at", type: "string", format: "date-time"),
         new OA\Property(property: "updated_at", type: "string", format: "date-time"),
     ]

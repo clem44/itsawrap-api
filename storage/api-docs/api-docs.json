@@ -1647,6 +1647,546 @@
                 ]
             }
         },
+        "/item-options": {
+            "get": {
+                "tags": [
+                    "Item Options"
+                ],
+                "summary": "List item options",
+                "description": "Get all item options, optionally filtered by item",
+                "operationId": "4c6ec50b4ab7b743ef23550504a1f228",
+                "parameters": [
+                    {
+                        "name": "item_id",
+                        "in": "query",
+                        "description": "Filter by item ID",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of item options",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ItemOption"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Item Options"
+                ],
+                "summary": "Create an item option",
+                "description": "Create a new item option",
+                "operationId": "4642c3d16f6318001881829aeadc610d",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "item_id",
+                                    "option_id"
+                                ],
+                                "properties": {
+                                    "item_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "option_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "required": {
+                                        "type": "boolean",
+                                        "example": false
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "single",
+                                            "multiple"
+                                        ],
+                                        "example": "single"
+                                    },
+                                    "range": {
+                                        "type": "integer",
+                                        "example": 0
+                                    },
+                                    "max": {
+                                        "type": "integer",
+                                        "example": 2,
+                                        "nullable": true
+                                    },
+                                    "min": {
+                                        "type": "integer",
+                                        "example": 0,
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Item option created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ItemOption"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/item-options/{id}": {
+            "get": {
+                "tags": [
+                    "Item Options"
+                ],
+                "summary": "Get an item option",
+                "description": "Get a single item option with its values",
+                "operationId": "1667046f0af52dae8aaf08833db00320",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Item option ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Item option details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ItemOption"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Item option not found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Item Options"
+                ],
+                "summary": "Update an item option",
+                "description": "Update an existing item option",
+                "operationId": "8edf9f14360fce05e588aaad8f7da2f9",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Item option ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "required": {
+                                        "type": "boolean"
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "single",
+                                            "multiple"
+                                        ]
+                                    },
+                                    "range": {
+                                        "type": "integer"
+                                    },
+                                    "max": {
+                                        "type": "integer",
+                                        "nullable": true
+                                    },
+                                    "min": {
+                                        "type": "integer",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Item option updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ItemOption"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Item option not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Item Options"
+                ],
+                "summary": "Delete an item option",
+                "description": "Delete an item option",
+                "operationId": "53d3dfc42f2fe8be12783f4b7561a02a",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Item option ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Item option deleted"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Item option not found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/item-option-values": {
+            "get": {
+                "tags": [
+                    "Item Option Values"
+                ],
+                "summary": "List item option values",
+                "description": "Get all item option values, optionally filtered by item option",
+                "operationId": "012e9776dccbb963f81a7a0fc8b20885",
+                "parameters": [
+                    {
+                        "name": "item_option_id",
+                        "in": "query",
+                        "description": "Filter by item option ID",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of item option values",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ItemOptionValue"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Item Option Values"
+                ],
+                "summary": "Create an item option value",
+                "description": "Create a new item option value",
+                "operationId": "466559661c1378c50c7ad0ee09b17f1d",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "item_option_id",
+                                    "option_value_id"
+                                ],
+                                "properties": {
+                                    "item_option_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "option_value_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "price": {
+                                        "type": "number",
+                                        "example": 0.5
+                                    },
+                                    "in_stock": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "option_dependency_id": {
+                                        "type": "integer",
+                                        "example": 2,
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Item option value created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ItemOptionValue"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/item-option-values/{id}": {
+            "get": {
+                "tags": [
+                    "Item Option Values"
+                ],
+                "summary": "Get an item option value",
+                "description": "Get a single item option value",
+                "operationId": "378066a936de5ec570e474f985eb19df",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Item option value ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Item option value details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ItemOptionValue"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Item option value not found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Item Option Values"
+                ],
+                "summary": "Update an item option value",
+                "description": "Update an existing item option value",
+                "operationId": "6a09293b7f0a30fca96ae88273cc8b4a",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Item option value ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "price": {
+                                        "type": "number"
+                                    },
+                                    "in_stock": {
+                                        "type": "boolean"
+                                    },
+                                    "option_dependency_id": {
+                                        "type": "integer",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Item option value updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ItemOptionValue"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Item option value not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Item Option Values"
+                ],
+                "summary": "Delete an item option value",
+                "description": "Delete an item option value",
+                "operationId": "69bf273a94ea69795b69a6ab358caf3f",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Item option value ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Item option value deleted"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Item option value not found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/options": {
             "get": {
                 "tags": [
@@ -1876,6 +2416,251 @@
                     },
                     "404": {
                         "description": "Option not found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/option-values": {
+            "get": {
+                "tags": [
+                    "Option Values"
+                ],
+                "summary": "List option values",
+                "description": "Get all option values, optionally filtered by option",
+                "operationId": "6c5111c648097a446b3abba7bce2e7e0",
+                "parameters": [
+                    {
+                        "name": "option_id",
+                        "in": "query",
+                        "description": "Filter by option ID",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of option values",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/OptionValue"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Option Values"
+                ],
+                "summary": "Create an option value",
+                "description": "Create a new option value",
+                "operationId": "81249d180b0353b3d996654cc55a9177",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "option_id",
+                                    "name"
+                                ],
+                                "properties": {
+                                    "option_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Large"
+                                    },
+                                    "price": {
+                                        "type": "number",
+                                        "example": 2
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Option value created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OptionValue"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/option-values/{id}": {
+            "get": {
+                "tags": [
+                    "Option Values"
+                ],
+                "summary": "Get an option value",
+                "description": "Get a single option value",
+                "operationId": "172c2d541b2b2c79460b15b8844c07b1",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Option value ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Option value details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OptionValue"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Option value not found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Option Values"
+                ],
+                "summary": "Update an option value",
+                "description": "Update an existing option value",
+                "operationId": "8d6e22014d041de65d2d59bb5507b79c",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Option value ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "price": {
+                                        "type": "number"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Option value updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OptionValue"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Option value not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Option Values"
+                ],
+                "summary": "Delete an option value",
+                "description": "Delete an option value",
+                "operationId": "351233bbc12c32f04781de3c390f71cf",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Option value ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Option value deleted"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Option value not found"
                     }
                 },
                 "security": [
@@ -3837,14 +4622,96 @@
                         "type": "string",
                         "example": "Large"
                     },
-                    "price_adjustment": {
+                    "price": {
                         "type": "number",
                         "format": "float",
                         "example": 2
                     },
-                    "sort_order": {
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "ItemOption": {
+                "properties": {
+                    "id": {
                         "type": "integer",
                         "example": 1
+                    },
+                    "item_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "option_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "required": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "type": {
+                        "type": "string",
+                        "example": "single"
+                    },
+                    "range": {
+                        "type": "integer",
+                        "example": 0
+                    },
+                    "max": {
+                        "type": "integer",
+                        "example": 2,
+                        "nullable": true
+                    },
+                    "min": {
+                        "type": "integer",
+                        "example": 0,
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "ItemOptionValue": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "item_option_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "option_value_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "price": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 0.5
+                    },
+                    "in_stock": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "option_dependency_id": {
+                        "type": "integer",
+                        "example": 2,
+                        "nullable": true
                     },
                     "created_at": {
                         "type": "string",
@@ -4381,6 +5248,18 @@
         {
             "name": "Cash Sessions",
             "description": "Cash Sessions"
+        },
+        {
+            "name": "Item Options",
+            "description": "Item Options"
+        },
+        {
+            "name": "Item Option Values",
+            "description": "Item Option Values"
+        },
+        {
+            "name": "Option Values",
+            "description": "Option Values"
         },
         {
             "name": "Statuses",
