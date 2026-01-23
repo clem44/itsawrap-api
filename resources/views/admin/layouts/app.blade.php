@@ -6,22 +6,22 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Admin Dashboard') - It's A Wrap API</title>
     @vite(['resources/css/app.css'])
-    <script src="https://cdn.tailwindcss.com"></script>
+    {{-- <script src="https://cdn.tailwindcss.com"></script> --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;1,9..144,400&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
 
     <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#10af72',
-                        secondary: '#4ecb9b',
-                    }
-                }
-            }
-        }
+        // tailwind.config = {
+        //     theme: {
+        //         extend: {
+        //             colors: {
+        //                 primary: '#10af72',
+        //                 secondary: '#4ecb9b',
+        //             }
+        //         }
+        //     }
+        // }
     </script>
     <style>
         [x-cloak] { display: none !important; }
@@ -30,7 +30,7 @@
     @stack('styles')
 </head>
 <body class="min-h-screen" style="background: var(--color-cream);">
-    <div x-data="{ sidebarOpen: false }" class="flex h-screen overflow-hidden">
+    <div x-data="{ sidebarOpen: false, dataMenuOpen: @json(request()->routeIs('admin.categories.*')) }" class="flex h-screen overflow-hidden">
         <!-- Sidebar -->
         <aside class="hidden md:flex md:flex-shrink-0">
             <div class="flex flex-col w-64 admin-sidebar">
@@ -50,6 +50,24 @@
                         </svg>
                         Users
                     </a>
+                    <div class="sidebar-section">
+                        <button type="button" class="sidebar-nav-link sidebar-nav-toggle" :class="{ 'active': dataMenuOpen }" @click="dataMenuOpen = !dataMenuOpen">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path>
+                            </svg>
+                            Data
+                            <svg class="w-4 h-4 sidebar-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" :class="{ 'sidebar-chevron-open': dataMenuOpen }">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div class="sidebar-submenu" x-show="dataMenuOpen" x-transition x-cloak>
+                            <a href="#" class="sidebar-submenu-link disabled">Orders</a>
+                            <a href="#" class="sidebar-submenu-link disabled">Items</a>
+                            <a href="#" class="sidebar-submenu-link disabled">Options</a>
+                            <a href="{{ route('admin.categories.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">Categories</a>
+                            <a href="#" class="sidebar-submenu-link disabled">Branches</a>
+                        </div>
+                    </div>
                     <a href="{{ route('admin.api-docs') }}" class="sidebar-nav-link {{ request()->routeIs('admin.api-docs') ? 'active' : '' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -103,6 +121,23 @@
                         </svg>
                         Users
                     </a>
+                    <div class="sidebar-section">
+                        <button type="button" class="sidebar-nav-link sidebar-nav-toggle" :class="{ 'active': dataMenuOpen }" @click="dataMenuOpen = !dataMenuOpen">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path>
+                            </svg>
+                            Data
+                            <svg class="w-4 h-4 sidebar-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" :class="{ 'sidebar-chevron-open': dataMenuOpen }">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div class="sidebar-submenu" x-show="dataMenuOpen" x-transition x-cloak>
+                            <a href="#" class="sidebar-submenu-link disabled">Items</a>
+                            <a href="#" class="sidebar-submenu-link disabled">Options</a>
+                            <a href="{{ route('admin.categories.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">Categories</a>
+                            <a href="#" class="sidebar-submenu-link disabled">Branches</a>
+                        </div>
+                    </div>
                     <a href="{{ route('admin.api-docs') }}" class="sidebar-nav-link {{ request()->routeIs('admin.api-docs') ? 'active' : '' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -146,5 +181,6 @@
             </main>
         </div>
     </div>
+    @stack('scripts')
 </body>
 </html>

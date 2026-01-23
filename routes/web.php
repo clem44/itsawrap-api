@@ -2,12 +2,17 @@
 
 use App\Http\Controllers\Admin\ApiDocsController;
 use App\Http\Controllers\Admin\AuthController;
+use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 
 Route::get('/', function () {
-    return redirect()->route('admin.login');
+    return Auth::check()
+        ? redirect()->route('admin.dashboard')
+        : redirect()->route('admin.login');
+    //return view('welcome');
 });
 
 // Admin routes
@@ -27,6 +32,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('users', UserController::class);
         Route::delete('/users/{user}/tokens/{tokenId}', [UserController::class, 'revokeToken'])->name('users.revoke-token');
         Route::delete('/users/{user}/tokens', [UserController::class, 'revokeAllTokens'])->name('users.revoke-all-tokens');
+
+        // Data management
+        Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
+        Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
+        Route::put('/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
+        Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
 
         // API Documentation
         Route::get('/api-docs', [ApiDocsController::class, 'index'])->name('api-docs');
