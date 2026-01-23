@@ -2,8 +2,11 @@
 
 use App\Http\Controllers\Admin\ApiDocsController;
 use App\Http\Controllers\Admin\AuthController;
+use App\Http\Controllers\Admin\BranchController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\ItemController;
+use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -39,12 +42,20 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::put('/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
         Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
 
+        // Branches management
+        Route::resource('branches', BranchController::class);
+
+        // Orders management
+        Route::resource('orders', OrderController::class, ['only' => ['index', 'show', 'destroy']]);
+
         // Options management
         Route::resource('options', \App\Http\Controllers\Admin\OptionController::class);
         Route::post('/options/{option}/values', [\App\Http\Controllers\Admin\OptionController::class, 'storeValue'])->name('option-values.store');
         Route::put('/options/{option}/values/{optionValue}', [\App\Http\Controllers\Admin\OptionController::class, 'updateValue'])->name('option-values.update');
         Route::delete('/options/{option}/values/{optionValue}', [\App\Http\Controllers\Admin\OptionController::class, 'destroyValue'])->name('option-values.destroy');
 
+        // Items management
+        Route::resource('items', ItemController::class, ['only' => ['index', 'store', 'update', 'destroy']]);
 
         // API Documentation
         Route::get('/api-docs', [ApiDocsController::class, 'index'])->name('api-docs');

@@ -61,11 +61,11 @@
                             </svg>
                         </button>
                         <div class="sidebar-submenu" x-show="dataMenuOpen" x-transition x-cloak>
-                            <a href="#" class="sidebar-submenu-link disabled">Orders</a>
-                            <a href="#" class="sidebar-submenu-link disabled">Items</a>
+                            <a href="{{ route('admin.orders.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">Orders</a>
+                            <a href="{{ route('admin.items.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.items.*') ? 'active' : '' }}">Items</a>
                             <a href="{{ route('admin.options.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.options.*') ? 'active' : '' }}">Options</a>
                             <a href="{{ route('admin.categories.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">Categories</a>
-                            <a href="#" class="sidebar-submenu-link disabled">Branches</a>
+                            <a href="{{ route('admin.branches.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.branches.*') ? 'active' : '' }}">Branches</a>
                         </div>
                     </div>
                     <a href="{{ route('admin.api-docs') }}" class="sidebar-nav-link {{ request()->routeIs('admin.api-docs') ? 'active' : '' }}">
@@ -132,10 +132,11 @@
                             </svg>
                         </button>
                         <div class="sidebar-submenu" x-show="dataMenuOpen" x-transition x-cloak>
-                            <a href="#" class="sidebar-submenu-link disabled">Items</a>
-                            <a href="#" class="sidebar-submenu-link disabled">Options</a>
+                            <a href="{{ route('admin.orders.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">Orders</a>
+                            <a href="{{ route('admin.items.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.items.*') ? 'active' : '' }}">Items</a>
+                            <a href="{{ route('admin.options.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.options.*') ? 'active' : '' }}">Options</a>
                             <a href="{{ route('admin.categories.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">Categories</a>
-                            <a href="#" class="sidebar-submenu-link disabled">Branches</a>
+                            <a href="{{ route('admin.branches.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.branches.*') ? 'active' : '' }}">Branches</a>
                         </div>
                     </div>
                     <a href="{{ route('admin.api-docs') }}" class="sidebar-nav-link {{ request()->routeIs('admin.api-docs') ? 'active' : '' }}">
