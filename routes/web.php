@@ -39,6 +39,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::put('/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
         Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
 
+        // Options management
+        Route::resource('options', \App\Http\Controllers\Admin\OptionController::class);
+        Route::post('/options/{option}/values', [\App\Http\Controllers\Admin\OptionController::class, 'storeValue'])->name('option-values.store');
+        Route::put('/options/{option}/values/{optionValue}', [\App\Http\Controllers\Admin\OptionController::class, 'updateValue'])->name('option-values.update');
+        Route::delete('/options/{option}/values/{optionValue}', [\App\Http\Controllers\Admin\OptionController::class, 'destroyValue'])->name('option-values.destroy');
+
+
         // API Documentation
         Route::get('/api-docs', [ApiDocsController::class, 'index'])->name('api-docs');
     });
