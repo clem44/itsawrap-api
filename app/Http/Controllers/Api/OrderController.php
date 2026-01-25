@@ -88,6 +88,7 @@ class OrderController extends Controller
                                         properties: [
                                             new OA\Property(property: "option_value_id", type: "integer"),
                                             new OA\Property(property: "price", type: "number"),
+                                            new OA\Property(property: "qty", type: "integer", nullable: true, example: 1),
                                         ]
                                     )
                                 ),
@@ -124,6 +125,7 @@ class OrderController extends Controller
             'items.*.options' => 'array',
             'items.*.options.*.option_value_id' => 'required|exists:option_values,id',
             'items.*.options.*.price' => 'numeric|min:0',
+            'items.*.options.*.qty' => 'nullable|integer|min:1',
         ]);
 
         // Get current open session for the user
@@ -148,6 +150,7 @@ class OrderController extends Controller
                         $orderItem->orderItemOptions()->create([
                             'option_value_id' => $optionData['option_value_id'],
                             'price' => $optionData['price'] ?? 0,
+                            'qty' => $optionData['qty'] ?? null,
                         ]);
                     }
                 }
