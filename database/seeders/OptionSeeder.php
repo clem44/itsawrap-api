@@ -14,6 +14,16 @@ class OptionSeeder extends Seeder
     public function run(): void
     {
         $options = [
+           
+            [
+                'name' => 'Protein',
+                'optionValues' => [
+                    ['name' => 'Chicken', 'price' => 10.00],
+                    ['name' => 'Steak',  'price' => 18.00],
+                    ['name' => 'Tuna Steak', 'price' => 12.00],
+                    ['name' => 'Tofu', 'price' => 10.00],
+                ],
+            ],
             [
                 'name' => 'Extras',
                 'optionValues' => [
@@ -35,16 +45,29 @@ class OptionSeeder extends Seeder
                     ['name' => 'Sweet Potato Fries', 'price' => 4.00],
                 ],
             ],
-            ['name' => 'Sauce'],
-            [
-                'name' => 'Protein',
-                'optionValues' => [
-                    ['name' => 'Chicken', 'price' => 10.00],
-                    ['name' => 'Steak',  'price' => 18.00],
-                    ['name' => 'Tuna Steak', 'price' => 12.00],
-                    ['name' => 'Tofu', 'price' => 10.00],
+            ['name' => 'Sauce',
+             'optionValues' => [
+                    ['name' => 'Cucumber Chill', 'price' => 0.00],
+                    ['name' => 'Sesame Whisper',  'price' => 0.00],
+                    ['name' => 'Herb Harmony', 'price' => 0.00],
+                    ['name' => 'Avocado Bliss', 'price' => 0.00],
+                    ['name' => 'Smokey Ember BBQ', 'price' => 0.00],
+                    ['name' => 'Spicy Tango', 'price' => 0.00],
+                    ['name' => 'Sweet Fusion', 'price' => 0.00],
                 ],
             ],
+            ['name' => 'Additional Sauces',
+             'optionValues' => [
+                    ['name' => 'Cucumber Chill', 'price' => 0.50],
+                    ['name' => 'Sesame Whisper',  'price' => 0.50],
+                    ['name' => 'Herb Harmony', 'price' => 0.50],
+                    ['name' => 'Avocado Bliss', 'price' => 0.50],
+                    ['name' => 'Smokey Ember BBQ', 'price' => 0.50],
+                    ['name' => 'Spicy Tango', 'price' => 0.50],
+                    ['name' => 'Sweet Fusion', 'price' => 0.50],
+                ],
+            ],
+            
             [
                 'name' => 'Temperature',
                 'optionValues' => [
@@ -54,9 +77,7 @@ class OptionSeeder extends Seeder
                     ['name' => 'Medium-Well', 'price' => 0.00],
                     ['name' => 'Well-Done', 'price' => 0.00],
                 ],
-            ],
-            ['name' => 'Size'],
-            ['name' => 'Color'],
+            ],           
             [
                 'name' => 'Free Additions',
                 'optionValues' => [
@@ -78,6 +99,8 @@ class OptionSeeder extends Seeder
                     ['name' => 'Mustard', 'price' => 0.00],
                 ],
             ],
+            ['name' => 'Size'],
+            ['name' => 'Color'],
         ];
 
         foreach ($options as $data) {

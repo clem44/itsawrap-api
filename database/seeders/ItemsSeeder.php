@@ -17,17 +17,14 @@ class ItemsSeeder extends Seeder
             ['name' => 'Garlic Pesto Wrap'],
             ['name' => 'Gluten-Free Spinach Wrap'],
             ['name' => 'Whole Wheat Wrap'],
-            ['name' => 'Caesar Salad'],
-            ['name' => 'Greek Salad'],
-            ['name' => 'Garden Salad'],
             ['name' => 'Creamy Chicken Bowl','cost'=>14.00],
             ['name' => 'Encrusted Tuna Steak Bowl','cost'=>18.00],
             ['name' => 'Savory Steak Bowl','cost'=>20.00],
-            ['name' => 'Tofu Veggie Bowl'],
             ['name' => 'Spinach Wrap'],
             ['name' => 'Grilled Tofu Bowl','cost'=>12.00],
             ['name' => 'Sundried Tomatoes Wrap'],
             ['name' => 'Classic Wrap'],
+            ['name'=> "Gluten-Free Wrap"],
             ['name' => 'Cheese Burger'],
             ['name' => 'Sliders','cost'=>8.00],
             ['name' => 'Caesar Salad','cost'=>8.00],
@@ -36,6 +33,11 @@ class ItemsSeeder extends Seeder
             ['name' => 'Steak','cost'=>9.00],
             ['name' => 'Tofu','cost'=>5.00],
             ['name' => 'Tuna','cost'=>8.00],
+
+            ['name' => 'Chip N Dip','cost'=>10.00],
+            ['name' => 'Onion Rings','cost'=>4.00],
+            ['name' => 'Seasoned Fries','cost'=>4.00],
+            ['name' => 'Sweet Potato Fries','cost'=>4.00],
         ];
 
         foreach ($items as $item) {
