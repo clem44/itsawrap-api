@@ -19,6 +19,7 @@ class OrderController extends Controller
         security: [["bearerAuth" => []]],
         parameters: [
             new OA\Parameter(name: "status_id", in: "query", required: false, description: "Filter by status", schema: new OA\Schema(type: "integer")),
+            new OA\Parameter(name: "status_ids", in: "query", required: false, description: "Filter by multiple statuses (comma-separated or array)", schema: new OA\Schema(type: "array", items: new OA\Items(type: "integer"))),
             new OA\Parameter(name: "session_id", in: "query", required: false, description: "Filter by cash session", schema: new OA\Schema(type: "integer")),
             new OA\Parameter(name: "customer_id", in: "query", required: false, description: "Filter by customer", schema: new OA\Schema(type: "integer")),
             new OA\Parameter(name: "date", in: "query", required: false, description: "Filter by date (YYYY-MM-DD)", schema: new OA\Schema(type: "string", format: "date"))
@@ -32,7 +33,15 @@ class OrderController extends Controller
     {
         $query = Order::with(['customer', 'status', 'orderItems.item', 'orderItems.orderItemOptions.optionValue']);
 
-        if ($request->has('status_id')) {
+        if ($request->has('status_ids')) {
+            $statusIds = $request->input('status_ids', []);
+            if (is_string($statusIds)) {
+                $statusIds = array_filter(explode(',', $statusIds));
+            }
+            if (is_array($statusIds) && !empty($statusIds)) {
+                $query->whereIn('status_id', $statusIds);
+            }
+        } elseif ($request->has('status_id')) {
             $query->where('status_id', $request->status_id);
         }
 
