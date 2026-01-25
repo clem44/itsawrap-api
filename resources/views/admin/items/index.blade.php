@@ -3,7 +3,10 @@
 @section('title', 'Items')
 @section('header', 'Items')
 
+
+
 @push('scripts')
+
 <script>
     document.addEventListener('alpine:init', () => {
         Alpine.data('itemManager', () => ({
@@ -19,12 +22,13 @@
                 image_path: '{{ old('form_action') === 'edit' ? addslashes(old('image_path', '')) : '' }}',
                 short_code: '{{ old('form_action') === 'edit' ? addslashes(old('short_code', '')) : '' }}',
                 active: {{ old('form_action') === 'edit' ? (old('active') ? 'true' : 'false') : 'false' }},
-                options: {{ old('form_action') === 'edit' && old('options') ? json_encode(old('options')) : '[]' }}
+                options: @js(old('form_action') === 'edit' ? old('options', []) : [])
             },
             editOptionsItem: {
                 id: null,
                 options: []
             },
+            allOptions: @js($allOptions),
             expandedValues: {},
             selectedOptionInModal: null,
             newDependencyOptions: {},
@@ -39,6 +43,7 @@
                 active: false
             },
             editAction: '{{ route('admin.items.update', ['item' => '__ID__']) }}',
+            itemsData: @js($itemsData),
 
             openCreate() {
                 this.createOpen = true;
@@ -80,12 +85,22 @@
                 this.editOpen = false;
             },
 
-            openEditOptions(itemId, itemOptions) {
+            openEditOptions(itemId) {
+                const item = this.itemsData.find((entry) => entry.id === itemId);
+                const normalizedOptions = item ? item.itemOptions : [];
                 this.editOptionsItem = {
                     id: itemId,
-                    options: itemOptions
+                    options: normalizedOptions
                 };
-                this.selectedOptionInModal = itemOptions.length > 0 ? itemOptions[0] : null;
+                const firstPrimaryOption = normalizedOptions.find(option => option.type !== 'dependent');
+                this.selectedOptionInModal = firstPrimaryOption ? firstPrimaryOption.id : null;
+                // Initialize expandedValues for all values
+                this.expandedValues = {};
+                normalizedOptions.forEach(option => {
+                    (option.optionValues || []).forEach(value => {
+                        this.expandedValues[value.id] = false;
+                    });
+                });
                 this.editOptionsOpen = true;
             },
 
@@ -99,6 +114,19 @@
                 if (!this.selectedOptionInModal) return [];
                 const option = this.editOptionsItem.options.find(opt => opt.id === this.selectedOptionInModal);
                 return option ? option.optionValues : [];
+            },
+
+            getVisibleItemOptions() {
+                return (this.editOptionsItem.options || []).filter(option => option.type !== 'dependent');
+            },
+
+            getDependencyOptionValues(parentValueId, childOptionId) {
+                const option = this.editOptionsItem.options.find(opt => opt.id === this.selectedOptionInModal);
+                if (!option) return [];
+                const value = option.optionValues.find(v => v.id === parentValueId);
+                if (!value) return [];
+                const dependency = (value.optionDependencies || []).find(d => d.childOptionId === childOptionId);
+                return dependency ? (dependency.optionValues || []) : [];
             },
 
             toggleValuePanel(valueId) {
@@ -131,7 +159,18 @@
                         }
                         // Add if not already present
                         if (!value.optionDependencies.find(d => d.childOptionId === childOptionId)) {
-                            value.optionDependencies.push({ childOptionId });
+                            const sourceOption = this.allOptions.find(opt => opt.id === parseInt(childOptionId));
+                            value.optionDependencies.push({
+                                childOptionId,
+                                optionValues: sourceOption
+                                    ? sourceOption.optionValues.map(depValue => ({
+                                        id: depValue.id,
+                                        name: depValue.name,
+                                        price: depValue.price,
+                                        itemOptionValueId: null
+                                    }))
+                                    : []
+                            });
                         }
                         this.newDependencyOptions[valueId] = null;
                     }
@@ -149,9 +188,21 @@
             },
 
             getDependencyOptionName(optionId) {
-                const allOptions = this.editOptionsItem.options || [];
-                const depOption = allOptions.find(opt => opt.id === optionId);
+                const depOption = this.allOptions.find(opt => opt.id === parseInt(optionId));
                 return depOption ? depOption.name : 'Unknown';
+            },
+
+            updateDependencyValuePrice(parentValueId, childOptionId, childValueId, newPrice) {
+                const option = this.editOptionsItem.options.find(opt => opt.id === this.selectedOptionInModal);
+                if (!option) return;
+                const value = option.optionValues.find(v => v.id === parentValueId);
+                if (!value) return;
+                const dependency = (value.optionDependencies || []).find(d => d.childOptionId === childOptionId);
+                if (!dependency) return;
+                const childValue = (dependency.optionValues || []).find(v => v.id === childValueId);
+                if (childValue) {
+                    childValue.price = parseFloat(newPrice);
+                }
             },
 
             updateOptionValuePrice(valueId, newPrice) {
@@ -167,11 +218,28 @@
             async saveEditedOptions() {
                 const updatedValues = {};
                 const dependencies = {};
-                this.editOptionsItem.options.forEach(option => {
+                const dependencyValues = {};
+                const dependencyValueOverrides = {};
+                this.getVisibleItemOptions().forEach(option => {
                     option.optionValues.forEach(value => {
                         updatedValues[value.id] = parseFloat(value.price);
                         if (value.optionDependencies && value.optionDependencies.length > 0) {
                             dependencies[value.id] = value.optionDependencies.map(d => d.childOptionId);
+                            value.optionDependencies.forEach(dep => {
+                                if (!dependencyValueOverrides[value.id]) {
+                                    dependencyValueOverrides[value.id] = {};
+                                }
+                                if (!dependencyValueOverrides[value.id][dep.childOptionId]) {
+                                    dependencyValueOverrides[value.id][dep.childOptionId] = {};
+                                }
+                                (dep.optionValues || []).forEach(depValue => {
+                                    if (depValue.itemOptionValueId) {
+                                        dependencyValues[depValue.itemOptionValueId] = parseFloat(depValue.price);
+                                    } else {
+                                        dependencyValueOverrides[value.id][dep.childOptionId][depValue.id] = parseFloat(depValue.price);
+                                    }
+                                });
+                            });
                         }
                     });
                 });
@@ -183,7 +251,12 @@
                             'Content-Type': 'application/json',
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                         },
-                        body: JSON.stringify({ values: updatedValues, dependencies })
+                        body: JSON.stringify({
+                            values: updatedValues,
+                            dependencies,
+                            dependency_values: dependencyValues,
+                            dependency_value_overrides: dependencyValueOverrides
+                        })
                     });
 
                     if (response.ok) {
@@ -239,6 +312,25 @@
         </div>
     </div>
 
+    <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+        <form method="GET" action="{{ route('admin.items.index') }}" class="flex items-center gap-2">
+            <label for="category_filter" class="text-sm font-medium text-gray-700">Category</label>
+            <select
+                id="category_filter"
+                name="category_id"
+                class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)]"
+                onchange="this.form.submit()"
+            >
+                <option value="">All</option>
+                @foreach($categories as $category)
+                    <option value="{{ $category->id }}" @selected(request('category_id') == $category->id)>
+                        {{ $category->name }}
+                    </option>
+                @endforeach
+            </select>
+        </form>
+    </div>
+
     <div class="users-table-container animate-in animate-delay-1">
         <table class="users-table">
             <thead>
@@ -276,7 +368,7 @@
                         <td>
                             <button
                                 type="button"
-                                @click.stop="openEditOptions({{ $item->id }}, @js($item->itemOptions->map(fn($io) => ['id' => $io->option_id, 'name' => $io->option->name, 'optionValues' => $io->option->optionValues->map(fn($ov) => ['id' => $ov->id, 'name' => $ov->name, 'price' => $ov->price, 'optionDependencies' => ($ov->optionDependencies?->map(fn($od) => ['childOptionId' => $od->child_id]) ?? collect())->toArray()])->toArray()])->toArray()))"
+                                @click.stop="openEditOptions({{ $item->id }})"
                                 class="role-badge user cursor-pointer hover:opacity-80 transition-opacity"
                                 title="Click to edit option values"
                             >
@@ -393,6 +485,16 @@
 
                     <!-- Body -->
                     <div class="space-y-6 px-6 py-5 max-h-96 overflow-y-auto">
+                        @if(old('form_action') === 'edit' && $errors->any())
+                            <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                                <p class="font-semibold mb-1">Please fix the following:</p>
+                                <ul class="list-disc pl-5 space-y-1">
+                                    @foreach($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                             <div>
                                 <label class="mb-2 block text-sm font-medium text-gray-900">Item Name</label>
@@ -511,7 +613,7 @@
                                             type="checkbox"
                                             :id="'create_option_' + {{ $option->id }}"
                                             name="options[]"
-                                            :value="{{ $option->id }}"
+                                            value="{{ $option->id }}"
                                             @change="toggleCreateOption({{ $option->id }})"
                                             :checked="createOptions.includes({{ $option->id }})"
                                             class="h-4 w-4 rounded border-gray-300 text-[var(--color-sage)] focus:ring-[var(--color-sage)]"
@@ -605,6 +707,16 @@
 
                     <!-- Body -->
                     <div class="space-y-6 px-6 py-5 max-h-96 overflow-y-auto">
+                        @if(old('form_action') === 'create' && $errors->any())
+                            <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                                <p class="font-semibold mb-1">Please fix the following:</p>
+                                <ul class="list-disc pl-5 space-y-1">
+                                    @foreach($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                             <div>
                                 <label class="mb-2 block text-sm font-medium text-gray-900">Item Name</label>
@@ -718,7 +830,7 @@
                                             type="checkbox"
                                             :id="'edit_option_' + {{ $option->id }}"
                                             name="options[]"
-                                            :value="{{ $option->id }}"
+                                            value="{{ $option->id }}"
                                             @change="toggleEditOption({{ $option->id }})"
                                             :checked="editItem.options.includes({{ $option->id }})"
                                             class="h-4 w-4 rounded border-gray-300 text-[var(--color-sage)] focus:ring-[var(--color-sage)]"
@@ -731,7 +843,6 @@
                                     <p class="text-sm text-gray-500">No options available</p>
                                 @endforelse
                             </div>
-                            <input type="hidden" name="options" :value="JSON.stringify(editItem.options)">
                         </div>
 
                         <div class="flex items-center gap-3">
@@ -776,7 +887,7 @@
                 <div
                     x-show="editOptionsOpen"
                     x-transition.opacity.duration.200ms
-                    class="fixed inset-0 bg-black/60 backdrop-blur-sm"
+                    class="fixed inset-0 bg-black/60 backdrop-blur-sm z-0"
                     @click="closeEditOptions()"
                 ></div>
 
@@ -792,7 +903,7 @@
                     x-transition:leave="ease-in duration-150"
                     x-transition:leave-start="opacity-100 scale-100"
                     x-transition:leave-end="opacity-0 scale-95"
-                    class="relative inline-block w-full max-w-5xl transform overflow-hidden rounded-2xl bg-white text-left align-bottom shadow-xl sm:my-8 sm:align-middle"
+                    class="relative z-10 inline-block w-full max-w-5xl transform overflow-hidden rounded-2xl bg-white text-left align-bottom shadow-xl sm:my-8 sm:align-middle"
                     @click.stop
                 >
                     <!-- Header -->
@@ -811,7 +922,7 @@
                         <div class="col-span-2 overflow-y-auto px-6 py-5">
                             <h3 class="mb-4 text-sm font-semibold text-gray-900">Options</h3>
                             <div class="space-y-2">
-                                <template x-for="option in editOptionsItem.options" :key="option.id">
+                                <template x-for="option in getVisibleItemOptions()" :key="option.id">
                                     <button
                                         type="button"
                                         @click.stop="selectedOptionInModal = option.id"
@@ -858,16 +969,16 @@
                                                         class="w-20 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-sm text-gray-900 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)]"
                                                         placeholder="0.00"
                                                     >
-                                                    <button
+                                                    <a
                                                         type="button"
                                                         @click.stop="console.log('Delete would go here')"
                                                         class="text-gray-400 hover:text-red-600 transition-colors p-1"
-                                                        title="Delete option value"
+                                                        title="Delete value"
                                                     >
                                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                                         </svg>
-                                                    </button>
+                                                    </a>
                                                   
                                                 </div>
                                             </button>
@@ -876,20 +987,38 @@
                                             <div x-show="isValueExpanded(value.id)" x-transition class="border-t border-gray-200 px-3 py-3 bg-gray-50 space-y-3">
                                                 <div>
                                                     <h4 class="text-xs font-semibold text-gray-700 mb-2">Dependent Options</h4>
-                                                    <div class="space-y-2">
+                                                    <div class="space-y-3">
                                                         <template x-for="dep in (value.optionDependencies || [])" :key="dep.childOptionId">
-                                                            <div class="flex items-center justify-between bg-white rounded px-2 py-1.5 text-sm">
-                                                                <span class="text-gray-700" x-text="getDependencyOptionName(dep.childOptionId)"></span>
-                                                                <button
-                                                                    type="button"
-                                                                    @click.stop="removeDependency(value.id, dep.childOptionId)"
-                                                                    class="text-gray-400 hover:text-red-600 transition-colors p-1"
-                                                                    title="Remove dependency"
-                                                                >
-                                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                                                    </svg>
-                                                                </button>
+                                                            <div class="bg-white rounded border border-gray-200 p-2">
+                                                                <div class="flex items-center justify-between mb-2">
+                                                                    <span class="text-sm font-medium text-gray-900" x-text="getDependencyOptionName(dep.childOptionId)"></span>
+                                                                    <button
+                                                                        type="button"
+                                                                        @click.stop="removeDependency(value.id, dep.childOptionId)"
+                                                                        class="text-gray-400 hover:text-red-600 transition-colors p-1"
+                                                                        title="Remove dependency"
+                                                                    >
+                                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                                        </svg>
+                                                                    </button>
+                                                                </div>
+                                                                <div class="space-y-1">
+                                                                    <template x-for="depVal in getDependencyOptionValues(value.id, dep.childOptionId)" :key="depVal.id">
+                                                                        <div class="flex items-center justify-between bg-gray-50 rounded px-2 py-1 text-xs">
+                                                                            <span class="text-gray-700" x-text="depVal.name"></span>
+                                                                            <input
+                                                                                type="number"
+                                                                                step="0.01"
+                                                                                min="0"
+                                                                                :value="depVal.price"
+                                                                                @input.stop="updateDependencyValuePrice(value.id, dep.childOptionId, depVal.id, $event.target.value)"
+                                                                                class="w-16 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-xs text-gray-900 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)]"
+                                                                                placeholder="0.00"
+                                                                            >
+                                                                        </div>
+                                                                    </template>
+                                                                </div>
                                                             </div>
                                                         </template>
                                                     </div>
@@ -911,7 +1040,7 @@
                                                         class="flex-1 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs text-gray-900 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)]"
                                                     >
                                                         <option value="">Select an option</option>
-                                                        <template x-for="opt in editOptionsItem.options" :key="opt.id">
+                                                        <template x-for="opt in allOptions" :key="opt.id">
                                                             <option :value="opt.id" x-text="opt.name"></option>
                                                         </template>
                                                     </select>
@@ -935,7 +1064,7 @@
                         <button type="button" class="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors" @click="closeEditOptions()">
                             Cancel
                         </button>
-                        <button type="button" @click="saveEditedOptions()" class="rounded-lg bg-[var(--color-forest)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--color-forest-dark)] transition-colors">
+                        <button type="button" @click="saveEditedOptions()" class="rounded-lg bg-[var(--color-forest)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--color-forest-light)] transition-colors">
                             Save Changes
                         </button>
                     </div>

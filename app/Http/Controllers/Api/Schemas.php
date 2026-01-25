@@ -65,6 +65,9 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: "range", type: "integer", example: 0),
         new OA\Property(property: "max", type: "integer", nullable: true, example: 2),
         new OA\Property(property: "min", type: "integer", nullable: true, example: 0),
+        new OA\Property(property: "item", ref: "#/components/schemas/Item"),
+        new OA\Property(property: "option", ref: "#/components/schemas/Option"),
+        new OA\Property(property: "item_option_values", type: "array", items: new OA\Items(ref: "#/components/schemas/ItemOptionValue")),
         new OA\Property(property: "created_at", type: "string", format: "date-time"),
         new OA\Property(property: "updated_at", type: "string", format: "date-time"),
     ]
@@ -78,6 +81,19 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: "price", type: "number", format: "float", example: 0.50),
         new OA\Property(property: "in_stock", type: "boolean", example: true),
         new OA\Property(property: "option_dependency_id", type: "integer", nullable: true, example: 2),
+        new OA\Property(property: "option_dependency", ref: "#/components/schemas/OptionDependency"),
+        new OA\Property(property: "created_at", type: "string", format: "date-time"),
+        new OA\Property(property: "updated_at", type: "string", format: "date-time"),
+    ]
+)]
+#[OA\Schema(
+    schema: "OptionDependency",
+    properties: [
+        new OA\Property(property: "id", type: "integer", example: 1),
+        new OA\Property(property: "parent_option_value_id", type: "integer", example: 10),
+        new OA\Property(property: "child_option_id", type: "integer", example: 5),
+        new OA\Property(property: "parent_option_value", ref: "#/components/schemas/ItemOptionValue"),
+        new OA\Property(property: "child_option", ref: "#/components/schemas/ItemOption"),
         new OA\Property(property: "created_at", type: "string", format: "date-time"),
         new OA\Property(property: "updated_at", type: "string", format: "date-time"),
     ]

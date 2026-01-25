@@ -41,4 +41,13 @@ class ItemOptionValue extends Model
     {
         return $this->hasMany(OptionDependency::class, 'parent_option_value_id');
     }
+
+    /**
+     * The option dependency that this value triggers (if any).
+     * When selected, this dependency's child option becomes visible.
+     */
+    public function optionDependency(): BelongsTo
+    {
+        return $this->belongsTo(OptionDependency::class, 'option_dependency_id');
+    }
 }

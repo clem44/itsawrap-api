@@ -27,7 +27,7 @@ class BranchController extends Controller
             'name' => 'required|string|max:255',
             'address' => 'nullable|string|max:500',
             'phone' => 'nullable|string|max:20',
-            'active' => 'nullable|boolean',
+            'active' => 'nullable',
         ]);
 
         // Handle checkbox value

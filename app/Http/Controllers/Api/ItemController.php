@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Item;
 use App\Models\ItemOption;
 use App\Models\ItemOptionValue;
+use App\Models\OptionDependency;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -34,7 +35,14 @@ class ItemController extends Controller
     )]
     public function index(Request $request): JsonResponse
     {
-        $query = Item::with(['category', 'taxes', 'itemOptions.option', 'itemOptions.itemOptionValues.optionValue']);
+        $query = Item::with([
+            'category',
+            'taxes',
+            'itemOptions.option',
+            'itemOptions.itemOptionValues.optionValue',
+            'itemOptions.itemOptionValues.optionDependency.childOption.option',
+            'itemOptions.itemOptionValues.optionDependency.childOption.itemOptionValues.optionValue',
+        ]);
 
         if ($request->has('category_id')) {
             $query->where('category_id', $request->category_id);
@@ -114,7 +122,14 @@ class ItemController extends Controller
     public function show(Item $item): JsonResponse
     {
         return response()->json(
-            $item->load(['category', 'taxes', 'itemOptions.option', 'itemOptions.itemOptionValues.optionValue'])
+            $item->load([
+                'category',
+                'taxes',
+                'itemOptions.option',
+                'itemOptions.itemOptionValues.optionValue',
+                'itemOptions.itemOptionValues.optionDependency.childOption.option',
+                'itemOptions.itemOptionValues.optionDependency.childOption.itemOptionValues.optionValue',
+            ])
         );
     }
 
@@ -195,7 +210,7 @@ class ItemController extends Controller
     #[OA\Post(
         path: "/items/{id}/options",
         summary: "Sync item options",
-        description: "Replace all item options for an item in a single batch operation. Deletes existing options and creates new ones.",
+        description: "Replace all item options for an item in a single batch operation. Deletes existing options and creates new ones. Dependencies are scoped per parent ItemOptionValue; each dependency creates a dependent ItemOption linked to that parent value.",
         tags: ["Items"],
         security: [["bearerAuth" => []]],
         parameters: [
@@ -226,6 +241,25 @@ class ItemController extends Controller
                                             new OA\Property(property: "price", type: "number", example: 1.50),
                                             new OA\Property(property: "in_stock", type: "boolean", example: true),
                                             new OA\Property(property: "option_dependency_id", type: "integer", nullable: true),
+                                            new OA\Property(
+                                                property: "dependency",
+                                                type: "object",
+                                                nullable: true,
+                                                description: "Nested dependency for this parent value. API creates a dependent ItemOption per parent value and an OptionDependency link.",
+                                                properties: [
+                                                    new OA\Property(property: "child_option_id", type: "integer", description: "The Option ID to use for the dependent ItemOption"),
+                                                    new OA\Property(
+                                                        property: "child_values",
+                                                        type: "array",
+                                                        items: new OA\Items(
+                                                            properties: [
+                                                                new OA\Property(property: "option_value_id", type: "integer"),
+                                                                new OA\Property(property: "price", type: "number", description: "Override price for the dependent ItemOptionValue"),
+                                                            ]
+                                                        )
+                                                    ),
+                                                ]
+                                            ),
                                         ]
                                     )
                                 ),
@@ -252,7 +286,7 @@ class ItemController extends Controller
             'options' => 'required|array',
             'options.*.option_id' => 'required|exists:options,id',
             'options.*.required' => 'boolean',
-            'options.*.type' => 'string|in:single,multiple',
+            'options.*.type' => 'string|in:single,multiple,dependent',
             'options.*.range' => 'integer|min:0',
             'options.*.max' => 'nullable|integer|min:0',
             'options.*.min' => 'nullable|integer|min:0',
@@ -261,9 +295,21 @@ class ItemController extends Controller
             'options.*.values.*.price' => 'nullable|numeric',
             'options.*.values.*.in_stock' => 'boolean',
             'options.*.values.*.option_dependency_id' => 'nullable|exists:option_dependencies,id',
+            // Nested dependency object - API creates dependent ItemOption and OptionDependency
+            'options.*.values.*.dependency' => 'nullable|array',
+            'options.*.values.*.dependency.child_option_id' => 'required_with:options.*.values.*.dependency|exists:options,id',
+            'options.*.values.*.dependency.child_values' => 'nullable|array',
+            'options.*.values.*.dependency.child_values.*.option_value_id' => 'required|exists:option_values,id',
+            'options.*.values.*.dependency.child_values.*.price' => 'nullable|numeric',
         ]);
 
         $createdOptions = DB::transaction(function () use ($item, $validated) {
+            // Delete existing option dependencies that reference this item's options
+            $existingOptionIds = $item->itemOptions()->pluck('id')->toArray();
+            if (!empty($existingOptionIds)) {
+                OptionDependency::whereIn('child_option_id', $existingOptionIds)->delete();
+            }
+
             // Delete existing item options (cascades to item_option_values via FK)
             $item->itemOptions()->delete();
 
@@ -282,13 +328,57 @@ class ItemController extends Controller
 
                 if (!empty($optionData['values'])) {
                     foreach ($optionData['values'] as $valueData) {
-                        ItemOptionValue::create([
+                        // Create the parent ItemOptionValue first
+                        $itemOptionValue = ItemOptionValue::create([
                             'item_option_id' => $itemOption->id,
                             'option_value_id' => $valueData['option_value_id'],
                             'price' => $valueData['price'] ?? null,
                             'in_stock' => $valueData['in_stock'] ?? true,
                             'option_dependency_id' => $valueData['option_dependency_id'] ?? null,
                         ]);
+
+                        // If this value has a nested dependency, create the dependent ItemOption and OptionDependency
+                        if (!empty($valueData['dependency'])) {
+                            $dependencyData = $valueData['dependency'];
+
+                            // Create the dependent ItemOption with type 'dependent'
+                            $dependentItemOption = ItemOption::create([
+                                'item_id' => $item->id,
+                                'option_id' => $dependencyData['child_option_id'],
+                                'required' => false,
+                                'type' => 'dependent',
+                                'range' => 0,
+                                'max' => null,
+                                'min' => null,
+                            ]);
+
+                            // Create ItemOptionValues for the dependent option's values
+                            if (!empty($dependencyData['child_values'])) {
+                                foreach ($dependencyData['child_values'] as $childValueData) {
+                                    ItemOptionValue::create([
+                                        'item_option_id' => $dependentItemOption->id,
+                                        'option_value_id' => $childValueData['option_value_id'],
+                                        'price' => $childValueData['price'] ?? 0,
+                                        'in_stock' => true,
+                                        'option_dependency_id' => null,
+                                    ]);
+                                }
+                            }
+
+                            // Create the OptionDependency record linking parent value to child option
+                            $optionDependency = OptionDependency::create([
+                                'parent_option_value_id' => $itemOptionValue->id,
+                                'child_option_id' => $dependentItemOption->id,
+                            ]);
+
+                            // Update the parent ItemOptionValue with the dependency ID
+                            $itemOptionValue->update([
+                                'option_dependency_id' => $optionDependency->id,
+                            ]);
+
+                            // Add the dependent option to created options list
+                            $createdOptions[] = $dependentItemOption;
+                        }
                     }
                 }
 
@@ -298,8 +388,13 @@ class ItemController extends Controller
             return $createdOptions;
         });
 
-        // Load relationships and return
-        $itemOptions = ItemOption::with(['option', 'itemOptionValues.optionValue'])
+        // Load relationships including dependencies and return
+        $itemOptions = ItemOption::with([
+            'option',
+            'itemOptionValues.optionValue',
+            'itemOptionValues.optionDependency.childOption.option',
+            'itemOptionValues.optionDependency.childOption.itemOptionValues.optionValue',
+        ])
             ->whereIn('id', array_map(fn($o) => $o->id, $createdOptions))
             ->get();
 

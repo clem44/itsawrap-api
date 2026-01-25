@@ -26,7 +26,12 @@ class ItemOptionController extends Controller
     )]
     public function index(Request $request): JsonResponse
     {
-        $query = ItemOption::with(['item', 'option', 'itemOptionValues.optionValue']);
+        $query = ItemOption::with([
+            'item',
+            'option',
+            'itemOptionValues.optionValue',
+            'itemOptionValues.optionDependency.childOption',
+        ]);
 
         if ($request->has('item_id')) {
             $query->where('item_id', $request->item_id);
@@ -76,7 +81,12 @@ class ItemOptionController extends Controller
 
         $itemOption = ItemOption::create($validated);
 
-        return response()->json($itemOption->load(['item', 'option']), 201);
+        return response()->json($itemOption->load([
+            'item',
+            'option',
+            'itemOptionValues.optionValue',
+            'itemOptionValues.optionDependency.childOption',
+        ]), 201);
     }
 
     #[OA\Get(
@@ -96,7 +106,12 @@ class ItemOptionController extends Controller
     )]
     public function show(ItemOption $itemOption): JsonResponse
     {
-        return response()->json($itemOption->load(['item', 'option', 'itemOptionValues.optionValue']));
+        return response()->json($itemOption->load([
+            'item',
+            'option',
+            'itemOptionValues.optionValue',
+            'itemOptionValues.optionDependency.childOption',
+        ]));
     }
 
     #[OA\Put(
@@ -139,7 +154,12 @@ class ItemOptionController extends Controller
 
         $itemOption->update($validated);
 
-        return response()->json($itemOption->load(['item', 'option']));
+        return response()->json($itemOption->load([
+            'item',
+            'option',
+            'itemOptionValues.optionValue',
+            'itemOptionValues.optionDependency.childOption',
+        ]));
     }
 
     #[OA\Delete(

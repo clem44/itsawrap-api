@@ -1647,6 +1647,159 @@
                 ]
             }
         },
+        "/items/{id}/options": {
+            "post": {
+                "tags": [
+                    "Items"
+                ],
+                "summary": "Sync item options",
+                "description": "Replace all item options for an item in a single batch operation. Deletes existing options and creates new ones. Dependencies are scoped per parent ItemOptionValue; each dependency creates a dependent ItemOption linked to that parent value.",
+                "operationId": "c45ccf2ef75d7d3ef98b8aeda0138881",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Item ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "options"
+                                ],
+                                "properties": {
+                                    "options": {
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "option_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "required": {
+                                                    "type": "boolean",
+                                                    "example": false
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "single",
+                                                        "multiple"
+                                                    ],
+                                                    "example": "single"
+                                                },
+                                                "range": {
+                                                    "type": "integer",
+                                                    "example": 0
+                                                },
+                                                "max": {
+                                                    "type": "integer",
+                                                    "example": 2,
+                                                    "nullable": true
+                                                },
+                                                "min": {
+                                                    "type": "integer",
+                                                    "example": 0,
+                                                    "nullable": true
+                                                },
+                                                "values": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "option_value_id": {
+                                                                "type": "integer",
+                                                                "example": 1
+                                                            },
+                                                            "price": {
+                                                                "type": "number",
+                                                                "example": 1.5
+                                                            },
+                                                            "in_stock": {
+                                                                "type": "boolean",
+                                                                "example": true
+                                                            },
+                                                            "option_dependency_id": {
+                                                                "type": "integer",
+                                                                "nullable": true
+                                                            },
+                                                            "dependency": {
+                                                                "description": "Nested dependency for this parent value. API creates a dependent ItemOption per parent value and an OptionDependency link.",
+                                                                "properties": {
+                                                                    "child_option_id": {
+                                                                        "description": "The Option ID to use for the dependent ItemOption",
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "child_values": {
+                                                                        "type": "array",
+                                                                        "items": {
+                                                                            "properties": {
+                                                                                "option_value_id": {
+                                                                                    "type": "integer"
+                                                                                },
+                                                                                "price": {
+                                                                                    "description": "Override price for the dependent ItemOptionValue",
+                                                                                    "type": "number"
+                                                                                }
+                                                                            },
+                                                                            "type": "object"
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "type": "object",
+                                                                "nullable": true
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Item options synced",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ItemOption"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Item not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/item-options": {
             "get": {
                 "tags": [
