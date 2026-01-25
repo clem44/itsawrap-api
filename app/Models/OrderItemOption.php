@@ -14,12 +14,14 @@ class OrderItemOption extends Model
         'order_item_id',
         'option_value_id',
         'price',
+        'qty',
     ];
 
     protected function casts(): array
     {
         return [
             'price' => 'decimal:2',
+            'qty' => 'integer',
         ];
     }
 

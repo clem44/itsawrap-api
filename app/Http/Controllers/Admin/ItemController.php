@@ -11,6 +11,7 @@ use App\Models\OptionDependency;
 use App\Models\ItemOption;
 use App\Models\ItemOptionValue;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
@@ -54,8 +55,10 @@ class ItemController extends Controller
             'id' => $item->id,
             'itemOptions' => $item->itemOptions->map(fn($io) => [
                 'id' => $io->option_id,
+                'itemOptionId' => $io->id,
                 'name' => $io->option->name,
                 'type' => $io->type,
+                'enable_qty' => (bool) $io->enable_qty,
                 'optionValues' => $io->option->optionValues->map(function ($ov) use ($io) {
                     $itemOptionValue = $io->itemOptionValues->firstWhere('option_value_id', $ov->id);
 
@@ -317,6 +320,41 @@ class ItemController extends Controller
             ->where('type', 'dependent')
             ->whereDoesntHave('childDependencies')
             ->delete();
+
+        return response()->json(['success' => true]);
+    }
+
+    public function updateItemOptionQty(Request $request, Item $item, ItemOption $itemOption): JsonResponse
+    {
+        if ($itemOption->item_id !== $item->id) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'enable_qty' => 'required|boolean',
+        ]);
+
+        $itemOption->update([
+            'enable_qty' => (bool) $validated['enable_qty'],
+        ]);
+
+        if (!$itemOption->enable_qty) {
+            $itemOption->itemOptionValues()->update(['qty' => null]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'enable_qty' => $itemOption->enable_qty,
+        ]);
+    }
+
+    public function destroyItemOption(Item $item, ItemOption $itemOption): JsonResponse
+    {
+        if ($itemOption->item_id !== $item->id) {
+            abort(404);
+        }
+
+        $itemOption->delete();
 
         return response()->json(['success' => true]);
     }

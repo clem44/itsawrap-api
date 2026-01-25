@@ -164,6 +164,7 @@ Order status lookup.
 - order_item_id (INTEGER, FK -> order_items.id)
 - option_value_id (INTEGER, FK -> option_values.id)
 - price (REAL, default 0)
+- qty (INTEGER, nullable)
 
 ### payments
 - id

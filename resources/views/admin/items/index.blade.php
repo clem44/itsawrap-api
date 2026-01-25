@@ -29,6 +29,7 @@
                 options: []
             },
             allOptions: @js($allOptions),
+            expandedOptions: {},
             expandedValues: {},
             selectedOptionInModal: null,
             newDependencyOptions: {},
@@ -43,6 +44,7 @@
                 active: false
             },
             editAction: '{{ route('admin.items.update', ['item' => '__ID__']) }}',
+            itemOptionRoute: '{{ url('/admin/items/__ITEM__/item-options/__ITEM_OPTION__') }}',
             itemsData: @js($itemsData),
 
             openCreate() {
@@ -94,13 +96,18 @@
                 };
                 const firstPrimaryOption = normalizedOptions.find(option => option.type !== 'dependent');
                 this.selectedOptionInModal = firstPrimaryOption ? firstPrimaryOption.id : null;
+                this.expandedOptions = {};
                 // Initialize expandedValues for all values
                 this.expandedValues = {};
                 normalizedOptions.forEach(option => {
+                    this.expandedOptions[option.id] = false;
                     (option.optionValues || []).forEach(value => {
                         this.expandedValues[value.id] = false;
                     });
                 });
+                if (firstPrimaryOption) {
+                    this.expandedOptions[firstPrimaryOption.id] = true;
+                }
                 this.editOptionsOpen = true;
             },
 
@@ -138,6 +145,83 @@
 
             isValueExpanded(valueId) {
                 return this.expandedValues[valueId] === true;
+            },
+
+            toggleOptionPanel(optionId) {
+                this.expandedOptions = {
+                    ...this.expandedOptions,
+                    [optionId]: !this.expandedOptions[optionId]
+                };
+                this.selectedOptionInModal = optionId;
+            },
+
+            isOptionExpanded(optionId) {
+                return this.expandedOptions[optionId] === true;
+            },
+
+            async updateOptionEnableQty(option, enabled) {
+                const previous = option.enable_qty;
+                option.enable_qty = enabled;
+                try {
+                    const response = await fetch(
+                        this.itemOptionRoute
+                            .replace('__ITEM__', this.editOptionsItem.id)
+                            .replace('__ITEM_OPTION__', option.itemOptionId),
+                        {
+                            method: 'PATCH',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            },
+                            body: JSON.stringify({
+                                enable_qty: enabled
+                            })
+                        }
+                    );
+
+                    if (!response.ok) {
+                        option.enable_qty = previous;
+                        alert('Failed to update quantity setting. Please try again.');
+                    }
+                } catch (error) {
+                    option.enable_qty = previous;
+                    console.error('Error updating item option:', error);
+                    alert('Failed to update quantity setting. Please try again.');
+                }
+            },
+
+            async deleteItemOption(option) {
+                if (!confirm('Delete this item option? This will remove its option values and dependencies.')) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(
+                        this.itemOptionRoute
+                            .replace('__ITEM__', this.editOptionsItem.id)
+                            .replace('__ITEM_OPTION__', option.itemOptionId),
+                        {
+                            method: 'DELETE',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            }
+                        }
+                    );
+
+                    if (response.ok) {
+                        this.editOptionsItem.options = this.editOptionsItem.options.filter(opt => opt.id !== option.id);
+                        delete this.expandedOptions[option.id];
+                        if (this.selectedOptionInModal === option.id) {
+                            const fallback = this.getVisibleItemOptions()[0];
+                            this.selectedOptionInModal = fallback ? fallback.id : null;
+                        }
+                    } else {
+                        alert('Failed to delete item option. Please try again.');
+                    }
+                } catch (error) {
+                    console.error('Error deleting item option:', error);
+                    alert('Failed to delete item option. Please try again.');
+                }
             },
 
             initializeDependencies() {
@@ -923,17 +1007,48 @@
                             <h3 class="mb-4 text-sm font-semibold text-gray-900">Options</h3>
                             <div class="space-y-2">
                                 <template x-for="option in getVisibleItemOptions()" :key="option.id">
-                                    <button
-                                        type="button"
-                                        @click.stop="selectedOptionInModal = option.id"
-                                        :class="{
-                                            'bg-[var(--color-sage)] text-white': selectedOptionInModal === option.id,
-                                            'bg-gray-100 text-gray-900 hover:bg-gray-200': selectedOptionInModal !== option.id
-                                        }"
-                                        class="w-full text-left rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
-                                    >
-                                        <span x-text="option.name"></span>
-                                    </button>
+                                    <div class="border border-gray-200 rounded-lg overflow-hidden">
+                                        <button
+                                            type="button"
+                                            @click.stop="toggleOptionPanel(option.id)"
+                                            :class="{
+                                                'bg-[var(--color-sage)] text-white': selectedOptionInModal === option.id,
+                                                'bg-gray-100 text-gray-900 hover:bg-gray-200': selectedOptionInModal !== option.id
+                                            }"
+                                            class="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium transition-colors"
+                                        >
+                                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-90': isOptionExpanded(option.id) }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                            </svg>
+                                            <span class="flex-1 text-left" x-text="option.name"></span>
+                                        </button>
+                                        <div x-show="isOptionExpanded(option.id)" x-transition class="border-t border-gray-200 bg-white px-3 py-3 space-y-3">
+                                            <div class="flex items-center justify-between gap-2">
+                                                <span class="text-xs font-semibold text-gray-700">Enable quantity</span>
+                                                <label class="inline-flex items-center cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        class="sr-only peer"
+                                                        :checked="option.enable_qty"
+                                                        @change="updateOptionEnableQty(option, $event.target.checked)"
+                                                    >
+                                                    <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[var(--color-sage)] rounded-full peer peer-checked:bg-[var(--color-sage)] relative transition-colors">
+                                                        <div class="absolute top-0.5 left-0.5 h-4 w-4 bg-white rounded-full transition-transform peer-checked:translate-x-4"></div>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                @click.stop="deleteItemOption(option)"
+                                                class="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors"
+                                            >
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                </svg>
+                                                Delete option
+                                            </button>
+                                        </div>
+                                    </div>
                                 </template>
                             </div>
                         </div>
