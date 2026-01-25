@@ -41,8 +41,8 @@ class ItemController extends Controller
             'taxes',
             'itemOptions.option',
             'itemOptions.itemOptionValues.optionValue',
-            // 'itemOptions.itemOptionValues.optionDependency.childOption.option',
-            // 'itemOptions.itemOptionValues.optionDependency.childOption.itemOptionValues.optionValue',
+            'itemOptions.itemOptionValues.optionDependency.childOption.option',
+            'itemOptions.itemOptionValues.optionDependency.childOption.itemOptionValues.optionValue',
         ]);
 
         if ($request->has('category_id')) {

@@ -30,7 +30,7 @@ class ItemOptionController extends Controller
             'item',
             'option',
             'itemOptionValues.optionValue',
-            'itemOptionValues.optionDependency.childOption',
+            'itemOptionValues.optionDependency.childOption.option',
             'itemOptionValues.optionDependency.childOption.itemOptionValues.optionValue',
         ]);
 
