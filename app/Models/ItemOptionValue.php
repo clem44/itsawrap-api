@@ -16,6 +16,7 @@ class ItemOptionValue extends Model
         'option_value_id',
         'price',
         'in_stock',
+        'qty',
         'option_dependency_id',
     ];
 
@@ -24,6 +25,7 @@ class ItemOptionValue extends Model
         return [
             'price' => 'decimal:2',
             'in_stock' => 'boolean',
+            'qty' => 'integer',
         ];
     }
 

@@ -1709,6 +1709,15 @@
                                                     "example": 0,
                                                     "nullable": true
                                                 },
+                                                "qty": {
+                                                    "type": "integer",
+                                                    "example": 1,
+                                                    "nullable": true
+                                                },
+                                                "enable_qty": {
+                                                    "type": "boolean",
+                                                    "example": false
+                                                },
                                                 "values": {
                                                     "type": "array",
                                                     "items": {
@@ -1893,6 +1902,15 @@
                                         "type": "integer",
                                         "example": 0,
                                         "nullable": true
+                                    },
+                                    "qty": {
+                                        "type": "integer",
+                                        "example": 1,
+                                        "nullable": true
+                                    },
+                                    "enable_qty": {
+                                        "type": "boolean",
+                                        "example": false
                                     }
                                 },
                                 "type": "object"
@@ -2012,6 +2030,13 @@
                                     "min": {
                                         "type": "integer",
                                         "nullable": true
+                                    },
+                                    "qty": {
+                                        "type": "integer",
+                                        "nullable": true
+                                    },
+                                    "enable_qty": {
+                                        "type": "boolean"
                                     }
                                 },
                                 "type": "object"
@@ -2569,6 +2594,256 @@
                     },
                     "404": {
                         "description": "Option not found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/option-dependencies": {
+            "get": {
+                "tags": [
+                    "Option Dependencies"
+                ],
+                "summary": "List option dependencies",
+                "description": "Get all option dependencies, optionally filtered by parent or child",
+                "operationId": "33fbd76f22024fe96323b60fe2164f72",
+                "parameters": [
+                    {
+                        "name": "parent_option_value_id",
+                        "in": "query",
+                        "description": "Filter by parent ItemOptionValue ID",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "child_option_id",
+                        "in": "query",
+                        "description": "Filter by child ItemOption ID",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of option dependencies",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/OptionDependency"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Option Dependencies"
+                ],
+                "summary": "Create an option dependency",
+                "description": "Create a dependency between a parent ItemOptionValue and a child ItemOption",
+                "operationId": "ff85464bbcac4a27431f696ad704c94f",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "parent_option_value_id",
+                                    "child_option_id"
+                                ],
+                                "properties": {
+                                    "parent_option_value_id": {
+                                        "type": "integer",
+                                        "example": 10
+                                    },
+                                    "child_option_id": {
+                                        "type": "integer",
+                                        "example": 5
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Option dependency created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OptionDependency"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/option-dependencies/{id}": {
+            "get": {
+                "tags": [
+                    "Option Dependencies"
+                ],
+                "summary": "Get an option dependency",
+                "description": "Get a single option dependency with relationships",
+                "operationId": "bade39cc1ca2501dfbf954608f0ee7c3",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Option dependency ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Option dependency details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OptionDependency"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Option dependency not found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Option Dependencies"
+                ],
+                "summary": "Update an option dependency",
+                "description": "Update an existing option dependency",
+                "operationId": "254896ff67df237cbdda4f28d8e95c69",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Option dependency ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "parent_option_value_id": {
+                                        "type": "integer"
+                                    },
+                                    "child_option_id": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Option dependency updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OptionDependency"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Option dependency not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Option Dependencies"
+                ],
+                "summary": "Delete an option dependency",
+                "description": "Delete an option dependency",
+                "operationId": "8e4495006b2ad6f6eb013c801e122fbd",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Option dependency ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Option dependency deleted"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Option dependency not found"
                     }
                 },
                 "security": [
@@ -4827,6 +5102,27 @@
                         "example": 0,
                         "nullable": true
                     },
+                    "qty": {
+                        "type": "integer",
+                        "example": 1,
+                        "nullable": true
+                    },
+                    "enable_qty": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "item": {
+                        "$ref": "#/components/schemas/Item"
+                    },
+                    "option": {
+                        "$ref": "#/components/schemas/Option"
+                    },
+                    "item_option_values": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ItemOptionValue"
+                        }
+                    },
                     "created_at": {
                         "type": "string",
                         "format": "date-time"
@@ -4865,6 +5161,40 @@
                         "type": "integer",
                         "example": 2,
                         "nullable": true
+                    },
+                    "option_dependency": {
+                        "$ref": "#/components/schemas/OptionDependency"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "OptionDependency": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "parent_option_value_id": {
+                        "type": "integer",
+                        "example": 10
+                    },
+                    "child_option_id": {
+                        "type": "integer",
+                        "example": 5
+                    },
+                    "parent_option_value": {
+                        "$ref": "#/components/schemas/ItemOptionValue"
+                    },
+                    "child_option": {
+                        "$ref": "#/components/schemas/ItemOption"
                     },
                     "created_at": {
                         "type": "string",
@@ -5409,6 +5739,10 @@
         {
             "name": "Item Option Values",
             "description": "Item Option Values"
+        },
+        {
+            "name": "Option Dependencies",
+            "description": "Option Dependencies"
         },
         {
             "name": "Option Values",

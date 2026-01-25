@@ -19,6 +19,8 @@ class ItemOption extends Model
         'range',
         'max',
         'min',
+        'qty',
+        'enable_qty',
     ];
 
     protected function casts(): array
@@ -28,6 +30,8 @@ class ItemOption extends Model
             'range' => 'integer',
             'max' => 'integer',
             'min' => 'integer',
+            'qty' => 'integer',
+            'enable_qty' => 'boolean',
         ];
     }
 

@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ItemOption;
 use App\Models\ItemOptionValue;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use OpenApi\Attributes as OA;
 
 class ItemOptionValueController extends Controller
@@ -50,6 +52,7 @@ class ItemOptionValueController extends Controller
                     new OA\Property(property: "option_value_id", type: "integer", example: 1),
                     new OA\Property(property: "price", type: "number", example: 0.50),
                     new OA\Property(property: "in_stock", type: "boolean", example: true),
+                    new OA\Property(property: "qty", type: "integer", nullable: true, example: 1),
                     new OA\Property(property: "option_dependency_id", type: "integer", nullable: true, example: 2),
                 ]
             )
@@ -62,13 +65,25 @@ class ItemOptionValueController extends Controller
     )]
     public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'item_option_id' => 'required|exists:item_options,id',
             'option_value_id' => 'required|exists:option_values,id',
             'price' => 'numeric|min:0',
             'in_stock' => 'boolean',
+            'qty' => 'nullable|integer|min:0',
             'option_dependency_id' => 'nullable|integer',
         ]);
+
+        $validator->after(function ($validator) use ($request) {
+            if ($request->filled('qty')) {
+                $enableQty = ItemOption::whereKey($request->input('item_option_id'))->value('enable_qty');
+                if (!$enableQty) {
+                    $validator->errors()->add('qty', 'Quantity is only allowed when the parent item option has enable_qty set to true.');
+                }
+            }
+        });
+
+        $validated = $validator->validate();
 
         $itemOptionValue = ItemOptionValue::create($validated);
 
@@ -110,6 +125,7 @@ class ItemOptionValueController extends Controller
                 properties: [
                     new OA\Property(property: "price", type: "number"),
                     new OA\Property(property: "in_stock", type: "boolean"),
+                    new OA\Property(property: "qty", type: "integer", nullable: true),
                     new OA\Property(property: "option_dependency_id", type: "integer", nullable: true),
                 ]
             )
@@ -123,11 +139,23 @@ class ItemOptionValueController extends Controller
     )]
     public function update(Request $request, ItemOptionValue $itemOptionValue): JsonResponse
     {
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'price' => 'numeric|min:0',
             'in_stock' => 'boolean',
+            'qty' => 'nullable|integer|min:0',
             'option_dependency_id' => 'nullable|integer',
         ]);
+
+        $validator->after(function ($validator) use ($request, $itemOptionValue) {
+            if ($request->filled('qty')) {
+                $itemOptionValue->loadMissing('itemOption');
+                if (!$itemOptionValue->itemOption?->enable_qty) {
+                    $validator->errors()->add('qty', 'Quantity is only allowed when the parent item option has enable_qty set to true.');
+                }
+            }
+        });
+
+        $validated = $validator->validate();
 
         $itemOptionValue->update($validated);
 

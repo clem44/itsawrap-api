@@ -31,6 +31,7 @@ class ItemOptionController extends Controller
             'option',
             'itemOptionValues.optionValue',
             'itemOptionValues.optionDependency.childOption',
+            'itemOptionValues.optionDependency.childOption.itemOptionValues.optionValue',
         ]);
 
         if ($request->has('item_id')) {
@@ -58,6 +59,8 @@ class ItemOptionController extends Controller
                     new OA\Property(property: "range", type: "integer", example: 0),
                     new OA\Property(property: "max", type: "integer", nullable: true, example: 2),
                     new OA\Property(property: "min", type: "integer", nullable: true, example: 0),
+                    new OA\Property(property: "qty", type: "integer", nullable: true, example: 1),
+                    new OA\Property(property: "enable_qty", type: "boolean", example: false),
                 ]
             )
         ),
@@ -77,6 +80,8 @@ class ItemOptionController extends Controller
             'range' => 'integer|min:0',
             'max' => 'nullable|integer|min:0',
             'min' => 'nullable|integer|min:0',
+            'qty' => 'nullable|integer|min:0',
+            'enable_qty' => 'boolean',
         ]);
 
         $itemOption = ItemOption::create($validated);
@@ -132,6 +137,8 @@ class ItemOptionController extends Controller
                     new OA\Property(property: "range", type: "integer"),
                     new OA\Property(property: "max", type: "integer", nullable: true),
                     new OA\Property(property: "min", type: "integer", nullable: true),
+                    new OA\Property(property: "qty", type: "integer", nullable: true),
+                    new OA\Property(property: "enable_qty", type: "boolean"),
                 ]
             )
         ),
@@ -150,6 +157,8 @@ class ItemOptionController extends Controller
             'range' => 'integer|min:0',
             'max' => 'nullable|integer|min:0',
             'min' => 'nullable|integer|min:0',
+            'qty' => 'nullable|integer|min:0',
+            'enable_qty' => 'boolean',
         ]);
 
         $itemOption->update($validated);

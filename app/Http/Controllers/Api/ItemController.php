@@ -10,6 +10,7 @@ use App\Models\OptionDependency;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use OpenApi\Attributes as OA;
 
 class ItemController extends Controller
@@ -40,8 +41,8 @@ class ItemController extends Controller
             'taxes',
             'itemOptions.option',
             'itemOptions.itemOptionValues.optionValue',
-            'itemOptions.itemOptionValues.optionDependency.childOption.option',
-            'itemOptions.itemOptionValues.optionDependency.childOption.itemOptionValues.optionValue',
+            // 'itemOptions.itemOptionValues.optionDependency.childOption.option',
+            // 'itemOptions.itemOptionValues.optionDependency.childOption.itemOptionValues.optionValue',
         ]);
 
         if ($request->has('category_id')) {
@@ -232,6 +233,8 @@ class ItemController extends Controller
                                 new OA\Property(property: "range", type: "integer", example: 0),
                                 new OA\Property(property: "max", type: "integer", nullable: true, example: 2),
                                 new OA\Property(property: "min", type: "integer", nullable: true, example: 0),
+                                new OA\Property(property: "qty", type: "integer", nullable: true, example: 1),
+                                new OA\Property(property: "enable_qty", type: "boolean", example: false),
                                 new OA\Property(
                                     property: "values",
                                     type: "array",
@@ -240,6 +243,7 @@ class ItemController extends Controller
                                             new OA\Property(property: "option_value_id", type: "integer", example: 1),
                                             new OA\Property(property: "price", type: "number", example: 1.50),
                                             new OA\Property(property: "in_stock", type: "boolean", example: true),
+                                            new OA\Property(property: "qty", type: "integer", nullable: true, example: 1),
                                             new OA\Property(property: "option_dependency_id", type: "integer", nullable: true),
                                             new OA\Property(
                                                 property: "dependency",
@@ -282,7 +286,7 @@ class ItemController extends Controller
     )]
     public function syncOptions(Request $request, Item $item): JsonResponse
     {
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'options' => 'required|array',
             'options.*.option_id' => 'required|exists:options,id',
             'options.*.required' => 'boolean',
@@ -290,10 +294,13 @@ class ItemController extends Controller
             'options.*.range' => 'integer|min:0',
             'options.*.max' => 'nullable|integer|min:0',
             'options.*.min' => 'nullable|integer|min:0',
+            'options.*.qty' => 'nullable|integer|min:0',
+            'options.*.enable_qty' => 'boolean',
             'options.*.values' => 'array',
             'options.*.values.*.option_value_id' => 'required|exists:option_values,id',
             'options.*.values.*.price' => 'nullable|numeric',
             'options.*.values.*.in_stock' => 'boolean',
+            'options.*.values.*.qty' => 'nullable|integer|min:0',
             'options.*.values.*.option_dependency_id' => 'nullable|exists:option_dependencies,id',
             // Nested dependency object - API creates dependent ItemOption and OptionDependency
             'options.*.values.*.dependency' => 'nullable|array',
@@ -302,6 +309,27 @@ class ItemController extends Controller
             'options.*.values.*.dependency.child_values.*.option_value_id' => 'required|exists:option_values,id',
             'options.*.values.*.dependency.child_values.*.price' => 'nullable|numeric',
         ]);
+
+        $validator->after(function ($validator) use ($request) {
+            $options = $request->input('options', []);
+            foreach ($options as $optionIndex => $optionData) {
+                $enableQty = $optionData['enable_qty'] ?? false;
+                if ($enableQty) {
+                    continue;
+                }
+
+                foreach ($optionData['values'] ?? [] as $valueIndex => $valueData) {
+                    if (array_key_exists('qty', $valueData) && $valueData['qty'] !== null) {
+                        $validator->errors()->add(
+                            "options.$optionIndex.values.$valueIndex.qty",
+                            'Quantity is only allowed when the parent item option has enable_qty set to true.'
+                        );
+                    }
+                }
+            }
+        });
+
+        $validated = $validator->validate();
 
         $createdOptions = DB::transaction(function () use ($item, $validated) {
             // Delete existing option dependencies that reference this item's options
@@ -324,6 +352,8 @@ class ItemController extends Controller
                     'range' => $optionData['range'] ?? 0,
                     'max' => $optionData['max'] ?? null,
                     'min' => $optionData['min'] ?? null,
+                    'qty' => $optionData['qty'] ?? null,
+                    'enable_qty' => $optionData['enable_qty'] ?? false,
                 ]);
 
                 if (!empty($optionData['values'])) {
@@ -334,6 +364,7 @@ class ItemController extends Controller
                             'option_value_id' => $valueData['option_value_id'],
                             'price' => $valueData['price'] ?? null,
                             'in_stock' => $valueData['in_stock'] ?? true,
+                            'qty' => $itemOption->enable_qty ? ($valueData['qty'] ?? null) : null,
                             'option_dependency_id' => $valueData['option_dependency_id'] ?? null,
                         ]);
 
@@ -350,6 +381,8 @@ class ItemController extends Controller
                                 'range' => 0,
                                 'max' => null,
                                 'min' => null,
+                                'qty' => null,
+                                'enable_qty' => false,
                             ]);
 
                             // Create ItemOptionValues for the dependent option's values
