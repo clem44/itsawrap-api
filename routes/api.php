@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\OptionController;
 use App\Http\Controllers\Api\OptionDependencyController;
 use App\Http\Controllers\Api\OptionValueController;
 use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\OrderItemController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\StatusController;
@@ -61,6 +62,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('sessions', CashSessionController::class)->only(['index', 'store', 'show']);
     // Orders
     Route::apiResource('orders', OrderController::class);
+    // Order Items
+    Route::apiResource('order-items', OrderItemController::class);
     // Payments
     Route::apiResource('payments', PaymentController::class);
     // Tips

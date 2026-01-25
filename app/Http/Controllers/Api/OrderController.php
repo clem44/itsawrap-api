@@ -234,11 +234,14 @@ class OrderController extends Controller
             'comments' => 'nullable|string',
             'discount' => 'nullable|numeric|min:0',
             'discount_percent' => 'nullable|numeric|min:0|max:100',
+            'subtotal' => 'nullable|numeric|min:0',
+            'service_charge' => 'nullable|numeric|min:0',
+            'total' => 'nullable|numeric|min:0',
         ]);
 
         $order->update($validated);
 
-        return response()->json($order->load(['customer', 'status']));
+        return response()->json($order->load(['customer', 'status', 'orderItems.item', 'orderItems.orderItemOptions.optionValue']));
     }
 
     #[OA\Delete(

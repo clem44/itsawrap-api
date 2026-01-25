@@ -19,7 +19,8 @@ class PaymentController extends Controller
         parameters: [
             new OA\Parameter(name: "order_id", in: "query", required: false, description: "Filter by order", schema: new OA\Schema(type: "integer")),
             new OA\Parameter(name: "status", in: "query", required: false, description: "Filter by status", schema: new OA\Schema(type: "string", enum: ["pending", "completed", "failed", "refunded"])),
-            new OA\Parameter(name: "method", in: "query", required: false, description: "Filter by payment method", schema: new OA\Schema(type: "string", enum: ["cash", "card", "mobile", "other"]))
+            new OA\Parameter(name: "method", in: "query", required: false, description: "Filter by payment method", schema: new OA\Schema(type: "string", enum: ["cash", "card", "mobile", "other"])),
+            new OA\Parameter(name: "session_id", in: "query", required: false, description: "Filter by session via order", schema: new OA\Schema(type: "integer"))
         ],
         responses: [
             new OA\Response(response: 200, description: "List of payments", content: new OA\JsonContent(type: "array", items: new OA\Items(ref: "#/components/schemas/Payment"))),
@@ -40,6 +41,13 @@ class PaymentController extends Controller
 
         if ($request->has('method')) {
             $query->where('method', $request->method);
+        }
+
+        if ($request->has('session_id')) {
+            $sessionId = $request->input('session_id');
+            $query->whereHas('order', function ($q) use ($sessionId) {
+                $q->where('session_id', $sessionId);
+            });
         }
 
         return response()->json($query->orderByDesc('created_at')->get());
