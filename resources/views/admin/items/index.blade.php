@@ -9,6 +9,7 @@
         Alpine.data('itemManager', () => ({
             createOpen: {{ $errors->any() && old('form_action') === 'create' ? 'true' : 'false' }},
             editOpen: {{ $errors->any() && old('form_action') === 'edit' ? 'true' : 'false' }},
+            editOptionsOpen: false,
             editItem: {
                 id: {{ old('form_action') === 'edit' ? (old('edit_id') ?: 'null') : 'null' }},
                 name: '{{ old('form_action') === 'edit' ? addslashes(old('name', '')) : '' }}',
@@ -20,6 +21,13 @@
                 active: {{ old('form_action') === 'edit' ? (old('active') ? 'true' : 'false') : 'false' }},
                 options: {{ old('form_action') === 'edit' && old('options') ? json_encode(old('options')) : '[]' }}
             },
+            editOptionsItem: {
+                id: null,
+                options: []
+            },
+            expandedValues: {},
+            selectedOptionInModal: null,
+            newDependencyOptions: {},
             createOptions: [],
             createItem: {
                 name: '',
@@ -70,6 +78,122 @@
 
             closeEdit() {
                 this.editOpen = false;
+            },
+
+            openEditOptions(itemId, itemOptions) {
+                this.editOptionsItem = {
+                    id: itemId,
+                    options: itemOptions
+                };
+                this.selectedOptionInModal = itemOptions.length > 0 ? itemOptions[0] : null;
+                this.editOptionsOpen = true;
+            },
+
+            closeEditOptions() {
+                this.editOptionsOpen = false;
+                this.selectedOptionInModal = null;
+                this.editOptionsItem = { id: null, options: [] };
+            },
+
+            getSelectedOptionValues() {
+                if (!this.selectedOptionInModal) return [];
+                const option = this.editOptionsItem.options.find(opt => opt.id === this.selectedOptionInModal);
+                return option ? option.optionValues : [];
+            },
+
+            toggleValuePanel(valueId) {
+                this.expandedValues = {
+                    ...this.expandedValues,
+                    [valueId]: !this.expandedValues[valueId]
+                };
+            },
+
+            isValueExpanded(valueId) {
+                return this.expandedValues[valueId] === true;
+            },
+
+            initializeDependencies() {
+                const values = this.getSelectedOptionValues();
+                values.forEach(value => {
+                    if (!value.optionDependencies) {
+                        value.optionDependencies = [];
+                    }
+                });
+            },
+
+            addDependency(valueId, childOptionId) {
+                const option = this.editOptionsItem.options.find(opt => opt.id === this.selectedOptionInModal);
+                if (option) {
+                    const value = option.optionValues.find(v => v.id === valueId);
+                    if (value) {
+                        if (!value.optionDependencies) {
+                            value.optionDependencies = [];
+                        }
+                        // Add if not already present
+                        if (!value.optionDependencies.find(d => d.childOptionId === childOptionId)) {
+                            value.optionDependencies.push({ childOptionId });
+                        }
+                        this.newDependencyOptions[valueId] = null;
+                    }
+                }
+            },
+
+            removeDependency(valueId, childOptionId) {
+                const option = this.editOptionsItem.options.find(opt => opt.id === this.selectedOptionInModal);
+                if (option) {
+                    const value = option.optionValues.find(v => v.id === valueId);
+                    if (value && value.optionDependencies) {
+                        value.optionDependencies = value.optionDependencies.filter(d => d.childOptionId !== childOptionId);
+                    }
+                }
+            },
+
+            getDependencyOptionName(optionId) {
+                const allOptions = this.editOptionsItem.options || [];
+                const depOption = allOptions.find(opt => opt.id === optionId);
+                return depOption ? depOption.name : 'Unknown';
+            },
+
+            updateOptionValuePrice(valueId, newPrice) {
+                const option = this.editOptionsItem.options.find(opt => opt.id === this.selectedOptionInModal);
+                if (option) {
+                    const value = option.optionValues.find(v => v.id === valueId);
+                    if (value) {
+                        value.price = parseFloat(newPrice);
+                    }
+                }
+            },
+
+            async saveEditedOptions() {
+                const updatedValues = {};
+                const dependencies = {};
+                this.editOptionsItem.options.forEach(option => {
+                    option.optionValues.forEach(value => {
+                        updatedValues[value.id] = parseFloat(value.price);
+                        if (value.optionDependencies && value.optionDependencies.length > 0) {
+                            dependencies[value.id] = value.optionDependencies.map(d => d.childOptionId);
+                        }
+                    });
+                });
+
+                try {
+                    const response = await fetch(`/admin/items/${this.editOptionsItem.id}/option-values`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        },
+                        body: JSON.stringify({ values: updatedValues, dependencies })
+                    });
+
+                    if (response.ok) {
+                        this.closeEditOptions();
+                        location.reload();
+                    }
+                } catch (error) {
+                    console.error('Error saving option values:', error);
+                    alert('Error saving option values. Please try again.');
+                }
             },
 
             toggleCreateOption(optionId) {
@@ -150,7 +274,14 @@
                             <span class="user-meta font-semibold">${{ number_format($item->cost, 2) }}</span>
                         </td>
                         <td>
-                            <span class="role-badge user">{{ $item->item_options_count }}</span>
+                            <button
+                                type="button"
+                                @click.stop="openEditOptions({{ $item->id }}, @js($item->itemOptions->map(fn($io) => ['id' => $io->option_id, 'name' => $io->option->name, 'optionValues' => $io->option->optionValues->map(fn($ov) => ['id' => $ov->id, 'name' => $ov->name, 'price' => $ov->price, 'optionDependencies' => ($ov->optionDependencies?->map(fn($od) => ['childOptionId' => $od->child_id]) ?? collect())->toArray()])->toArray()])->toArray()))"
+                                class="role-badge user cursor-pointer hover:opacity-80 transition-opacity"
+                                title="Click to edit option values"
+                            >
+                                {{ $item->item_options_count }}
+                            </button>
                         </td>
                         <td>
                             @if($item->active)
@@ -628,6 +759,189 @@
             </div>
         </div>
     </div>
+    </template>
+
+    <!-- Edit Options Modal -->
+    <template x-teleport="body">
+        <div
+            x-show="editOptionsOpen"
+            x-cloak
+            class="fixed inset-0 z-50 overflow-y-auto"
+            aria-labelledby="modal-title"
+            role="dialog"
+            aria-modal="true"
+        >
+            <div class="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                <!-- Backdrop -->
+                <div
+                    x-show="editOptionsOpen"
+                    x-transition.opacity.duration.200ms
+                    class="fixed inset-0 bg-black/60 backdrop-blur-sm"
+                    @click="closeEditOptions()"
+                ></div>
+
+                <!-- Centering trick -->
+                <span class="hidden sm:inline-block sm:h-screen sm:align-middle" aria-hidden="true">&#8203;</span>
+
+                <!-- Modal panel - Large Size for Two Columns -->
+                <div
+                    x-show="editOptionsOpen"
+                    x-transition:enter="ease-out duration-200"
+                    x-transition:enter-start="opacity-0 scale-95"
+                    x-transition:enter-end="opacity-100 scale-100"
+                    x-transition:leave="ease-in duration-150"
+                    x-transition:leave-start="opacity-100 scale-100"
+                    x-transition:leave-end="opacity-0 scale-95"
+                    class="relative inline-block w-full max-w-5xl transform overflow-hidden rounded-2xl bg-white text-left align-bottom shadow-xl sm:my-8 sm:align-middle"
+                    @click.stop
+                >
+                    <!-- Header -->
+                    <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+                        <h2 class="text-xl font-semibold text-gray-900">Edit Option Values</h2>
+                        <button type="button" class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors" @click="closeEditOptions()">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Body with Two Columns -->
+                    <div class="h-96 grid grid-cols-5 gap-0 divide-x divide-gray-200">
+                        <!-- Column 1: Options List (5/12) -->
+                        <div class="col-span-2 overflow-y-auto px-6 py-5">
+                            <h3 class="mb-4 text-sm font-semibold text-gray-900">Options</h3>
+                            <div class="space-y-2">
+                                <template x-for="option in editOptionsItem.options" :key="option.id">
+                                    <button
+                                        type="button"
+                                        @click.stop="selectedOptionInModal = option.id"
+                                        :class="{
+                                            'bg-[var(--color-sage)] text-white': selectedOptionInModal === option.id,
+                                            'bg-gray-100 text-gray-900 hover:bg-gray-200': selectedOptionInModal !== option.id
+                                        }"
+                                        class="w-full text-left rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
+                                    >
+                                        <span x-text="option.name"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Column 2: Option Values (7/12) -->
+                        <div class="col-span-3 overflow-y-auto px-6 py-5">
+                            <h3 class="mb-4 text-sm font-semibold text-gray-900">Values & Prices</h3>
+                            <template x-if="selectedOptionInModal && getSelectedOptionValues().length > 0">
+                                <div class="space-y-2">
+                                    <template x-for="value in getSelectedOptionValues()" :key="value.id">
+                                        <div class="border border-gray-200 rounded-lg overflow-hidden">
+                                            <!-- Collapsed Header -->
+                                            <button
+                                                type="button"
+                                                @click.stop="toggleValuePanel(value.id)"
+                                                class="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-gray-50 transition-colors"
+                                            >
+                                                <svg class="w-4 h-4 text-gray-600 transition-transform" :class="{ 'rotate-90': isValueExpanded(value.id) }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                                </svg>
+                                                <div class="flex-1 text-left">
+                                                    <p class="text-sm font-medium text-gray-900" x-text="value.name"></p>
+                                                </div>
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-xs text-gray-500">Price:</span>
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        min="0"
+                                                        :value="value.price"
+                                                        @input.stop="updateOptionValuePrice(value.id, $event.target.value)"
+                                                        @click.stop
+                                                        class="w-20 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-sm text-gray-900 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)]"
+                                                        placeholder="0.00"
+                                                    >
+                                                    <button
+                                                        type="button"
+                                                        @click.stop="console.log('Delete would go here')"
+                                                        class="text-gray-400 hover:text-red-600 transition-colors p-1"
+                                                        title="Delete option value"
+                                                    >
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                        </svg>
+                                                    </button>
+                                                  
+                                                </div>
+                                            </button>
+
+                                            <!-- Expanded Content -->
+                                            <div x-show="isValueExpanded(value.id)" x-transition class="border-t border-gray-200 px-3 py-3 bg-gray-50 space-y-3">
+                                                <div>
+                                                    <h4 class="text-xs font-semibold text-gray-700 mb-2">Dependent Options</h4>
+                                                    <div class="space-y-2">
+                                                        <template x-for="dep in (value.optionDependencies || [])" :key="dep.childOptionId">
+                                                            <div class="flex items-center justify-between bg-white rounded px-2 py-1.5 text-sm">
+                                                                <span class="text-gray-700" x-text="getDependencyOptionName(dep.childOptionId)"></span>
+                                                                <button
+                                                                    type="button"
+                                                                    @click.stop="removeDependency(value.id, dep.childOptionId)"
+                                                                    class="text-gray-400 hover:text-red-600 transition-colors p-1"
+                                                                    title="Remove dependency"
+                                                                >
+                                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                                    </svg>
+                                                                </button>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Add New Dependency -->
+                                                <div class="flex items-center gap-2 pt-2 border-t border-gray-200">
+                                                    <button
+                                                        type="button"
+                                                        @click.stop="addDependency(value.id, newDependencyOptions[value.id]); initializeDependencies();"
+                                                        :disabled="!newDependencyOptions[value.id]"
+                                                        class="px-3 py-1.5 text-xs font-medium bg-[var(--color-sage)] text-white rounded-lg hover:bg-opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                    >
+                                                        Add
+                                                    </button>
+                                                    <select
+                                                        x-model="newDependencyOptions[value.id]"
+                                                        @change.stop
+                                                        class="flex-1 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs text-gray-900 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)]"
+                                                    >
+                                                        <option value="">Select an option</option>
+                                                        <template x-for="opt in editOptionsItem.options" :key="opt.id">
+                                                            <option :value="opt.id" x-text="opt.name"></option>
+                                                        </template>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                            <template x-if="selectedOptionInModal && getSelectedOptionValues().length === 0">
+                                <p class="text-sm text-gray-500">No option values available for this option.</p>
+                            </template>
+                            <template x-if="!selectedOptionInModal">
+                                <p class="text-sm text-gray-500">Select an option to view its values.</p>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="flex justify-end gap-3 border-t border-gray-200 px-6 py-4">
+                        <button type="button" class="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors" @click="closeEditOptions()">
+                            Cancel
+                        </button>
+                        <button type="button" @click="saveEditedOptions()" class="rounded-lg bg-[var(--color-forest)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--color-forest-dark)] transition-colors">
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </template>
 </div>
 @endsection

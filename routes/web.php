@@ -18,6 +18,8 @@ Route::get('/', function () {
     //return view('welcome');
 });
 
+
+
 // Admin routes
 Route::prefix('admin')->name('admin.')->group(function () {
     // Guest routes
@@ -56,6 +58,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Items management
         Route::resource('items', ItemController::class, ['only' => ['index', 'store', 'update', 'destroy']]);
+        Route::post('/items/{item}/option-values', [ItemController::class, 'updateOptionValues'])->name('items.update-option-values');
 
         // API Documentation
         Route::get('/api-docs', [ApiDocsController::class, 'index'])->name('api-docs');

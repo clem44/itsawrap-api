@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Item;
 use App\Models\Option;
+use App\Models\OptionValue;
+use App\Models\OptionDependency;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -15,7 +17,7 @@ class ItemController extends Controller
     public function index(): View
     {
         $items = Item::query()
-            ->with(['category', 'itemOptions.option'])
+            ->with(['category', 'itemOptions.option.optionValues.optionDependencies'])
             ->withCount(['itemOptions', 'orderItems'])
             ->orderBy('name')
             ->paginate(15)
@@ -104,5 +106,39 @@ class ItemController extends Controller
 
         return redirect()->route('admin.items.index')
             ->with('success', 'Item deleted successfully.');
+    }
+
+    public function updateOptionValues(Request $request, Item $item)
+    {
+        $validated = $request->validate([
+            'values' => 'required|array',
+            'values.*' => 'numeric|min:0|decimal:0,2',
+            'dependencies' => 'nullable|array',
+            'dependencies.*' => 'array',
+            'dependencies.*.*' => 'integer|exists:options,id',
+        ]);
+
+        // Update option value prices
+        foreach ($validated['values'] as $optionValueId => $price) {
+            OptionValue::where('id', $optionValueId)->update(['price' => $price]);
+        }
+
+        // Update dependencies if provided
+        if (!empty($validated['dependencies'])) {
+            foreach ($validated['dependencies'] as $optionValueId => $childOptionIds) {
+                // Delete existing dependencies for this option value
+                OptionDependency::where('parent_option_value_id', $optionValueId)->delete();
+                
+                // Create new dependencies
+                foreach ($childOptionIds as $childOptionId) {
+                    OptionDependency::create([
+                        'parent_option_value_id' => $optionValueId,
+                        'child_option_id' => $childOptionId,
+                    ]);
+                }
+            }
+        }
+
+        return response()->json(['success' => true]);
     }
 }

@@ -29,6 +29,11 @@ class OptionValue extends Model
         return $this->belongsTo(Option::class);
     }
 
+    public function optionDependencies(): HasMany
+    {
+        return $this->hasMany(OptionDependency::class, 'parent_option_value_id');
+    }
+
     public function itemOptionValues(): HasMany
     {
         return $this->hasMany(ItemOptionValue::class);

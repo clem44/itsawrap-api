@@ -38,6 +38,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Categories
     Route::apiResource('categories', CategoryController::class);
     // Items
+    Route::post('/items/{item}/options', [ItemController::class, 'syncOptions']);
     Route::apiResource('items', ItemController::class);
     // Options
     Route::apiResource('options', OptionController::class);
