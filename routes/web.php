@@ -58,8 +58,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Items management
         Route::resource('items', ItemController::class, ['only' => ['index', 'store', 'update', 'destroy']]);
+
         Route::post('/items/{item}/option-values', [ItemController::class, 'updateOptionValues'])->name('items.update-option-values');
+
         Route::patch('/items/{item}/item-options/{itemOption}', [ItemController::class, 'updateItemOptionQty'])->name('items.item-options.update-qty');
+        
         Route::delete('/items/{item}/item-options/{itemOption}', [ItemController::class, 'destroyItemOption'])->name('items.item-options.destroy');
 
         // API Documentation

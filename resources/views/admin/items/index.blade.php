@@ -189,6 +189,38 @@
                     alert('Failed to update quantity setting. Please try again.');
                 }
             },
+            
+            async updateOptionEnableRange(option, enabled) {
+                const previous = option.range;
+                option.range = enabled;
+                try {
+                    const response = await fetch(
+                        this.itemOptionRoute
+                            .replace('__ITEM__', this.editOptionsItem.id)
+                            .replace('__ITEM_OPTION__', option.itemOptionId),
+                        {
+                            method: 'PATCH',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            },
+                            body: JSON.stringify({
+                                range: enabled,
+                                enable_qty: option.enable_qty
+                            })
+                        }
+                    );
+
+                    if (!response.ok) {
+                        option.range = previous;
+                        alert('Failed to update range setting. Please try again.');
+                    }
+                } catch (error) {
+                    option.range = previous;
+                    console.error('Error updating item option:', error);
+                    alert('Failed to update range setting. Please try again.');
+                }
+            },
 
             async deleteItemOption(option) {
                 if (!confirm('Delete this item option? This will remove its option values and dependencies.')) {
@@ -1032,21 +1064,49 @@
                                                         :checked="option.enable_qty"
                                                         @change="updateOptionEnableQty(option, $event.target.checked)"
                                                     >
-                                                    <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[var(--color-sage)] rounded-full peer peer-checked:bg-[var(--color-sage)] relative transition-colors">
-                                                        <div class="absolute top-0.5 left-0.5 h-4 w-4 bg-white rounded-full transition-transform peer-checked:translate-x-4"></div>
-                                                    </div>
+                                                    <div class="relative w-9 h-5 rounded-full bg-gray-200 transition-colors peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[var(--color-sage)] peer-checked:bg-[var(--color-sage)] after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-4"></div>
                                                 </label>
                                             </div>
-                                            <button
-                                                type="button"
-                                                @click.stop="deleteItemOption(option)"
-                                                class="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors"
-                                            >
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                                </svg>
-                                                Delete option
-                                            </button>
+                                             <div class="flex items-center justify-between gap-2">
+                                                <span class="text-xs font-semibold text-gray-700">Enable Range</span>
+                                                <label class="inline-flex items-center cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        class="sr-only peer"
+                                                        :checked="option.range"
+                                                        @change="updateOptionEnableRange(option, $event.target.checked)"
+                                                    >
+                                                    <div class="relative w-9 h-5 rounded-full bg-gray-200 transition-colors peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[var(--color-sage)] peer-checked:bg-[var(--color-sage)] after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-4"></div>
+                                                </label>
+                                            </div>
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <div>
+                                                     <span class="text-xs text-gray-500">Min</span>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        :value="option.min"
+                                                        @input.stop="updateOptionMinQty(option.id, $event.target.value)"
+                                                        @click.stop
+                                                        class="w-16 ml-2 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-sm text-gray-900 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)]"
+                                                        placeholder="0"
+                                                    >
+                                                </div>
+                                                <div class="flex items-center justify-end">
+                                                    <button
+                                                        type="button"
+                                                        @click.stop="deleteItemOption(option)"
+                                                        class="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors"
+                                                    >
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                        </svg>
+                                                        Delete option
+                                                    </button>
+                                                   
+                                                </div>
+                                            </div>
+                                            
                                         </div>
                                     </div>
                                 </template>

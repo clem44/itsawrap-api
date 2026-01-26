@@ -27,7 +27,7 @@ class ItemOption extends Model
     {
         return [
             'required' => 'boolean',
-            'range' => 'integer',
+            'range' => 'boolean',
             'max' => 'integer',
             'min' => 'integer',
             'qty' => 'integer',

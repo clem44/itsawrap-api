@@ -27,7 +27,13 @@ class ItemController extends Controller
                 'itemOptions.itemOptionValues.parentDependencies.childOption.itemOptionValues.optionValue',
             ])
             ->withCount([
-                'itemOptions as item_options_count' => fn($q) => $q->where('type', '!=', 'dependent'),
+                'itemOptions as item_options_count' => function ($q) {
+                    $q->where(function ($query) {
+                        $query->whereNull('type')
+                            ->orWhere('type', '!=', 'dependent');
+                    });
+                },
+                'itemOptions',
                 'orderItems',
             ])
             ->when($request->filled('category_id'), function ($query) use ($request) {
@@ -58,6 +64,10 @@ class ItemController extends Controller
                 'itemOptionId' => $io->id,
                 'name' => $io->option->name,
                 'type' => $io->type,
+                'range' => (bool) $io->range,
+                'max' => $io->max,
+                'min' => $io->min,
+                'qty' => $io->qty,
                 'enable_qty' => (bool) $io->enable_qty,
                 'optionValues' => $io->option->optionValues->map(function ($ov) use ($io) {
                     $itemOptionValue = $io->itemOptionValues->firstWhere('option_value_id', $ov->id);
@@ -331,11 +341,13 @@ class ItemController extends Controller
         }
 
         $validated = $request->validate([
-            'enable_qty' => 'required|boolean',
+            'enable_qty' => 'nullable|boolean',
+            'range' => 'nullable|boolean',
         ]);
 
         $itemOption->update([
-            'enable_qty' => (bool) $validated['enable_qty'],
+            'enable_qty' => (bool) ($validated['enable_qty'] ?? false),
+            'range'      => (bool) ($validated['range'] ?? false),
         ]);
 
         if (!$itemOption->enable_qty) {
@@ -345,6 +357,7 @@ class ItemController extends Controller
         return response()->json([
             'success' => true,
             'enable_qty' => $itemOption->enable_qty,
+            'range' => $itemOption->range,
         ]);
     }
 
