@@ -13,7 +13,7 @@ return new class extends Migration
             $table->foreignId('item_id')->constrained()->cascadeOnDelete();
             $table->foreignId('option_id')->constrained()->cascadeOnDelete();
             $table->boolean('required')->default(false);
-            $table->string('type')->default('single'); // 'single' or 'multiple'
+            $table->string('type')->nullable(); // 'single' or 'multiple'
             $table->integer('range')->default(0)->nullable();
             $table->integer('max')->nullable();
             $table->integer('min')->nullable();
