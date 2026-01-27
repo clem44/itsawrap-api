@@ -32,8 +32,7 @@ class ItemController extends Controller
                         $query->whereNull('type')
                             ->orWhere('type', '!=', 'dependent');
                     });
-                },
-                'itemOptions',
+                },               
                 'orderItems',
             ])
             ->when($request->filled('category_id'), function ($query) use ($request) {
