@@ -1,3 +1,15 @@
+@php
+    $dataMenuOpen = request()->routeIs(
+        'admin.categories.*',
+        'admin.orders.*',
+        'admin.tips.*',
+        'admin.payments.*',
+        'admin.items.*',
+        'admin.options.*',
+        'admin.branches.*',
+        'admin.customers.*'
+    );
+@endphp
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -30,7 +42,7 @@
     @stack('styles')
 </head>
 <body class="min-h-screen" style="background: var(--color-cream);">
-    <div x-data="{ sidebarOpen: false, dataMenuOpen: @json(request()->routeIs('admin.categories.*')) }" class="flex h-screen overflow-hidden">
+    <div x-data="{ sidebarOpen: false, dataMenuOpen: @json($dataMenuOpen) }" class="flex h-screen overflow-hidden">
         <!-- Sidebar -->
         <aside class="hidden md:flex md:flex-shrink-0">
             <div class="flex flex-col w-64 admin-sidebar">
@@ -62,6 +74,9 @@
                         </button>
                         <div class="sidebar-submenu" x-show="dataMenuOpen" x-transition x-cloak>
                             <a href="{{ route('admin.orders.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">Orders</a>
+                            <a href="{{ route('admin.customers.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.customers.*') ? 'active' : '' }}">Customers</a>
+                            <a href="{{ route('admin.tips.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.tips.*') ? 'active' : '' }}">Tips</a>
+                            <a href="{{ route('admin.payments.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.payments.*') ? 'active' : '' }}">Payments</a>
                             <a href="{{ route('admin.items.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.items.*') ? 'active' : '' }}">Items</a>
                             <a href="{{ route('admin.options.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.options.*') ? 'active' : '' }}">Options</a>
                             <a href="{{ route('admin.categories.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">Categories</a>
@@ -133,6 +148,9 @@
                         </button>
                         <div class="sidebar-submenu" x-show="dataMenuOpen" x-transition x-cloak>
                             <a href="{{ route('admin.orders.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">Orders</a>
+                            <a href="{{ route('admin.customers.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.customers.*') ? 'active' : '' }}">Customers</a>
+                            <a href="{{ route('admin.tips.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.tips.*') ? 'active' : '' }}">Tips</a>
+                            <a href="{{ route('admin.payments.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.payments.*') ? 'active' : '' }}">Payments</a>
                             <a href="{{ route('admin.items.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.items.*') ? 'active' : '' }}">Items</a>
                             <a href="{{ route('admin.options.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.options.*') ? 'active' : '' }}">Options</a>
                             <a href="{{ route('admin.categories.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">Categories</a>

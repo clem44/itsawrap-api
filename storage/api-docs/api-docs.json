@@ -1734,6 +1734,11 @@
                                                                 "type": "boolean",
                                                                 "example": true
                                                             },
+                                                            "qty": {
+                                                                "type": "integer",
+                                                                "example": 1,
+                                                                "nullable": true
+                                                            },
                                                             "option_dependency_id": {
                                                                 "type": "integer",
                                                                 "nullable": true
@@ -2183,6 +2188,11 @@
                                         "type": "boolean",
                                         "example": true
                                     },
+                                    "qty": {
+                                        "type": "integer",
+                                        "example": 1,
+                                        "nullable": true
+                                    },
                                     "option_dependency_id": {
                                         "type": "integer",
                                         "example": 2,
@@ -2291,6 +2301,10 @@
                                     },
                                     "in_stock": {
                                         "type": "boolean"
+                                    },
+                                    "qty": {
+                                        "type": "integer",
+                                        "nullable": true
                                     },
                                     "option_dependency_id": {
                                         "type": "integer",
@@ -3117,6 +3131,18 @@
                         }
                     },
                     {
+                        "name": "status_ids",
+                        "in": "query",
+                        "description": "Filter by multiple statuses (comma-separated or array)",
+                        "required": false,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    {
                         "name": "session_id",
                         "in": "query",
                         "description": "Filter by cash session",
@@ -3256,6 +3282,11 @@
                                                             },
                                                             "price": {
                                                                 "type": "number"
+                                                            },
+                                                            "qty": {
+                                                                "type": "integer",
+                                                                "example": 1,
+                                                                "nullable": true
                                                             }
                                                         },
                                                         "type": "object"
@@ -3447,6 +3478,278 @@
                 ]
             }
         },
+        "/order-items": {
+            "get": {
+                "tags": [
+                    "Order Items"
+                ],
+                "summary": "List order items",
+                "description": "Get all order items with optional filtering by order",
+                "operationId": "358ada067a78596670a4314f756d667e",
+                "parameters": [
+                    {
+                        "name": "order_id",
+                        "in": "query",
+                        "description": "Filter by order",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of order items",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/OrderItem"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Order Items"
+                ],
+                "summary": "Create an order item",
+                "description": "Add a new item to an existing order",
+                "operationId": "78b98575f601a50f00d193db4b611378",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "order_id",
+                                    "item_id",
+                                    "price"
+                                ],
+                                "properties": {
+                                    "order_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "item_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "price": {
+                                        "type": "number",
+                                        "example": 12.99
+                                    },
+                                    "quantity": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "comment": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "options": {
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "option_value_id": {
+                                                    "type": "integer"
+                                                },
+                                                "price": {
+                                                    "type": "number"
+                                                },
+                                                "qty": {
+                                                    "type": "integer",
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Order item created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OrderItem"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/order-items/{id}": {
+            "get": {
+                "tags": [
+                    "Order Items"
+                ],
+                "summary": "Get an order item",
+                "description": "Get a single order item with its options",
+                "operationId": "6769b496b920fe43766fd176b8969beb",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Order Item ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Order item details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OrderItem"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Order item not found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Order Items"
+                ],
+                "summary": "Update an order item",
+                "description": "Update an order item's quantity or price",
+                "operationId": "cde73f9ebecc8bfa49315a4f00dd5530",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Order Item ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "price": {
+                                        "type": "number"
+                                    },
+                                    "quantity": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Order item updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OrderItem"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Order item not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Order Items"
+                ],
+                "summary": "Delete an order item",
+                "description": "Remove an item from an order",
+                "operationId": "0957a67f03181449e20f510aedeee334",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Order Item ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Order item deleted"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Order item not found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/payments": {
             "get": {
                 "tags": [
@@ -3493,6 +3796,15 @@
                                 "mobile",
                                 "other"
                             ]
+                        }
+                    },
+                    {
+                        "name": "session_id",
+                        "in": "query",
+                        "description": "Filter by session via order",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
                         }
                     }
                 ],
@@ -5157,6 +5469,11 @@
                         "type": "boolean",
                         "example": true
                     },
+                    "qty": {
+                        "type": "integer",
+                        "example": 1,
+                        "nullable": true
+                    },
                     "option_dependency_id": {
                         "type": "integer",
                         "example": 2,
@@ -5747,6 +6064,10 @@
         {
             "name": "Option Values",
             "description": "Option Values"
+        },
+        {
+            "name": "Order Items",
+            "description": "Order Items"
         },
         {
             "name": "Statuses",
