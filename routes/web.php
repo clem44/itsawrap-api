@@ -8,7 +8,9 @@ use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ItemController;
 use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\CashSessionController;
 use App\Http\Controllers\Admin\PaymentController;
+use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\TipController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
@@ -53,6 +55,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Orders management
         Route::resource('orders', OrderController::class, ['only' => ['index', 'show', 'destroy']]);
 
+        // Sessions management
+        Route::resource('sessions', CashSessionController::class, ['only' => ['index', 'show', 'destroy']]);
+
         // Customers management
         Route::resource('customers', CustomerController::class, ['only' => ['index', 'store', 'show', 'update', 'destroy']]);
 
@@ -60,7 +65,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('tips', TipController::class, ['only' => ['index', 'show']]);
 
         // Payments management
-        Route::resource('payments', PaymentController::class, ['only' => ['index', 'show']]);
+        Route::resource('payments', PaymentController::class, ['only' => ['index', 'show', 'destroy']]);
+
+        // Reports
+        Route::get('/reports', [ReportController::class, 'index'])->name('reports');
 
         // Options management
         Route::resource('options', \App\Http\Controllers\Admin\OptionController::class);
