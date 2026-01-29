@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\BranchController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DownloadController;
 use App\Http\Controllers\Admin\ItemController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\CashSessionController;
@@ -69,6 +70,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Reports
         Route::get('/reports', [ReportController::class, 'index'])->name('reports');
+
+        // Downloads
+        Route::resource('downloads', DownloadController::class, ['only' => ['index', 'create', 'store', 'edit', 'update']]);
 
         // Options management
         Route::resource('options', \App\Http\Controllers\Admin\OptionController::class);
