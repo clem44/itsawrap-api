@@ -118,7 +118,7 @@ class PaymentController extends Controller
     #[OA\Put(
         path: "/payments/{id}",
         summary: "Update a payment",
-        description: "Update a payment status",
+        description: "Update a payment's method, amount, status, or charges",
         tags: ["Payments"],
         security: [["bearerAuth" => []]],
         parameters: [
@@ -128,6 +128,8 @@ class PaymentController extends Controller
             required: true,
             content: new OA\JsonContent(
                 properties: [
+                    new OA\Property(property: "method", type: "string", enum: ["cash", "card", "mobile", "other", "reward"]),
+                    new OA\Property(property: "amount", type: "number", example: 28.13),
                     new OA\Property(property: "status", type: "string", enum: ["pending", "completed", "failed", "refunded"]),
                     new OA\Property(property: "charges", type: "object", nullable: true),
                 ]
@@ -143,6 +145,8 @@ class PaymentController extends Controller
     public function update(Request $request, Payment $payment): JsonResponse
     {
         $validated = $request->validate([
+            'method' => 'string|in:cash,card,mobile,other,reward',
+            'amount' => 'numeric|min:0',
             'status' => 'string|in:pending,completed,failed,refunded',
             'charges' => 'nullable|array',
         ]);

@@ -99,6 +99,55 @@ class TipController extends Controller
         return response()->json($tip->load('order'));
     }
 
+    #[OA\Put(
+        path: "/tips/{id}",
+        summary: "Update a tip",
+        description: "Update a tip amount",
+        tags: ["Tips"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, description: "Tip ID", schema: new OA\Schema(type: "integer"))
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["amount"],
+                properties: [
+                    new OA\Property(property: "amount", type: "number", example: 5.00),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Tip updated", content: new OA\JsonContent(ref: "#/components/schemas/Tip")),
+            new OA\Response(response: 401, description: "Unauthenticated"),
+            new OA\Response(response: 404, description: "Tip not found"),
+            new OA\Response(response: 422, description: "Validation error")
+        ]
+    )]
+    public function update(Request $request, Tip $tip): JsonResponse
+    {
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:0',
+        ]);
+
+        $oldAmount = $tip->amount;
+        $newAmount = $validated['amount'];
+        $difference = $newAmount - $oldAmount;
+
+        // Update session totals if there's an active session
+        $session = CashSession::where('user_id', $request->user()->id)
+            ->where('is_open', true)
+            ->first();
+
+        if ($session && $difference != 0) {
+            $session->increment('total_tips', $difference);
+        }
+
+        $tip->update($validated);
+
+        return response()->json($tip->load('order'));
+    }
+
     #[OA\Delete(
         path: "/tips/{id}",
         summary: "Delete a tip",
@@ -114,8 +163,17 @@ class TipController extends Controller
             new OA\Response(response: 404, description: "Tip not found")
         ]
     )]
-    public function destroy(Tip $tip): JsonResponse
+    public function destroy(Request $request, Tip $tip): JsonResponse
     {
+        // Decrement session totals
+        $session = CashSession::where('user_id', $request->user()->id)
+            ->where('is_open', true)
+            ->first();
+
+        if ($session) {
+            $session->decrement('total_tips', $tip->amount);
+        }
+
         $tip->delete();
 
         return response()->json(null, 204);

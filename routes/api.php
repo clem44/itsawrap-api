@@ -67,7 +67,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Payments
     Route::apiResource('payments', PaymentController::class);
     // Tips
-    Route::apiResource('tips', TipController::class)->only(['index', 'store', 'show', 'destroy']);
+    Route::apiResource('tips', TipController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
     // Withdrawals
     Route::apiResource('withdrawals', WithdrawalController::class)->only(['index', 'store', 'show', 'destroy']);
     // Settings
