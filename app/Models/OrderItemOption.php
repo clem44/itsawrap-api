@@ -13,6 +13,7 @@ class OrderItemOption extends Model
     protected $fillable = [
         'order_item_id',
         'option_value_id',
+        'parent_option_value_id',
         'price',
         'qty',
     ];
@@ -33,5 +34,10 @@ class OrderItemOption extends Model
     public function optionValue(): BelongsTo
     {
         return $this->belongsTo(OptionValue::class);
+    }
+
+    public function parentOptionValue(): BelongsTo
+    {
+        return $this->belongsTo(OptionValue::class, 'parent_option_value_id');
     }
 }

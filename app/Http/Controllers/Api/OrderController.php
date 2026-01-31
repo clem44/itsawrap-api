@@ -90,6 +90,7 @@ class OrderController extends Controller
                                 new OA\Property(property: "item_id", type: "integer"),
                                 new OA\Property(property: "price", type: "number"),
                                 new OA\Property(property: "quantity", type: "integer"),
+                                new OA\Property(property: "comment", type: "string", nullable: true),
                                 new OA\Property(
                                     property: "options",
                                     type: "array",
@@ -98,6 +99,7 @@ class OrderController extends Controller
                                             new OA\Property(property: "option_value_id", type: "integer"),
                                             new OA\Property(property: "price", type: "number"),
                                             new OA\Property(property: "qty", type: "integer", nullable: true, example: 1),
+                                            new OA\Property(property: "parent_option_value_id", type: "integer", nullable: true),
                                         ]
                                     )
                                 ),
@@ -131,10 +133,12 @@ class OrderController extends Controller
             'items.*.item_id' => 'required|exists:items,id',
             'items.*.price' => 'required|numeric|min:0',
             'items.*.quantity' => 'integer|min:1',
+            'items.*.comment' => 'nullable|string',
             'items.*.options' => 'array',
             'items.*.options.*.option_value_id' => 'required|exists:option_values,id',
             'items.*.options.*.price' => 'numeric|min:0',
             'items.*.options.*.qty' => 'nullable|integer|min:1',
+            'items.*.options.*.parent_option_value_id' => 'nullable|exists:option_values,id',
         ]);
 
         // Get current open session for the user
@@ -152,6 +156,7 @@ class OrderController extends Controller
                     'item_id' => $itemData['item_id'],
                     'price' => $itemData['price'],
                     'quantity' => $itemData['quantity'] ?? 1,
+                    'comment' => $itemData['comment'] ?? null,
                 ]);
 
                 if (isset($itemData['options'])) {
@@ -160,6 +165,7 @@ class OrderController extends Controller
                             'option_value_id' => $optionData['option_value_id'],
                             'price' => $optionData['price'] ?? 0,
                             'qty' => $optionData['qty'] ?? null,
+                            'parent_option_value_id' => $optionData['parent_option_value_id'] ?? null,
                         ]);
                     }
                 }

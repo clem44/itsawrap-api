@@ -59,6 +59,7 @@ class OrderItemController extends Controller
                                 new OA\Property(property: "option_value_id", type: "integer"),
                                 new OA\Property(property: "price", type: "number"),
                                 new OA\Property(property: "qty", type: "integer", nullable: true),
+                                new OA\Property(property: "parent_option_value_id", type: "integer", nullable: true),
                             ]
                         )
                     ),
@@ -83,6 +84,7 @@ class OrderItemController extends Controller
             'options.*.option_value_id' => 'required|exists:option_values,id',
             'options.*.price' => 'numeric|min:0',
             'options.*.qty' => 'nullable|integer|min:1',
+            'options.*.parent_option_value_id' => 'nullable|exists:option_values,id',
         ]);
 
         $orderItem = OrderItem::create([
@@ -90,6 +92,7 @@ class OrderItemController extends Controller
             'item_id' => $validated['item_id'],
             'price' => $validated['price'],
             'quantity' => $validated['quantity'] ?? 1,
+            'comment' => $validated['comment'] ?? null,
         ]);
 
         if (isset($validated['options'])) {
@@ -98,6 +101,7 @@ class OrderItemController extends Controller
                     'option_value_id' => $optionData['option_value_id'],
                     'price' => $optionData['price'] ?? 0,
                     'qty' => $optionData['qty'] ?? null,
+                    'parent_option_value_id' => $optionData['parent_option_value_id'] ?? null,
                 ]);
             }
         }
@@ -143,6 +147,7 @@ class OrderItemController extends Controller
                 properties: [
                     new OA\Property(property: "price", type: "number"),
                     new OA\Property(property: "quantity", type: "integer"),
+                    new OA\Property(property: "comment", type: "string", nullable: true),
                 ]
             )
         ),
@@ -158,6 +163,7 @@ class OrderItemController extends Controller
         $validated = $request->validate([
             'price' => 'numeric|min:0',
             'quantity' => 'integer|min:1',
+            'comment' => 'nullable|string',
         ]);
 
         $orderItem->update($validated);
