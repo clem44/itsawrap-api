@@ -31,7 +31,7 @@ class OrderController extends Controller
     )]
     public function index(Request $request): JsonResponse
     {
-        $query = Order::with(['customer', 'status', 'orderItems.item', 'orderItems.orderItemOptions.optionValue']);
+        $query = Order::with(['customer', 'status', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option']);
 
         if ($request->has('status_ids')) {
             $statusIds = $request->input('status_ids', []);
@@ -179,7 +179,7 @@ class OrderController extends Controller
         }
 
         return response()->json(
-            $order->load(['customer', 'status', 'orderItems.item', 'orderItems.orderItemOptions.optionValue']),
+            $order->load(['customer', 'status', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option']),
             201
         );
     }
@@ -202,7 +202,7 @@ class OrderController extends Controller
     public function show(Order $order): JsonResponse
     {
         return response()->json(
-            $order->load(['customer', 'status', 'session', 'orderItems.item', 'orderItems.orderItemOptions.optionValue', 'payments', 'tips'])
+            $order->load(['customer', 'status', 'session', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option', 'payments', 'tips'])
         );
     }
 
@@ -247,7 +247,7 @@ class OrderController extends Controller
 
         $order->update($validated);
 
-        return response()->json($order->load(['customer', 'status', 'orderItems.item', 'orderItems.orderItemOptions.optionValue']));
+        return response()->json($order->load(['customer', 'status', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option']));
     }
 
     #[OA\Delete(
