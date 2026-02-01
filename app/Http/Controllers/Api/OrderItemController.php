@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\OrderItem;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use App\Models\OrderItemOption;
 use OpenApi\Attributes as OA;
 
 class OrderItemController extends Controller
@@ -87,6 +90,38 @@ class OrderItemController extends Controller
             'options.*.parent_option_value_id' => 'nullable|exists:option_values,id',
         ]);
 
+
+
+        DB::listen(function ($query) {
+            if (str_contains($query->sql, 'order_item_options')) {
+                /*Log::info('OrderItemController.sql order_item_options', [
+                    'sql' => $query->sql,
+                    'bindings' => $query->bindings,
+                ]);*/
+            }
+        });
+
+        $optionModel = new \App\Models\OrderItemOption();
+        /*Log::info('OrderItemController.fillable', [
+            'fillable' => $optionModel->getFillable(),
+            'is_fillable_parent' => $optionModel->isFillable('parent_option_value_id'),
+        ]);*/
+        if (isset($validated['options'])) {
+            /*Log::info('OrderItemController.store received options', [
+                'database' => DB::connection()->getDatabaseName(),
+                'order_id' => $validated['order_id'] ?? null,
+                'item_id' => $validated['item_id'] ?? null,
+                'options' => collect($validated['options'])->map(function ($option) {
+                    return [
+                        'option_value_id' => $option['option_value_id'] ?? null,
+                        'parent_option_value_id' => $option['parent_option_value_id'] ?? null,
+                        'price' => $option['price'] ?? null,
+                        'qty' => $option['qty'] ?? null,
+                    ];
+                })->values()->all(),
+            ]);*/
+        }
+
         $orderItem = OrderItem::create([
             'order_id' => $validated['order_id'],
             'item_id' => $validated['item_id'],
@@ -97,12 +132,26 @@ class OrderItemController extends Controller
 
         if (isset($validated['options'])) {
             foreach ($validated['options'] as $optionData) {
-                $orderItem->orderItemOptions()->create([
+                $optionPayload = [
                     'option_value_id' => $optionData['option_value_id'],
                     'price' => $optionData['price'] ?? 0,
                     'qty' => $optionData['qty'] ?? null,
                     'parent_option_value_id' => $optionData['parent_option_value_id'] ?? null,
-                ]);
+                ];
+                /*Log::info('OrderItemController.store option payload', [
+                    'order_item_id' => $orderItem->id,
+                    'payload' => $optionPayload,
+                ]);*/
+                $createdOption = $orderItem->orderItemOptions()->create($optionPayload);
+                $dbParentOptionValueId = DB::table('order_item_options')
+                    ->where('id', $createdOption->id)
+                    ->value('parent_option_value_id');
+                /*Log::info('OrderItemController.store saved option', [
+                    'order_item_id' => $orderItem->id,
+                    'option_value_id' => $createdOption->option_value_id,
+                    'parent_option_value_id' => $createdOption->parent_option_value_id,
+                    'db_parent_option_value_id' => $dbParentOptionValueId,
+                ]);*/
             }
         }
 

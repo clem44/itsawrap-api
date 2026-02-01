@@ -55,7 +55,7 @@ class ItemOptionController extends Controller
                     new OA\Property(property: "item_id", type: "integer", example: 1),
                     new OA\Property(property: "option_id", type: "integer", example: 1),
                     new OA\Property(property: "required", type: "boolean", example: false),
-                    new OA\Property(property: "type", type: "string", enum: ["single", "multiple"], example: "single"),
+                    new OA\Property(property: "type", type: "string", enum: ["single", "multiple", "dependent"], example: "single"),
                     new OA\Property(property: "range", type: "integer", example: 0),
                     new OA\Property(property: "max", type: "integer", nullable: true, example: 2),
                     new OA\Property(property: "min", type: "integer", nullable: true, example: 0),
@@ -76,7 +76,7 @@ class ItemOptionController extends Controller
             'item_id' => 'required|exists:items,id',
             'option_id' => 'required|exists:options,id',
             'required' => 'boolean',
-            'type' => 'string|in:single,multiple',
+            'type' => 'string|in:single,multiple,dependent',
             'range' => 'integer|min:0',
             'max' => 'nullable|integer|min:0',
             'min' => 'nullable|integer|min:0',
@@ -133,7 +133,7 @@ class ItemOptionController extends Controller
             content: new OA\JsonContent(
                 properties: [
                     new OA\Property(property: "required", type: "boolean"),
-                    new OA\Property(property: "type", type: "string", enum: ["single", "multiple"]),
+                    new OA\Property(property: "type", type: "string", enum: ["single", "multiple", "dependent"]),
                     new OA\Property(property: "range", type: "integer"),
                     new OA\Property(property: "max", type: "integer", nullable: true),
                     new OA\Property(property: "min", type: "integer", nullable: true),
@@ -153,7 +153,7 @@ class ItemOptionController extends Controller
     {
         $validated = $request->validate([
             'required' => 'boolean',
-            'type' => 'string|in:single,multiple',
+            'type' => 'string|in:single,multiple,dependent',
             'range' => 'integer|min:0',
             'max' => 'nullable|integer|min:0',
             'min' => 'nullable|integer|min:0',

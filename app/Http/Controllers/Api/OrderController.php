@@ -7,6 +7,9 @@ use App\Models\Order;
 use App\Models\CashSession;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use App\Models\OrderItemOption;
 use OpenApi\Attributes as OA;
 
 class OrderController extends Controller
@@ -141,6 +144,41 @@ class OrderController extends Controller
             'items.*.options.*.parent_option_value_id' => 'nullable|exists:option_values,id',
         ]);
 
+
+
+        DB::listen(function ($query) {
+            if (str_contains($query->sql, 'order_item_options')) {
+                /*Log::info('OrderController.sql order_item_options', [
+                    'sql' => $query->sql,
+                    'bindings' => $query->bindings,
+                ]);*/
+            }
+        });
+
+        $optionModel = new \App\Models\OrderItemOption();
+        /*Log::info('OrderController.fillable', [
+            'fillable' => $optionModel->getFillable(),
+            'is_fillable_parent' => $optionModel->isFillable('parent_option_value_id'),
+        ]);*/
+        if (isset($validated['items'])) {
+            /*Log::info('OrderController.store received options', [
+                'database' => DB::connection()->getDatabaseName(),
+                'items' => collect($validated['items'])->map(function ($item) {
+                    return [
+                        'item_id' => $item['item_id'] ?? null,
+                        'options' => collect($item['options'] ?? [])->map(function ($option) {
+                            return [
+                                'option_value_id' => $option['option_value_id'] ?? null,
+                                'parent_option_value_id' => $option['parent_option_value_id'] ?? null,
+                                'price' => $option['price'] ?? null,
+                                'qty' => $option['qty'] ?? null,
+                            ];
+                        })->values()->all(),
+                    ];
+                })->values()->all(),
+            ]);*/
+        }
+
         // Get current open session for the user
         $session = CashSession::where('user_id', $request->user()->id)
             ->where('is_open', true)
@@ -161,12 +199,26 @@ class OrderController extends Controller
 
                 if (isset($itemData['options'])) {
                     foreach ($itemData['options'] as $optionData) {
-                        $orderItem->orderItemOptions()->create([
+                        $optionPayload = [
                             'option_value_id' => $optionData['option_value_id'],
                             'price' => $optionData['price'] ?? 0,
                             'qty' => $optionData['qty'] ?? null,
                             'parent_option_value_id' => $optionData['parent_option_value_id'] ?? null,
-                        ]);
+                        ];
+                        /*Log::info('OrderController.store option payload', [
+                            'order_item_id' => $orderItem->id,
+                            'payload' => $optionPayload,
+                        ]);*/
+                        $createdOption = $orderItem->orderItemOptions()->create($optionPayload);
+                        $dbParentOptionValueId = DB::table('order_item_options')
+                            ->where('id', $createdOption->id)
+                            ->value('parent_option_value_id');
+                        /*Log::info('OrderController.store saved option', [
+                            'order_item_id' => $orderItem->id,
+                            'option_value_id' => $createdOption->option_value_id,
+                            'parent_option_value_id' => $createdOption->parent_option_value_id,
+                            'db_parent_option_value_id' => $dbParentOptionValueId,
+                        ]);*/
                     }
                 }
             }
