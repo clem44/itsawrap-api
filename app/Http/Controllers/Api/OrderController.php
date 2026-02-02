@@ -436,6 +436,8 @@ class OrderController extends Controller
             'subtotal' => 'nullable|numeric|min:0',
             'service_charge' => 'nullable|numeric|min:0',
             'total' => 'nullable|numeric|min:0',
+            'is_delivery' => 'nullable|boolean',
+            'is_reward' => 'nullable|boolean',
         ]);
 
         $order->update($validated);
