@@ -61,6 +61,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/sessions/{cashSession}/totals', [CashSessionController::class, 'updateTotals']);
     Route::apiResource('sessions', CashSessionController::class)->only(['index', 'store', 'show']);
     // Orders
+    Route::get('/orders/history', [OrderController::class, 'history']);
     Route::apiResource('orders', OrderController::class);
     // Order Items
     Route::apiResource('order-items', OrderItemController::class);

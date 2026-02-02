@@ -15,6 +15,119 @@ use OpenApi\Attributes as OA;
 class OrderController extends Controller
 {
     #[OA\Get(
+        path: "/orders/history",
+        summary: "List order history (summary)",
+        description: "Get lightweight order history summaries",
+        tags: ["Orders"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "status_ids", in: "query", required: false, description: "Filter by multiple statuses (comma-separated or array)", schema: new OA\Schema(type: "array", items: new OA\Items(type: "integer"))),
+            new OA\Parameter(name: "session_id", in: "query", required: false, description: "Filter by cash session", schema: new OA\Schema(type: "integer")),
+            new OA\Parameter(name: "search", in: "query", required: false, description: "Search by customer or order number", schema: new OA\Schema(type: "string")),
+            new OA\Parameter(name: "date_start", in: "query", required: false, description: "Filter start date (YYYY-MM-DD)", schema: new OA\Schema(type: "string", format: "date")),
+            new OA\Parameter(name: "date_end", in: "query", required: false, description: "Filter end date (YYYY-MM-DD)", schema: new OA\Schema(type: "string", format: "date")),
+            new OA\Parameter(name: "limit", in: "query", required: false, description: "Max rows", schema: new OA\Schema(type: "integer")),
+            new OA\Parameter(name: "page", in: "query", required: false, description: "Page number", schema: new OA\Schema(type: "integer")),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "List of order summaries", content: new OA\JsonContent(type: "array", items: new OA\Items(ref: "#/components/schemas/Order"))),
+            new OA\Response(response: 401, description: "Unauthenticated")
+        ]
+    )]
+    public function history(Request $request): JsonResponse
+    {
+        $paymentSummarySub = DB::table('payments')
+            ->select(
+                'order_id',
+                DB::raw("MAX(CASE WHEN status IN ('paid','completed') THEN 1 ELSE 0 END) as is_paid"),
+                DB::raw("SUM(CASE WHEN status IN ('paid','completed') THEN amount ELSE 0 END) as total_paid"),
+                DB::raw('MAX(id) as latest_payment_id')
+            )
+            ->groupBy('order_id');
+
+        $tipSummarySub = DB::table('tips')
+            ->select('order_id', DB::raw('SUM(amount) as tip_amount'))
+            ->groupBy('order_id');
+
+        $query = Order::query()
+            ->with(['customer' => function ($q) {
+                $q->select('id', 'name', 'firstname', 'lastname');
+            }])
+            ->leftJoin('customers', 'orders.customer_id', '=', 'customers.id')
+            ->leftJoinSub($paymentSummarySub, 'payment_summary', function ($join) {
+                $join->on('orders.id', '=', 'payment_summary.order_id');
+            })
+            ->leftJoin('payments as payment_latest', 'payment_latest.id', '=', 'payment_summary.latest_payment_id')
+            ->leftJoinSub($tipSummarySub, 'tip_summary', function ($join) {
+                $join->on('orders.id', '=', 'tip_summary.order_id');
+            })
+            ->select([
+                'orders.id',
+                'orders.number',
+                'orders.customer_id',
+                'orders.status_id',
+                'orders.subtotal',
+                'orders.discount',
+                'orders.discount_percent',
+                'orders.service_charge',
+                'orders.total',
+                'orders.is_delivery',
+                'orders.is_reward',
+                'orders.session_id',
+                'orders.created_at',
+                'orders.updated_at',
+                DB::raw('COALESCE(payment_summary.is_paid, 0) as is_paid'),
+                DB::raw('COALESCE(payment_summary.total_paid, 0) as total_paid'),
+                'payment_latest.method as payment_method',
+                'payment_latest.status as payment_status',
+                DB::raw('COALESCE(tip_summary.tip_amount, 0) as tip_amount'),
+            ]);
+
+        if ($request->has('status_ids')) {
+            $statusIds = $request->input('status_ids', []);
+            if (is_string($statusIds)) {
+                $statusIds = array_filter(explode(',', $statusIds));
+            }
+            if (is_array($statusIds) && !empty($statusIds)) {
+                $query->whereIn('orders.status_id', $statusIds);
+            }
+        } elseif ($request->has('status_id')) {
+            $query->where('orders.status_id', $request->status_id);
+        }
+
+        if ($request->has('session_id')) {
+            $query->where('orders.session_id', $request->session_id);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('orders.number', 'like', "%{$search}%")
+                    ->orWhere('customers.name', 'like', "%{$search}%")
+                    ->orWhere('customers.firstname', 'like', "%{$search}%")
+                    ->orWhere('customers.lastname', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->has('date_start')) {
+            $query->whereDate('orders.created_at', '>=', $request->date_start);
+        }
+
+        if ($request->has('date_end')) {
+            $query->whereDate('orders.created_at', '<=', $request->date_end);
+        }
+
+        $limit = (int) $request->input('limit', 0);
+        if ($limit > 0) {
+            $page = (int) $request->input('page', 1);
+            $page = max($page, 1);
+            $query->limit($limit)->offset(($page - 1) * $limit);
+        }
+
+        return response()->json($query->orderByDesc('orders.created_at')->get());
+    }
+
+    #[OA\Get(
         path: "/orders",
         summary: "List all orders",
         description: "Get all orders with optional filtering",
@@ -34,7 +147,35 @@ class OrderController extends Controller
     )]
     public function index(Request $request): JsonResponse
     {
-        $query = Order::with(['customer', 'status', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option']);
+        $paymentSummarySub = DB::table('payments')
+            ->select(
+                'order_id',
+                DB::raw("MAX(CASE WHEN status IN ('paid','completed') THEN 1 ELSE 0 END) as is_paid"),
+                DB::raw("SUM(CASE WHEN status IN ('paid','completed') THEN amount ELSE 0 END) as total_paid"),
+                DB::raw('MAX(id) as latest_payment_id')
+            )
+            ->groupBy('order_id');
+
+        $tipSummarySub = DB::table('tips')
+            ->select('order_id', DB::raw('SUM(amount) as tip_amount'))
+            ->groupBy('order_id');
+
+        $query = Order::with(['customer', 'status', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option'])
+            ->leftJoinSub($paymentSummarySub, 'payment_summary', function ($join) {
+                $join->on('orders.id', '=', 'payment_summary.order_id');
+            })
+            ->leftJoin('payments as payment_latest', 'payment_latest.id', '=', 'payment_summary.latest_payment_id')
+            ->leftJoinSub($tipSummarySub, 'tip_summary', function ($join) {
+                $join->on('orders.id', '=', 'tip_summary.order_id');
+            })
+            ->select([
+                'orders.*',
+                DB::raw('COALESCE(payment_summary.is_paid, 0) as is_paid'),
+                DB::raw('COALESCE(payment_summary.total_paid, 0) as total_paid'),
+                'payment_latest.method as payment_method',
+                'payment_latest.status as payment_status',
+                DB::raw('COALESCE(tip_summary.tip_amount, 0) as tip_amount'),
+            ]);
 
         if ($request->has('status_ids')) {
             $statusIds = $request->input('status_ids', []);
@@ -42,22 +183,22 @@ class OrderController extends Controller
                 $statusIds = array_filter(explode(',', $statusIds));
             }
             if (is_array($statusIds) && !empty($statusIds)) {
-                $query->whereIn('status_id', $statusIds);
+                $query->whereIn('orders.status_id', $statusIds);
             }
         } elseif ($request->has('status_id')) {
-            $query->where('status_id', $request->status_id);
+            $query->where('orders.status_id', $request->status_id);
         }
 
         if ($request->has('session_id')) {
-            $query->where('session_id', $request->session_id);
+            $query->where('orders.session_id', $request->session_id);
         }
 
         if ($request->has('customer_id')) {
-            $query->where('customer_id', $request->customer_id);
+            $query->where('orders.customer_id', $request->customer_id);
         }
 
         if ($request->has('date')) {
-            $query->whereDate('created_at', $request->date);
+            $query->whereDate('orders.created_at', $request->date);
         }
 
         return response()->json($query->orderByDesc('created_at')->get());
