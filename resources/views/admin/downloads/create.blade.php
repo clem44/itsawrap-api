@@ -49,6 +49,37 @@
                     @enderror
                 </div>
 
+                <div class="form-group">
+                    <label for="bundle_identifier" class="form-label">Bundle Identifier <span class="optional">(Required for IPA)</span></label>
+                    <input type="text" name="bundle_identifier" id="bundle_identifier" value="{{ old('bundle_identifier') }}"
+                           class="form-input @error('bundle_identifier') error @enderror"
+                           placeholder="com.yourcompany.yourapp">
+                    @error('bundle_identifier')
+                        <p class="error-message">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="bundle_version" class="form-label">Bundle Version <span class="optional">(Required for IPA)</span></label>
+                        <input type="text" name="bundle_version" id="bundle_version" value="{{ old('bundle_version') }}"
+                               class="form-input @error('bundle_version') error @enderror"
+                               placeholder="1.0.0">
+                        @error('bundle_version')
+                            <p class="error-message">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div class="form-group">
+                        <label for="title" class="form-label">Title <span class="optional">(Optional)</span></label>
+                        <input type="text" name="title" id="title" value="{{ old('title') }}"
+                               class="form-input @error('title') error @enderror"
+                               placeholder="Your App Name">
+                        @error('title')
+                            <p class="error-message">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="filetype" class="form-label">File Type <span class="optional">(Optional)</span></label>

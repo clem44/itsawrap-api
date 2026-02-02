@@ -18,6 +18,9 @@ class Download extends Model
         'meme',
         'filetype',
         'type',
+        'bundle_identifier',
+        'bundle_version',
+        'title',
         'published',
     ];
 
