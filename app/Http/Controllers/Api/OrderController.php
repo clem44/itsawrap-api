@@ -438,6 +438,7 @@ class OrderController extends Controller
             'total' => 'nullable|numeric|min:0',
             'is_delivery' => 'nullable|boolean',
             'is_reward' => 'nullable|boolean',
+            'customer_id' => 'nullable|exists:customers,id',
         ]);
 
         $order->update($validated);
