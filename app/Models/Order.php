@@ -22,9 +22,12 @@ class Order extends Model
         'service_charge',
         'total',
         'comments',
+        'placed_at',
         'is_delivery',
         'is_reward',
         'session_id',
+        'source',
+        'idempotency_key',
     ];
 
     protected function casts(): array
@@ -37,6 +40,7 @@ class Order extends Model
             'total' => 'decimal:2',
             'is_delivery' => 'boolean',
             'is_reward' => 'boolean',
+            'placed_at' => 'datetime',
         ];
     }
 

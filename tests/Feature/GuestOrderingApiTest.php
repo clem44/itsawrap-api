@@ -1,0 +1,200 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Category;
+use App\Models\Customer;
+use App\Models\Item;
+use App\Models\Option;
+use App\Models\OptionValue;
+use App\Models\Status;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
+use Tests\TestCase;
+
+class GuestOrderingApiTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_guest_menu_only_returns_active_items(): void
+    {
+        $category = Category::query()->create(['name' => 'Wraps', 'sort_order' => 1]);
+        Item::query()->create(['name' => 'Active Wrap', 'category_id' => $category->id, 'cost' => 12, 'active' => true]);
+        Item::query()->create(['name' => 'Hidden Wrap', 'category_id' => $category->id, 'cost' => 12, 'active' => false]);
+
+        $response = $this->getJson('/api/guest/menu');
+
+        $response
+            ->assertOk()
+            ->assertJsonCount(1, 'categories')
+            ->assertJsonCount(1, 'items')
+            ->assertJsonPath('items.0.name', 'Active Wrap');
+    }
+
+    public function test_guest_customer_creation_tags_source(): void
+    {
+        $response = $this->postJson('/api/guest/customers', [
+            'name' => 'Guest Customer',
+            'phone' => '555-0100',
+            'email' => 'guest@example.com',
+        ]);
+
+        $response
+            ->assertCreated()
+            ->assertJsonPath('source', 'guest-web');
+
+        $this->assertDatabaseHas('customers', [
+            'name' => 'Guest Customer',
+            'source' => 'guest-web',
+        ]);
+    }
+
+    public function test_guest_order_creation_uses_pending_status_without_session_mutation(): void
+    {
+        $status = Status::query()->create(['name' => 'pending']);
+        $category = Category::query()->create(['name' => 'Wraps', 'sort_order' => 1]);
+        $item = Item::query()->create(['name' => 'Chicken Wrap', 'category_id' => $category->id, 'cost' => 12.50, 'active' => true]);
+        $option = Option::query()->create(['name' => 'Sauce']);
+        $optionValue = OptionValue::query()->create(['option_id' => $option->id, 'name' => 'BBQ', 'price' => 1.00]);
+        $customer = Customer::query()->create(['name' => 'Guest Customer', 'source' => 'guest-web']);
+
+        $response = $this->postJson('/api/guest/orders', [
+            'customer_id' => $customer->id,
+            'subtotal' => 13.50,
+            'service_charge' => 0,
+            'total' => 13.50,
+            'is_delivery' => false,
+            'items' => [
+                [
+                    'item_id' => $item->id,
+                    'price' => 12.50,
+                    'quantity' => 1,
+                    'options' => [
+                        [
+                            'option_value_id' => $optionValue->id,
+                            'price' => 1.00,
+                            'qty' => 1,
+                        ],
+                    ],
+                ],
+            ],
+        ], [
+            'Idempotency-Key' => 'guest-order-1',
+        ]);
+
+        $response
+            ->assertCreated()
+            ->assertJsonPath('source', 'guest-web')
+            ->assertJsonPath('status_id', $status->id)
+            ->assertJsonPath('session_id', null)
+            ->assertJsonPath('order_items.0.item_id', $item->id);
+
+        $this->assertDatabaseHas('orders', [
+            'customer_id' => $customer->id,
+            'status_id' => $status->id,
+            'source' => 'guest-web',
+            'idempotency_key' => 'guest-order-1',
+            'session_id' => null,
+            'is_reward' => false,
+        ]);
+    }
+
+    public function test_guest_order_replays_existing_order_for_matching_idempotency_key(): void
+    {
+        Status::query()->create(['name' => 'pending']);
+        $category = Category::query()->create(['name' => 'Wraps', 'sort_order' => 1]);
+        $item = Item::query()->create(['name' => 'Chicken Wrap', 'category_id' => $category->id, 'cost' => 12.50, 'active' => true]);
+        $customer = Customer::query()->create(['name' => 'Guest Customer', 'source' => 'guest-web']);
+
+        $payload = [
+            'customer_id' => $customer->id,
+            'subtotal' => 12.50,
+            'service_charge' => 0,
+            'total' => 12.50,
+            'is_delivery' => false,
+            'items' => [
+                [
+                    'item_id' => $item->id,
+                    'price' => 12.50,
+                    'quantity' => 1,
+                ],
+            ],
+        ];
+
+        $firstResponse = $this->postJson('/api/guest/orders', $payload, [
+            'Idempotency-Key' => 'guest-order-2',
+        ]);
+
+        $secondResponse = $this->postJson('/api/guest/orders', $payload, [
+            'Idempotency-Key' => 'guest-order-2',
+        ]);
+
+        $firstResponse->assertCreated();
+        $secondResponse
+            ->assertOk()
+            ->assertJsonPath('id', $firstResponse->json('id'));
+
+        $this->assertDatabaseCount('orders', 1);
+    }
+
+    public function test_guest_order_requires_guest_customer_source(): void
+    {
+        Status::query()->create(['name' => 'pending']);
+        $category = Category::query()->create(['name' => 'Wraps', 'sort_order' => 1]);
+        $item = Item::query()->create(['name' => 'Chicken Wrap', 'category_id' => $category->id, 'cost' => 12.50, 'active' => true]);
+        $customer = Customer::query()->create(['name' => 'Staff Customer', 'source' => 'admin']);
+
+        $response = $this->postJson('/api/guest/orders', [
+            'customer_id' => $customer->id,
+            'subtotal' => 12.50,
+            'service_charge' => 0,
+            'total' => 12.50,
+            'is_delivery' => false,
+            'items' => [
+                [
+                    'item_id' => $item->id,
+                    'price' => 12.50,
+                    'quantity' => 1,
+                ],
+            ],
+        ]);
+
+        $response
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['customer_id']);
+    }
+
+    public function test_guest_order_route_is_throttled(): void
+    {
+        Cache::flush();
+        Status::query()->create(['name' => 'pending']);
+        $category = Category::query()->create(['name' => 'Wraps', 'sort_order' => 1]);
+        $item = Item::query()->create(['name' => 'Chicken Wrap', 'category_id' => $category->id, 'cost' => 12.50, 'active' => true]);
+        $customer = Customer::query()->create(['name' => 'Guest Customer', 'source' => 'guest-web']);
+
+        $payload = [
+            'customer_id' => $customer->id,
+            'subtotal' => 12.50,
+            'service_charge' => 0,
+            'total' => 12.50,
+            'is_delivery' => false,
+            'items' => [
+                [
+                    'item_id' => $item->id,
+                    'price' => 12.50,
+                    'quantity' => 1,
+                ],
+            ],
+        ];
+
+        foreach (range(1, 10) as $index) {
+            $this->postJson('/api/guest/orders', $payload, [
+                'Idempotency-Key' => 'throttle-'.$index,
+            ])->assertCreated();
+        }
+
+        $this->postJson('/api/guest/orders', $payload, [
+            'Idempotency-Key' => 'throttle-11',
+        ])->assertStatus(429);
+    }
+}
