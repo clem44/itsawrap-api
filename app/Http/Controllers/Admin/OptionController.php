@@ -27,6 +27,8 @@ class OptionController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:options,name',
+            'title' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
         ]);
 
         Option::create($validated);
@@ -38,7 +40,9 @@ class OptionController extends Controller
     public function update(Request $request, Option $option): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:options,name,' . $option->id,
+            'name' => 'required|string|max:255|unique:options,name,'.$option->id,
+            'title' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
         ]);
 
         $option->update($validated);

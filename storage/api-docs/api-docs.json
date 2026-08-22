@@ -2433,6 +2433,16 @@
                                         "type": "string",
                                         "example": "Size"
                                     },
+                                    "title": {
+                                        "type": "string",
+                                        "example": "Choose a size",
+                                        "nullable": true
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Select the portion size for this item.",
+                                        "nullable": true
+                                    },
                                     "values": {
                                         "type": "array",
                                         "items": {
@@ -2549,6 +2559,14 @@
                                 "properties": {
                                     "name": {
                                         "type": "string"
+                                    },
+                                    "title": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -5528,13 +5546,15 @@
                         "type": "string",
                         "example": "Size"
                     },
-                    "type": {
+                    "title": {
                         "type": "string",
-                        "example": "single"
+                        "example": "Choose a size",
+                        "nullable": true
                     },
-                    "required": {
-                        "type": "boolean",
-                        "example": true
+                    "description": {
+                        "type": "string",
+                        "example": "Select the portion size for this item.",
+                        "nullable": true
                     },
                     "created_at": {
                         "type": "string",

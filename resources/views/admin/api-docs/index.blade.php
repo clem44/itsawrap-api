@@ -93,14 +93,14 @@
             @endphp
 
             @foreach($endpoints as $group)
-                <div x-data="{ open: false }" class="border border-gray-200 rounded-lg">
-                    <button @click="open = !open" class="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
+                <div class="border border-gray-200 rounded-lg">
+                    <button type="button" @click="toggleEndpointGroup(@js($group['group']))" class="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
                         <span class="font-medium text-gray-900">{{ $group['group'] }}</span>
-                        <svg class="w-5 h-5 text-gray-500 transform transition-transform" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5 text-gray-500 transform transition-transform" :class="{ 'rotate-180': isEndpointGroupOpen(@js($group['group'])) }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                         </svg>
                     </button>
-                    <div x-show="open" x-cloak class="p-4 space-y-2">
+                    <div v-show="isEndpointGroupOpen(@js($group['group']))" v-cloak class="p-4 space-y-2">
                         @foreach($group['endpoints'] as $endpoint)
                             <div class="flex items-center space-x-3 py-2 border-b border-gray-100 last:border-0">
                                 <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium

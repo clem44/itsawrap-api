@@ -37,8 +37,8 @@ use OpenApi\Attributes as OA;
     properties: [
         new OA\Property(property: "id", type: "integer", example: 1),
         new OA\Property(property: "name", type: "string", example: "Size"),
-        new OA\Property(property: "type", type: "string", example: "single"),
-        new OA\Property(property: "required", type: "boolean", example: true),
+        new OA\Property(property: "title", type: "string", nullable: true, example: "Choose a size"),
+        new OA\Property(property: "description", type: "string", nullable: true, example: "Select the portion size for this item."),
         new OA\Property(property: "created_at", type: "string", format: "date-time"),
         new OA\Property(property: "updated_at", type: "string", format: "date-time"),
     ]

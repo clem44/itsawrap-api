@@ -5,8 +5,7 @@
 
 @push('scripts')
 <script>
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('branchManager', () => ({
+    window.AdminVuePage = () => ({
             createOpen: {{ $errors->any() && old('form_action') === 'create' ? 'true' : 'false' }},
             editOpen: {{ $errors->any() && old('form_action') === 'edit' ? 'true' : 'false' }},
             editBranch: {
@@ -47,13 +46,12 @@
             getEditAction() {
                 return this.editAction.replace('__ID__', this.editBranch.id);
             }
-        }));
     });
 </script>
 @endpush
 
 @section('content')
-<div x-data="branchManager">
+<div>
     <div class="page-header animate-in">
         <div class="page-header-content flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
@@ -164,10 +162,10 @@
     @endif
 
     <!-- Create Modal -->
-    <template x-teleport="body">
+    <teleport to="body">
         <div
-            x-show="createOpen"
-            x-cloak
+            v-show="createOpen"
+            v-cloak
             class="fixed inset-0 z-50 overflow-y-auto"
             aria-labelledby="modal-title"
             role="dialog"
@@ -176,8 +174,7 @@
             <div class="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                 <!-- Backdrop -->
                 <div
-                    x-show="createOpen"
-                    x-transition.opacity.duration.200ms
+                    v-show="createOpen"
                     class="fixed inset-0 bg-black/60 backdrop-blur-sm"
                     @click="closeCreate()"
                 ></div>
@@ -187,13 +184,7 @@
 
                 <!-- Modal panel -->
                 <div
-                    x-show="createOpen"
-                    x-transition:enter="ease-out duration-200"
-                    x-transition:enter-start="opacity-0 scale-95"
-                    x-transition:enter-end="opacity-100 scale-100"
-                    x-transition:leave="ease-in duration-150"
-                    x-transition:leave-start="opacity-100 scale-100"
-                    x-transition:leave-end="opacity-0 scale-95"
+                    v-show="createOpen"
                     class="relative inline-block w-full max-w-lg transform overflow-hidden rounded-2xl bg-[var(--color-forest)] text-left align-bottom shadow-xl sm:my-8 sm:align-middle"
                     @click.stop
                 >
@@ -286,13 +277,13 @@
             </div>
         </div>
     </div>
-    </template>
+    </teleport>
 
     <!-- Edit Modal -->
-    <template x-teleport="body">
+    <teleport to="body">
         <div
-            x-show="editOpen"
-            x-cloak
+            v-show="editOpen"
+            v-cloak
             class="fixed inset-0 z-50 overflow-y-auto"
             aria-labelledby="modal-title"
             role="dialog"
@@ -301,8 +292,7 @@
             <div class="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                 <!-- Backdrop -->
                 <div
-                    x-show="editOpen"
-                    x-transition.opacity.duration.200ms
+                    v-show="editOpen"
                     class="fixed inset-0 bg-black/60 backdrop-blur-sm"
                     @click="closeEdit()"
                 ></div>
@@ -312,13 +302,7 @@
 
                 <!-- Modal panel -->
                 <div
-                    x-show="editOpen"
-                    x-transition:enter="ease-out duration-200"
-                    x-transition:enter-start="opacity-0 scale-95"
-                    x-transition:enter-end="opacity-100 scale-100"
-                    x-transition:leave="ease-in duration-150"
-                    x-transition:leave-start="opacity-100 scale-100"
-                    x-transition:leave-end="opacity-0 scale-95"
+                    v-show="editOpen"
                     class="relative inline-block w-full max-w-lg transform overflow-hidden rounded-2xl bg-[var(--color-forest)] text-left align-bottom shadow-xl sm:my-8 sm:align-middle"
                     @click.stop
                 >
@@ -346,7 +330,7 @@
                                 type="text"
                                 name="name"
                                 class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('name') border-red-500 @enderror"
-                                x-model="editBranch.name"
+                                v-model="editBranch.name"
                                 required
                             >
                             @if(old('form_action') === 'edit')
@@ -362,7 +346,7 @@
                                 name="address"
                                 rows="3"
                                 class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('address') border-red-500 @enderror"
-                                x-model="editBranch.address"
+                                v-model="editBranch.address"
                             ></textarea>
                             @if(old('form_action') === 'edit')
                                 @error('address')
@@ -377,7 +361,7 @@
                                 type="text"
                                 name="phone"
                                 class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('phone') border-red-500 @enderror"
-                                x-model="editBranch.phone"
+                                v-model="editBranch.phone"
                             >
                             @if(old('form_action') === 'edit')
                                 @error('phone')
@@ -392,7 +376,7 @@
                                 id="edit_active"
                                 name="active"
                                 class="h-4 w-4 rounded border-white/20 bg-white/5 text-[var(--color-sage)] focus:ring-[var(--color-sage)]"
-                                x-model="editBranch.active"
+                                v-model="editBranch.active"
                             >
                             <label for="edit_active" class="text-sm font-medium text-white/80">Active Branch</label>
                         </div>
@@ -411,6 +395,6 @@
             </div>
         </div>
     </div>
-    </template>
+    </teleport>
 </div>
 @endsection

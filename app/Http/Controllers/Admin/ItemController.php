@@ -342,11 +342,30 @@ class ItemController extends Controller
         $validated = $request->validate([
             'enable_qty' => 'nullable|boolean',
             'range' => 'nullable|boolean',
+            'min' => 'nullable|integer|min:0',
+            'max' => 'nullable|integer|min:0',
         ]);
 
+        if (
+            array_key_exists('min', $validated)
+            && array_key_exists('max', $validated)
+            && $validated['min'] !== null
+            && $validated['max'] !== null
+            && $validated['max'] < $validated['min']
+        ) {
+            return response()->json([
+                'message' => 'The max value must be greater than or equal to the min value.',
+                'errors' => [
+                    'max' => ['The max value must be greater than or equal to the min value.'],
+                ],
+            ], 422);
+        }
+
         $itemOption->update([
-            'enable_qty' => (bool) ($validated['enable_qty'] ?? false),
-            'range'      => (bool) ($validated['range'] ?? false),
+            'enable_qty' => (bool) ($validated['enable_qty'] ?? $itemOption->enable_qty),
+            'range' => (bool) ($validated['range'] ?? $itemOption->range),
+            'min' => array_key_exists('min', $validated) ? $validated['min'] : $itemOption->min,
+            'max' => array_key_exists('max', $validated) ? $validated['max'] : $itemOption->max,
         ]);
 
         if (!$itemOption->enable_qty) {
@@ -357,6 +376,8 @@ class ItemController extends Controller
             'success' => true,
             'enable_qty' => $itemOption->enable_qty,
             'range' => $itemOption->range,
+            'min' => $itemOption->min,
+            'max' => $itemOption->max,
         ]);
     }
 

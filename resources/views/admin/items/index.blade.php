@@ -8,8 +8,7 @@
 @push('scripts')
 
 <script>
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('itemManager', () => ({
+    window.AdminVuePage = () => ({
             createOpen: {{ $errors->any() && old('form_action') === 'create' ? 'true' : 'false' }},
             editOpen: {{ $errors->any() && old('form_action') === 'edit' ? 'true' : 'false' }},
             editOptionsOpen: false,
@@ -206,7 +205,9 @@
                             },
                             body: JSON.stringify({
                                 range: enabled,
-                                enable_qty: option.enable_qty
+                                enable_qty: option.enable_qty,
+                                min: option.min,
+                                max: option.max
                             })
                         }
                     );
@@ -219,6 +220,47 @@
                     option.range = previous;
                     console.error('Error updating item option:', error);
                     alert('Failed to update range setting. Please try again.');
+                }
+            },
+
+            async updateOptionRangeBound(option, bound, value) {
+                const previous = option[bound];
+                option[bound] = value === '' ? null : parseInt(value, 10);
+
+                try {
+                    const response = await fetch(
+                        this.itemOptionRoute
+                            .replace('__ITEM__', this.editOptionsItem.id)
+                            .replace('__ITEM_OPTION__', option.itemOptionId),
+                        {
+                            method: 'PATCH',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            },
+                            body: JSON.stringify({
+                                range: option.range,
+                                enable_qty: option.enable_qty,
+                                min: option.min,
+                                max: option.max
+                            })
+                        }
+                    );
+
+                    const result = await response.json().catch(() => ({}));
+
+                    if (!response.ok) {
+                        option[bound] = previous;
+                        alert(result.message || 'Failed to update range limits. Please try again.');
+                        return;
+                    }
+
+                    option.min = result.min;
+                    option.max = result.max;
+                } catch (error) {
+                    option[bound] = previous;
+                    console.error('Error updating item option range limits:', error);
+                    alert('Failed to update range limits. Please try again.');
                 }
             },
 
@@ -406,13 +448,12 @@
             getEditAction() {
                 return this.editAction.replace('__ID__', this.editItem.id);
             }
-        }));
     });
 </script>
 @endpush
 
 @section('content')
-<div x-data="itemManager">
+<div>
     <div class="page-header animate-in">
         <div class="page-header-content flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
@@ -552,10 +593,10 @@
     @endif
 
     <!-- Create Modal -->
-    <template x-teleport="body">
+    <teleport to="body">
         <div
-            x-show="createOpen"
-            x-cloak
+            v-show="createOpen"
+            v-cloak
             class="fixed inset-0 z-50 overflow-y-auto"
             aria-labelledby="modal-title"
             role="dialog"
@@ -564,8 +605,7 @@
             <div class="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                 <!-- Backdrop -->
                 <div
-                    x-show="createOpen"
-                    x-transition.opacity.duration.200ms
+                    v-show="createOpen"
                     class="fixed inset-0 bg-black/60 backdrop-blur-sm"
                     @click="closeCreate()"
                 ></div>
@@ -575,13 +615,7 @@
 
                 <!-- Modal panel - Large Size -->
                 <div
-                    x-show="createOpen"
-                    x-transition:enter="ease-out duration-200"
-                    x-transition:enter-start="opacity-0 scale-95"
-                    x-transition:enter-end="opacity-100 scale-100"
-                    x-transition:leave="ease-in duration-150"
-                    x-transition:leave-start="opacity-100 scale-100"
-                    x-transition:leave-end="opacity-0 scale-95"
+                    v-show="createOpen"
                     class="relative inline-block w-full max-w-4xl transform overflow-hidden rounded-2xl bg-white text-left align-bottom shadow-xl sm:my-8 sm:align-middle"
                     @click.stop
                 >
@@ -619,7 +653,7 @@
                                     name="name"
                                     class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('name') border-red-500 @enderror"
                                     placeholder="e.g. Chicken Wrap"
-                                    x-model="createItem.name"
+                                    v-model="createItem.name"
                                     required
                                 >
                                 @if(old('form_action') === 'create')
@@ -638,7 +672,7 @@
                                     name="cost"
                                     class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('cost') border-red-500 @enderror"
                                     placeholder="0.00"
-                                    x-model="createItem.cost"
+                                    v-model="createItem.cost"
                                     required
                                 >
                                 @if(old('form_action') === 'create')
@@ -656,7 +690,7 @@
                                 rows="3"
                                 class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('description') border-red-500 @enderror"
                                 placeholder="Enter item description"
-                                x-model="createItem.description"
+                                v-model="createItem.description"
                             ></textarea>
                             @if(old('form_action') === 'create')
                                 @error('description')
@@ -671,7 +705,7 @@
                                 <select
                                     name="category_id"
                                     class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('category_id') border-red-500 @enderror"
-                                    x-model="createItem.category_id"
+                                    v-model="createItem.category_id"
                                     required
                                 >
                                     <option value="">Select a category</option>
@@ -693,7 +727,7 @@
                                     name="short_code"
                                     class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('short_code') border-red-500 @enderror"
                                     placeholder="e.g. CW001"
-                                    x-model="createItem.short_code"
+                                    v-model="createItem.short_code"
                                 >
                                 @if(old('form_action') === 'create')
                                     @error('short_code')
@@ -710,7 +744,7 @@
                                 name="image_path"
                                 class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('image_path') border-red-500 @enderror"
                                 placeholder="e.g. /images/items/chicken-wrap.jpg"
-                                x-model="createItem.image_path"
+                                v-model="createItem.image_path"
                             >
                             @if(old('form_action') === 'create')
                                 @error('image_path')
@@ -750,7 +784,7 @@
                                 id="create_active"
                                 name="active"
                                 class="h-4 w-4 rounded border-gray-300 text-[var(--color-sage)] focus:ring-[var(--color-sage)]"
-                                x-model="createItem.active"
+                                v-model="createItem.active"
                             >
                             <label for="create_active" class="text-sm font-medium text-gray-900">Active Item</label>
                         </div>
@@ -769,13 +803,13 @@
             </div>
         </div>
     </div>
-    </template>
+    </teleport>
 
     <!-- Edit Modal -->
-    <template x-teleport="body">
+    <teleport to="body">
         <div
-            x-show="editOpen"
-            x-cloak
+            v-show="editOpen"
+            v-cloak
             class="fixed inset-0 z-50 overflow-y-auto"
             aria-labelledby="modal-title"
             role="dialog"
@@ -784,8 +818,7 @@
             <div class="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                 <!-- Backdrop -->
                 <div
-                    x-show="editOpen"
-                    x-transition.opacity.duration.200ms
+                    v-show="editOpen"
                     class="fixed inset-0 bg-black/60 backdrop-blur-sm"
                     @click="closeEdit()"
                 ></div>
@@ -795,13 +828,7 @@
 
                 <!-- Modal panel - Large Size -->
                 <div
-                    x-show="editOpen"
-                    x-transition:enter="ease-out duration-200"
-                    x-transition:enter-start="opacity-0 scale-95"
-                    x-transition:enter-end="opacity-100 scale-100"
-                    x-transition:leave="ease-in duration-150"
-                    x-transition:leave-start="opacity-100 scale-100"
-                    x-transition:leave-end="opacity-0 scale-95"
+                    v-show="editOpen"
                     class="relative inline-block w-full max-w-4xl transform overflow-hidden rounded-2xl bg-white text-left align-bottom shadow-xl sm:my-8 sm:align-middle"
                     @click.stop
                 >
@@ -840,7 +867,7 @@
                                     type="text"
                                     name="name"
                                     class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('name') border-red-500 @enderror"
-                                    x-model="editItem.name"
+                                    v-model="editItem.name"
                                     required
                                 >
                                 @if(old('form_action') === 'edit')
@@ -858,7 +885,7 @@
                                     min="0"
                                     name="cost"
                                     class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('cost') border-red-500 @enderror"
-                                    x-model="editItem.cost"
+                                    v-model="editItem.cost"
                                     required
                                 >
                                 @if(old('form_action') === 'edit')
@@ -875,7 +902,7 @@
                                 name="description"
                                 rows="3"
                                 class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('description') border-red-500 @enderror"
-                                x-model="editItem.description"
+                                v-model="editItem.description"
                             ></textarea>
                             @if(old('form_action') === 'edit')
                                 @error('description')
@@ -890,7 +917,7 @@
                                 <select
                                     name="category_id"
                                     class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('category_id') border-red-500 @enderror"
-                                    x-model="editItem.category_id"
+                                    v-model="editItem.category_id"
                                     required
                                 >
                                     <option value="">Select a category</option>
@@ -911,7 +938,7 @@
                                     type="text"
                                     name="short_code"
                                     class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('short_code') border-red-500 @enderror"
-                                    x-model="editItem.short_code"
+                                    v-model="editItem.short_code"
                                 >
                                 @if(old('form_action') === 'edit')
                                     @error('short_code')
@@ -927,7 +954,7 @@
                                 type="text"
                                 name="image_path"
                                 class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('image_path') border-red-500 @enderror"
-                                x-model="editItem.image_path"
+                                v-model="editItem.image_path"
                             >
                             @if(old('form_action') === 'edit')
                                 @error('image_path')
@@ -967,7 +994,7 @@
                                 id="edit_active"
                                 name="active"
                                 class="h-4 w-4 rounded border-gray-300 text-[var(--color-sage)] focus:ring-[var(--color-sage)]"
-                                x-model="editItem.active"
+                                v-model="editItem.active"
                             >
                             <label for="edit_active" class="text-sm font-medium text-gray-900">Active Item</label>
                         </div>
@@ -986,23 +1013,18 @@
             </div>
         </div>
     </div>
-    </template>
+    </teleport>
 
     <!-- Edit Options Modal -->
-    <template x-teleport="body">
-        <div
-            x-show="editOptionsOpen"
-            x-cloak
-            class="fixed inset-0 z-50 overflow-y-auto"
-            aria-labelledby="modal-title"
+    <teleport to="body">
+        <div v-show="editOptionsOpen" v-cloak class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title"
             role="dialog"
             aria-modal="true"
         >
             <div class="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                 <!-- Backdrop -->
                 <div
-                    x-show="editOptionsOpen"
-                    x-transition.opacity.duration.200ms
+                    v-show="editOptionsOpen"
                     class="fixed inset-0 bg-black/60 backdrop-blur-sm z-0"
                     @click="closeEditOptions()"
                 ></div>
@@ -1012,13 +1034,7 @@
 
                 <!-- Modal panel - Large Size for Two Columns -->
                 <div
-                    x-show="editOptionsOpen"
-                    x-transition:enter="ease-out duration-200"
-                    x-transition:enter-start="opacity-0 scale-95"
-                    x-transition:enter-end="opacity-100 scale-100"
-                    x-transition:leave="ease-in duration-150"
-                    x-transition:leave-start="opacity-100 scale-100"
-                    x-transition:leave-end="opacity-0 scale-95"
+                    v-show="editOptionsOpen"
                     class="relative z-10 inline-block w-full max-w-5xl transform overflow-hidden rounded-2xl bg-white text-left align-bottom shadow-xl sm:my-8 sm:align-middle"
                     @click.stop
                 >
@@ -1038,7 +1054,7 @@
                         <div class="col-span-2 overflow-y-auto px-6 py-5">
                             <h3 class="mb-4 text-sm font-semibold text-gray-900">Options</h3>
                             <div class="space-y-2">
-                                <template x-for="option in getVisibleItemOptions()" :key="option.id">
+                                <template v-for="option in getVisibleItemOptions()" :key="option.id">
                                     <div class="border border-gray-200 rounded-lg overflow-hidden">
                                         <button
                                             type="button"
@@ -1052,9 +1068,9 @@
                                             <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-90': isOptionExpanded(option.id) }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                                             </svg>
-                                            <span class="flex-1 text-left" x-text="option.name"></span>
+                                            <span class="flex-1 text-left" v-text="option.name"></span>
                                         </button>
-                                        <div x-show="isOptionExpanded(option.id)" x-transition class="border-t border-gray-200 bg-white px-3 py-3 space-y-3">
+                                        <div v-show="isOptionExpanded(option.id)" class="border-t border-gray-200 bg-white px-3 py-3 space-y-3">
                                             <div class="flex items-center justify-between gap-2">
                                                 <span class="text-xs font-semibold text-gray-700">Enable quantity</span>
                                                 <label class="inline-flex items-center cursor-pointer">
@@ -1067,7 +1083,7 @@
                                                     <div class="relative w-9 h-5 rounded-full bg-gray-200 transition-colors peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[var(--color-sage)] peer-checked:bg-[var(--color-sage)] after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-4"></div>
                                                 </label>
                                             </div>
-                                             <div class="flex items-center justify-between gap-2">
+                                            <div class="flex items-center justify-between gap-2">
                                                 <span class="text-xs font-semibold text-gray-700">Enable Range</span>
                                                 <label class="inline-flex items-center cursor-pointer">
                                                     <input
@@ -1079,20 +1095,33 @@
                                                     <div class="relative w-9 h-5 rounded-full bg-gray-200 transition-colors peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[var(--color-sage)] peer-checked:bg-[var(--color-sage)] after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-4"></div>
                                                 </label>
                                             </div>
-                                            <div class="grid grid-cols-2 gap-4">
-                                                <div>
-                                                     <span class="text-xs text-gray-500">Min</span>
+                                            <div v-if="option.range" class="grid grid-cols-2 gap-3">
+                                                <label class="block">
+                                                    <span class="text-xs text-gray-500">Min</span>
                                                     <input
                                                         type="number"
                                                         min="0"
                                                         :value="option.min"
-                                                        @input.stop="updateOptionMinQty(option.id, $event.target.value)"
+                                                        @change.stop="updateOptionRangeBound(option, 'min', $event.target.value)"
                                                         @click.stop
-                                                        class="w-16 ml-2 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-sm text-gray-900 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)]"
+                                                        class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-sm text-gray-900 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)]"
                                                         placeholder="0"
                                                     >
-                                                </div>
-                                                <div class="flex items-center justify-end">
+                                                </label>
+                                                <label class="block">
+                                                    <span class="text-xs text-gray-500">Max</span>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        :value="option.max"
+                                                        @change.stop="updateOptionRangeBound(option, 'max', $event.target.value)"
+                                                        @click.stop
+                                                        class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-sm text-gray-900 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)]"
+                                                        placeholder="0"
+                                                    >
+                                                </label>
+                                            </div>
+                                            <div class="flex items-center justify-end">
                                                     <button
                                                         type="button"
                                                         @click.stop="deleteItemOption(option)"
@@ -1104,7 +1133,6 @@
                                                         Delete option
                                                     </button>
                                                    
-                                                </div>
                                             </div>
                                             
                                         </div>
@@ -1116,9 +1144,9 @@
                         <!-- Column 2: Option Values (7/12) -->
                         <div class="col-span-3 overflow-y-auto px-6 py-5">
                             <h3 class="mb-4 text-sm font-semibold text-gray-900">Values & Prices</h3>
-                            <template x-if="selectedOptionInModal && getSelectedOptionValues().length > 0">
+                            <template v-if="selectedOptionInModal && getSelectedOptionValues().length > 0">
                                 <div class="space-y-2">
-                                    <template x-for="value in getSelectedOptionValues()" :key="value.id">
+                                    <template v-for="value in getSelectedOptionValues()" :key="value.id">
                                         <div class="border border-gray-200 rounded-lg overflow-hidden">
                                             <!-- Collapsed Header -->
                                             <button
@@ -1130,7 +1158,7 @@
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                                                 </svg>
                                                 <div class="flex-1 text-left">
-                                                    <p class="text-sm font-medium text-gray-900" x-text="value.name"></p>
+                                                    <p class="text-sm font-medium text-gray-900" v-text="value.name"></p>
                                                 </div>
                                                 <div class="flex items-center gap-2">
                                                     <span class="text-xs text-gray-500">Price:</span>
@@ -1159,14 +1187,14 @@
                                             </button>
 
                                             <!-- Expanded Content -->
-                                            <div x-show="isValueExpanded(value.id)" x-transition class="border-t border-gray-200 px-3 py-3 bg-gray-50 space-y-3">
+                                            <div v-show="isValueExpanded(value.id)" class="border-t border-gray-200 px-3 py-3 bg-gray-50 space-y-3">
                                                 <div>
                                                     <h4 class="text-xs font-semibold text-gray-700 mb-2">Dependent Options</h4>
                                                     <div class="space-y-3">
-                                                        <template x-for="dep in (value.optionDependencies || [])" :key="dep.childOptionId">
+                                                        <template v-for="dep in (value.optionDependencies || [])" :key="dep.childOptionId">
                                                             <div class="bg-white rounded border border-gray-200 p-2">
                                                                 <div class="flex items-center justify-between mb-2">
-                                                                    <span class="text-sm font-medium text-gray-900" x-text="getDependencyOptionName(dep.childOptionId)"></span>
+                                                                    <span class="text-sm font-medium text-gray-900" v-text="getDependencyOptionName(dep.childOptionId)"></span>
                                                                     <button
                                                                         type="button"
                                                                         @click.stop="removeDependency(value.id, dep.childOptionId)"
@@ -1179,9 +1207,9 @@
                                                                     </button>
                                                                 </div>
                                                                 <div class="space-y-1">
-                                                                    <template x-for="depVal in getDependencyOptionValues(value.id, dep.childOptionId)" :key="depVal.id">
+                                                                    <template v-for="depVal in getDependencyOptionValues(value.id, dep.childOptionId)" :key="depVal.id">
                                                                         <div class="flex items-center justify-between bg-gray-50 rounded px-2 py-1 text-xs">
-                                                                            <span class="text-gray-700" x-text="depVal.name"></span>
+                                                                            <span class="text-gray-700" v-text="depVal.name"></span>
                                                                             <input
                                                                                 type="number"
                                                                                 step="0.01"
@@ -1210,13 +1238,13 @@
                                                         Add
                                                     </button>
                                                     <select
-                                                        x-model="newDependencyOptions[value.id]"
+                                                        v-model="newDependencyOptions[value.id]"
                                                         @change.stop
                                                         class="flex-1 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs text-gray-900 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)]"
                                                     >
                                                         <option value="">Select an option</option>
-                                                        <template x-for="opt in allOptions" :key="opt.id">
-                                                            <option :value="opt.id" x-text="opt.name"></option>
+                                                        <template v-for="opt in allOptions" :key="opt.id">
+                                                            <option :value="opt.id" v-text="opt.name"></option>
                                                         </template>
                                                     </select>
                                                 </div>
@@ -1225,10 +1253,10 @@
                                     </template>
                                 </div>
                             </template>
-                            <template x-if="selectedOptionInModal && getSelectedOptionValues().length === 0">
+                            <template v-if="selectedOptionInModal && getSelectedOptionValues().length === 0">
                                 <p class="text-sm text-gray-500">No option values available for this option.</p>
                             </template>
-                            <template x-if="!selectedOptionInModal">
+                            <template v-if="!selectedOptionInModal">
                                 <p class="text-sm text-gray-500">Select an option to view its values.</p>
                             </template>
                         </div>
@@ -1246,6 +1274,6 @@
                 </div>
             </div>
         </div>
-    </template>
+    </teleport>
 </div>
 @endsection

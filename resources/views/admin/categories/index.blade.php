@@ -5,8 +5,7 @@
 
 @push('scripts')
 <script>
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('categoryManager', () => ({
+    window.AdminVuePage = () => ({
             createOpen: {{ $errors->any() && old('form_action') === 'create' ? 'true' : 'false' }},
             editOpen: {{ $errors->any() && old('form_action') === 'edit' ? 'true' : 'false' }},
             createColor: '{{ old('form_action') === 'create' ? old('color', '') : '' }}',
@@ -51,13 +50,12 @@
             getEditAction() {
                 return this.editAction.replace('__ID__', this.editCategory.id);
             }
-        }));
     });
 </script>
 @endpush
 
 @section('content')
-<div x-data="categoryManager">
+<div>
     <div class="page-header animate-in">
         <div class="page-header-content flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
@@ -164,10 +162,10 @@
     @endif
 
     <!-- Create Modal -->
-    <template x-teleport="body">
+    <teleport to="body">
         <div
-            x-show="createOpen"
-            x-cloak
+            v-show="createOpen"
+            v-cloak
             class="fixed inset-0 z-50 overflow-y-auto"
             aria-labelledby="modal-title"
             role="dialog"
@@ -176,8 +174,7 @@
             <div class="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                 <!-- Backdrop -->
                 <div
-                    x-show="createOpen"
-                    x-transition.opacity.duration.200ms
+                    v-show="createOpen"
                     class="fixed inset-0 bg-black/60 backdrop-blur-sm"
                     @click="closeCreate()"
                 ></div>
@@ -187,13 +184,7 @@
 
                 <!-- Modal panel -->
                 <div
-                    x-show="createOpen"
-                    x-transition:enter="ease-out duration-200"
-                    x-transition:enter-start="opacity-0 scale-95"
-                    x-transition:enter-end="opacity-100 scale-100"
-                    x-transition:leave="ease-in duration-150"
-                    x-transition:leave-start="opacity-100 scale-100"
-                    x-transition:leave-end="opacity-0 scale-95"
+                    v-show="createOpen"
                     class="relative inline-block w-full max-w-lg transform overflow-hidden rounded-2xl bg-[var(--color-forest)] text-left align-bottom shadow-xl sm:my-8 sm:align-middle"
                     @click.stop
                 >
@@ -284,7 +275,7 @@
                                     name="color"
                                     class="flex-1 rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('color') border-red-500 @enderror"
                                     placeholder="#7c9a8a"
-                                    x-model="createColor"
+                                    v-model="createColor"
                                 >
                                 <span
                                     class="h-10 w-10 flex-shrink-0 rounded-lg border border-white/20"
@@ -312,13 +303,13 @@
             </div>
         </div>
     </div>
-    </template>
+    </teleport>
 
     <!-- Edit Modal -->
-    <template x-teleport="body">
+    <teleport to="body">
         <div
-            x-show="editOpen"
-            x-cloak
+            v-show="editOpen"
+            v-cloak
             class="fixed inset-0 z-50 overflow-y-auto"
             aria-labelledby="modal-title"
             role="dialog"
@@ -327,8 +318,7 @@
             <div class="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                 <!-- Backdrop -->
                 <div
-                    x-show="editOpen"
-                    x-transition.opacity.duration.200ms
+                    v-show="editOpen"
                     class="fixed inset-0 bg-black/60 backdrop-blur-sm"
                     @click="closeEdit()"
                 ></div>
@@ -338,13 +328,7 @@
 
                 <!-- Modal panel -->
                 <div
-                    x-show="editOpen"
-                    x-transition:enter="ease-out duration-200"
-                    x-transition:enter-start="opacity-0 scale-95"
-                    x-transition:enter-end="opacity-100 scale-100"
-                    x-transition:leave="ease-in duration-150"
-                    x-transition:leave-start="opacity-100 scale-100"
-                    x-transition:leave-end="opacity-0 scale-95"
+                    v-show="editOpen"
                     class="relative inline-block w-full max-w-lg transform overflow-hidden rounded-2xl bg-[var(--color-forest)] text-left align-bottom shadow-xl sm:my-8 sm:align-middle"
                     @click.stop
                 >
@@ -372,7 +356,7 @@
                                 type="text"
                                 name="name"
                                 class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('name') border-red-500 @enderror"
-                                x-model="editCategory.name"
+                                v-model="editCategory.name"
                                 required
                             >
                             @if(old('form_action') === 'edit')
@@ -388,7 +372,7 @@
                                 name="description"
                                 rows="3"
                                 class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('description') border-red-500 @enderror"
-                                x-model="editCategory.description"
+                                v-model="editCategory.description"
                             ></textarea>
                             @if(old('form_action') === 'edit')
                                 @error('description')
@@ -404,7 +388,7 @@
                                     type="text"
                                     name="icon"
                                     class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('icon') border-red-500 @enderror"
-                                    x-model="editCategory.icon"
+                                    v-model="editCategory.icon"
                                     placeholder="e.g. wrap-icon"
                                 >
                                 @if(old('form_action') === 'edit')
@@ -419,7 +403,7 @@
                                     type="number"
                                     name="sort_order"
                                     class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('sort_order') border-red-500 @enderror"
-                                    x-model="editCategory.sort_order"
+                                    v-model="editCategory.sort_order"
                                     min="0"
                                 >
                                 @if(old('form_action') === 'edit')
@@ -437,7 +421,7 @@
                                     type="text"
                                     name="color"
                                     class="flex-1 rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('color') border-red-500 @enderror"
-                                    x-model="editCategory.color"
+                                    v-model="editCategory.color"
                                     placeholder="#7c9a8a"
                                 >
                                 <span
@@ -466,6 +450,6 @@
             </div>
         </div>
     </div>
-    </template>
+    </teleport>
 </div>
 @endsection

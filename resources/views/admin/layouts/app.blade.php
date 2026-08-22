@@ -18,22 +18,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Admin Dashboard') - It's A Wrap API</title>
-    @vite(['resources/css/app.css'])
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     {{-- <script src="https://cdn.tailwindcss.com"></script> --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;1,9..144,400&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
 
     <style>
-        [x-cloak] { display: none !important; }
+        [v-cloak] { display: none !important; }
     </style>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     @stack('styles')
 </head>
 <body class="min-h-screen" style="background: var(--color-cream);">
     <div
-        x-data="{ sidebarOpen: false, dataMenuOpen: @json($dataMenuOpen), sidebarCollapsed: JSON.parse(localStorage.getItem('adminSidebarCollapsed') || 'false') }"
-        x-init="$watch('sidebarCollapsed', value => localStorage.setItem('adminSidebarCollapsed', value))"
+        id="admin-vue-app"
+        v-cloak
+        data-menu-open="{{ $dataMenuOpen ? 'true' : 'false' }}"
         class="flex h-screen overflow-hidden"
     >
         <!-- Sidebar -->
@@ -70,11 +70,11 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path>
                             </svg>
                             <span class="sidebar-label">Data</span>
-                            <svg class="w-4 h-4 sidebar-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" :class="{ 'sidebar-chevron-open': dataMenuOpen }" x-show="!sidebarCollapsed">
+                            <svg class="w-4 h-4 sidebar-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" :class="{ 'sidebar-chevron-open': dataMenuOpen }" v-show="!sidebarCollapsed">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                             </svg>
                         </button>
-                        <div class="sidebar-submenu" x-show="dataMenuOpen && !sidebarCollapsed" x-transition x-cloak>
+                        <div class="sidebar-submenu" v-show="dataMenuOpen && !sidebarCollapsed" v-cloak>
                             <a href="{{ route('admin.orders.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}"><span class="sidebar-label">Orders</span></a>
                             <a href="{{ route('admin.sessions.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.sessions.*') ? 'active' : '' }}"><span class="sidebar-label">Sessions</span></a>
                             <a href="{{ route('admin.customers.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.customers.*') ? 'active' : '' }}"><span class="sidebar-label">Customers</span></a>
@@ -125,9 +125,9 @@
         </aside>
 
         <!-- Mobile sidebar -->
-        <div x-show="sidebarOpen" x-cloak class="fixed inset-0 z-40 md:hidden">
-            <div x-show="sidebarOpen" x-transition:enter="transition-opacity ease-linear duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition-opacity ease-linear duration-300" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 bg-gray-600 bg-opacity-75" @click="sidebarOpen = false"></div>
-            <div x-show="sidebarOpen" x-transition:enter="transition ease-in-out duration-300 transform" x-transition:enter-start="-translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transition ease-in-out duration-300 transform" x-transition:leave-start="translate-x-0" x-transition:leave-end="-translate-x-full" class="relative flex flex-col flex-1 w-full max-w-xs admin-sidebar">
+        <div v-show="sidebarOpen" v-cloak class="fixed inset-0 z-40 md:hidden">
+            <div v-show="sidebarOpen" class="fixed inset-0 bg-gray-600 bg-opacity-75" @click="sidebarOpen = false"></div>
+            <div v-show="sidebarOpen" class="relative flex flex-col flex-1 w-full max-w-xs admin-sidebar">
                 <div class="absolute top-0 right-0 pt-2 -mr-12">
                     <button @click="sidebarOpen = false" class="flex items-center justify-center w-10 h-10 ml-1 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white">
                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -161,7 +161,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                             </svg>
                         </button>
-                        <div class="sidebar-submenu" x-show="dataMenuOpen" x-transition x-cloak>
+                        <div class="sidebar-submenu" v-show="dataMenuOpen" v-cloak>
                             <a href="{{ route('admin.orders.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">Orders</a>
                             <a href="{{ route('admin.sessions.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.sessions.*') ? 'active' : '' }}">Sessions</a>
                             <a href="{{ route('admin.customers.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.customers.*') ? 'active' : '' }}">Customers</a>

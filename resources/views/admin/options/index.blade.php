@@ -5,8 +5,7 @@
 
 @push('scripts')
 <script>
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('optionManager', () => ({
+    window.AdminVuePage = () => ({
             createOpen: {{ $errors->any() && old('form_action') === 'create' ? 'true' : 'false' }},
             editOpen: {{ $errors->any() && old('form_action') === 'edit' ? 'true' : 'false' }},
             createValueOpen: false,
@@ -14,7 +13,9 @@
             selectedOption: null,
             editOption: {
                 id: {{ old('form_action') === 'edit' ? (old('edit_id') ?: 'null') : 'null' }},
-                name: '{{ old('form_action') === 'edit' ? addslashes(old('name', '')) : '' }}'
+                name: @js(old('form_action') === 'edit' ? old('name', '') : ''),
+                title: @js(old('form_action') === 'edit' ? old('title', '') : ''),
+                description: @js(old('form_action') === 'edit' ? old('description', '') : '')
             },
             createValue: {
                 name: '',
@@ -39,7 +40,9 @@
             openEdit(option) {
                 this.editOption = {
                     id: option.id,
-                    name: option.name || ''
+                    name: option.name || '',
+                    title: option.title || '',
+                    description: option.description || ''
                 };
                 this.editAction = '{{ route('admin.options.update', ['option' => '__ID__']) }}'.replace('__ID__', option.id);
                 this.editOpen = true;
@@ -89,13 +92,12 @@
             getEditAction() {
                 return this.editAction.replace('__ID__', this.editOption.id);
             }
-        }));
     });
 </script>
 @endpush
 
 @section('content')
-<div x-data="optionManager">
+<div>
     <div class="page-header animate-in">
         <div class="page-header-content flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
@@ -130,6 +132,12 @@
                                 </div>
                                 <div>
                                     <div class="user-name">{{ $option->name }}</div>
+                                    @if($option->title)
+                                        <div class="user-meta">{{ $option->title }}</div>
+                                    @endif
+                                    @if($option->description)
+                                        <div class="user-meta">{{ \Illuminate\Support\Str::limit($option->description, 120) }}</div>
+                                    @endif
                                 </div>
                             </div>
                         </td>
@@ -171,7 +179,7 @@
                                     type="button"
                                     class="action-btn edit"
                                     title="Edit Option"
-                                    @click.stop="openEdit(@js($option->only(['id', 'name'])))"
+                                    @click.stop="openEdit(@js($option->only(['id', 'name', 'title', 'description'])))"
                                 >
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -215,10 +223,10 @@
     @endif
 
     <!-- Create Modal -->
-    <template x-teleport="body">
+    <teleport to="body">
         <div
-            x-show="createOpen"
-            x-cloak
+            v-show="createOpen"
+            v-cloak
             class="fixed inset-0 z-50 overflow-y-auto"
             aria-labelledby="modal-title"
             role="dialog"
@@ -227,8 +235,7 @@
             <div class="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                 <!-- Backdrop -->
                 <div
-                    x-show="createOpen"
-                    x-transition.opacity.duration.200ms
+                    v-show="createOpen"
                     class="fixed inset-0 bg-black/60 backdrop-blur-sm"
                     @click="closeCreate()"
                 ></div>
@@ -238,13 +245,7 @@
 
                 <!-- Modal panel -->
                 <div
-                    x-show="createOpen"
-                    x-transition:enter="ease-out duration-200"
-                    x-transition:enter-start="opacity-0 scale-95"
-                    x-transition:enter-end="opacity-100 scale-100"
-                    x-transition:leave="ease-in duration-150"
-                    x-transition:leave-start="opacity-100 scale-100"
-                    x-transition:leave-end="opacity-0 scale-95"
+                    v-show="createOpen"
                     class="relative inline-block w-full max-w-lg transform overflow-hidden rounded-2xl bg-[var(--color-forest)] text-left align-bottom shadow-xl sm:my-8 sm:align-middle"
                     @click.stop
                 >
@@ -281,6 +282,37 @@
                             @endif
                         </div>
 
+                        <div>
+                            <label class="mb-2 block text-sm font-medium text-white/80">Title</label>
+                            <input
+                                type="text"
+                                name="title"
+                                class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('title') border-red-500 @enderror"
+                                placeholder="e.g. Choose your size"
+                                value="{{ old('form_action') === 'create' ? old('title') : '' }}"
+                            >
+                            @if(old('form_action') === 'create')
+                                @error('title')
+                                    <p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>
+                                @enderror
+                            @endif
+                        </div>
+
+                        <div>
+                            <label class="mb-2 block text-sm font-medium text-white/80">Description</label>
+                            <textarea
+                                name="description"
+                                rows="3"
+                                class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('description') border-red-500 @enderror"
+                                placeholder="Optional helper text for this option"
+                            >{{ old('form_action') === 'create' ? old('description') : '' }}</textarea>
+                            @if(old('form_action') === 'create')
+                                @error('description')
+                                    <p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>
+                                @enderror
+                            @endif
+                        </div>
+
                         <p class="text-sm text-white/60">You can add option values after creating the option.</p>
                     </div>
 
@@ -297,13 +329,13 @@
             </div>
         </div>
     </div>
-    </template>
+    </teleport>
 
     <!-- Edit Modal -->
-    <template x-teleport="body">
+    <teleport to="body">
         <div
-            x-show="editOpen"
-            x-cloak
+            v-show="editOpen"
+            v-cloak
             class="fixed inset-0 z-50 overflow-y-auto"
             aria-labelledby="modal-title"
             role="dialog"
@@ -312,8 +344,7 @@
             <div class="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                 <!-- Backdrop -->
                 <div
-                    x-show="editOpen"
-                    x-transition.opacity.duration.200ms
+                    v-show="editOpen"
                     class="fixed inset-0 bg-black/60 backdrop-blur-sm"
                     @click="closeEdit()"
                 ></div>
@@ -323,13 +354,7 @@
 
                 <!-- Modal panel -->
                 <div
-                    x-show="editOpen"
-                    x-transition:enter="ease-out duration-200"
-                    x-transition:enter-start="opacity-0 scale-95"
-                    x-transition:enter-end="opacity-100 scale-100"
-                    x-transition:leave="ease-in duration-150"
-                    x-transition:leave-start="opacity-100 scale-100"
-                    x-transition:leave-end="opacity-0 scale-95"
+                    v-show="editOpen"
                     class="relative inline-block w-full max-w-lg transform overflow-hidden rounded-2xl bg-[var(--color-forest)] text-left align-bottom shadow-xl sm:my-8 sm:align-middle"
                     @click.stop
                 >
@@ -357,11 +382,41 @@
                                 type="text"
                                 name="name"
                                 class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('name') border-red-500 @enderror"
-                                x-model="editOption.name"
+                                v-model="editOption.name"
                                 required
                             >
                             @if(old('form_action') === 'edit')
                                 @error('name')
+                                    <p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>
+                                @enderror
+                            @endif
+                        </div>
+
+                        <div>
+                            <label class="mb-2 block text-sm font-medium text-white/80">Title</label>
+                            <input
+                                type="text"
+                                name="title"
+                                class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('title') border-red-500 @enderror"
+                                v-model="editOption.title"
+                            >
+                            @if(old('form_action') === 'edit')
+                                @error('title')
+                                    <p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>
+                                @enderror
+                            @endif
+                        </div>
+
+                        <div>
+                            <label class="mb-2 block text-sm font-medium text-white/80">Description</label>
+                            <textarea
+                                name="description"
+                                rows="3"
+                                class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('description') border-red-500 @enderror"
+                                v-model="editOption.description"
+                            ></textarea>
+                            @if(old('form_action') === 'edit')
+                                @error('description')
                                     <p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>
                                 @enderror
                             @endif
@@ -381,13 +436,13 @@
             </div>
         </div>
     </div>
-    </template>
+    </teleport>
 
     <!-- Create Option Value Modal -->
-    <template x-teleport="body">
+    <teleport to="body">
         <div
-            x-show="createValueOpen"
-            x-cloak
+            v-show="createValueOpen"
+            v-cloak
             class="fixed inset-0 z-50 overflow-y-auto"
             aria-labelledby="modal-title"
             role="dialog"
@@ -396,8 +451,7 @@
             <div class="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                 <!-- Backdrop -->
                 <div
-                    x-show="createValueOpen"
-                    x-transition.opacity.duration.200ms
+                    v-show="createValueOpen"
                     class="fixed inset-0 bg-black/60 backdrop-blur-sm"
                     @click="closeCreateValue()"
                 ></div>
@@ -407,13 +461,7 @@
 
                 <!-- Modal panel -->
                 <div
-                    x-show="createValueOpen"
-                    x-transition:enter="ease-out duration-200"
-                    x-transition:enter-start="opacity-0 scale-95"
-                    x-transition:enter-end="opacity-100 scale-100"
-                    x-transition:leave="ease-in duration-150"
-                    x-transition:leave-start="opacity-100 scale-100"
-                    x-transition:leave-end="opacity-0 scale-95"
+                    v-show="createValueOpen"
                     class="relative inline-block w-full max-w-lg transform overflow-hidden rounded-2xl bg-[var(--color-forest)] text-left align-bottom shadow-xl sm:my-8 sm:align-middle"
                     @click.stop
                 >
@@ -434,7 +482,7 @@
                     <!-- Body -->
                     <div class="space-y-5 px-6 py-5">
                         <div class="text-sm text-white/60">
-                            For: <span class="font-semibold text-white" x-text="selectedOption?.name || ''"></span>
+                            For: <span class="font-semibold text-white" v-text="selectedOption?.name || ''"></span>
                         </div>
 
                         <div>
@@ -444,7 +492,7 @@
                                 name="name"
                                 class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('name') border-red-500 @enderror"
                                 placeholder="e.g. Small, Medium, Large"
-                                x-model="createValue.name"
+                                v-model="createValue.name"
                                 required
                             >
                             @if(old('form_action') === 'create_value')
@@ -463,7 +511,7 @@
                                 min="0"
                                 class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('price') border-red-500 @enderror"
                                 placeholder="0.00"
-                                x-model="createValue.price"
+                                v-model="createValue.price"
                             >
                             @if(old('form_action') === 'create_value')
                                 @error('price')
@@ -486,13 +534,13 @@
             </div>
         </div>
     </div>
-    </template>
+    </teleport>
 
     <!-- Edit Option Value Modal -->
-    <template x-teleport="body">
+    <teleport to="body">
         <div
-            x-show="editValueOpen"
-            x-cloak
+            v-show="editValueOpen"
+            v-cloak
             class="fixed inset-0 z-50 overflow-y-auto"
             aria-labelledby="modal-title"
             role="dialog"
@@ -501,8 +549,7 @@
             <div class="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                 <!-- Backdrop -->
                 <div
-                    x-show="editValueOpen"
-                    x-transition.opacity.duration.200ms
+                    v-show="editValueOpen"
                     class="fixed inset-0 bg-black/60 backdrop-blur-sm"
                     @click="closeEditValue()"
                 ></div>
@@ -512,13 +559,7 @@
 
                 <!-- Modal panel -->
                 <div
-                    x-show="editValueOpen"
-                    x-transition:enter="ease-out duration-200"
-                    x-transition:enter-start="opacity-0 scale-95"
-                    x-transition:enter-end="opacity-100 scale-100"
-                    x-transition:leave="ease-in duration-150"
-                    x-transition:leave-start="opacity-100 scale-100"
-                    x-transition:leave-end="opacity-0 scale-95"
+                    v-show="editValueOpen"
                     class="relative inline-block w-full max-w-lg transform overflow-hidden rounded-2xl bg-[var(--color-forest)] text-left align-bottom shadow-xl sm:my-8 sm:align-middle"
                     @click.stop
                 >
@@ -540,7 +581,7 @@
                     <!-- Body -->
                     <div class="space-y-5 px-6 py-5">
                         <div class="text-sm text-white/60">
-                            For: <span class="font-semibold text-white" x-text="selectedOption?.name || ''"></span>
+                            For: <span class="font-semibold text-white" v-text="selectedOption?.name || ''"></span>
                         </div>
 
                         <div>
@@ -549,7 +590,7 @@
                                 type="text"
                                 name="name"
                                 class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('name') border-red-500 @enderror"
-                                x-model="editValue.name"
+                                v-model="editValue.name"
                                 required
                             >
                             @if(old('form_action') === 'edit_value')
@@ -567,7 +608,7 @@
                                 step="0.01"
                                 min="0"
                                 class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('price') border-red-500 @enderror"
-                                x-model="editValue.price"
+                                v-model="editValue.price"
                             >
                             @if(old('form_action') === 'edit_value')
                                 @error('price')
@@ -590,6 +631,6 @@
             </div>
         </div>
     </div>
-    </template>
+    </teleport>
 </div>
 @endsection

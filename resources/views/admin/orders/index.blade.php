@@ -5,8 +5,7 @@
 
 @push('scripts')
 <script>
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('orderManager', () => ({
+    window.AdminVuePage = () => ({
             detailsOpen: false,
             selectedOrder: null,
 
@@ -19,13 +18,12 @@
                 this.detailsOpen = false;
                 this.selectedOrder = null;
             }
-        }));
     });
 </script>
 @endpush
 
 @section('content')
-<div x-data="orderManager">
+<div>
     <div class="page-header animate-in">
         <div class="page-header-content flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>

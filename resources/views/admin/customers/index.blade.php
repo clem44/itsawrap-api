@@ -5,8 +5,7 @@
 
 @push('scripts')
 <script>
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('customerManager', () => ({
+    window.AdminVuePage = () => ({
             createOpen: {{ $errors->any() && old('form_action') === 'create' ? 'true' : 'false' }},
             editOpen: {{ $errors->any() && old('form_action') === 'edit' ? 'true' : 'false' }},
             editCustomer: {
@@ -63,13 +62,12 @@
             getEditAction() {
                 return this.editAction.replace('__ID__', this.editCustomer.id);
             }
-        }));
     });
 </script>
 @endpush
 
 @section('content')
-<div x-data="customerManager">
+<div>
     <div class="page-header animate-in">
         <div class="page-header-content flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
@@ -204,10 +202,10 @@
     @endif
 
     <!-- Create Modal -->
-    <template x-teleport="body">
+    <teleport to="body">
         <div
-            x-show="createOpen"
-            x-cloak
+            v-show="createOpen"
+            v-cloak
             class="fixed inset-0 z-50 overflow-y-auto"
             aria-labelledby="modal-title"
             role="dialog"
@@ -215,8 +213,7 @@
         >
             <div class="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                 <div
-                    x-show="createOpen"
-                    x-transition.opacity.duration.200ms
+                    v-show="createOpen"
                     class="fixed inset-0 bg-black/60 backdrop-blur-sm"
                     @click="closeCreate()"
                 ></div>
@@ -224,13 +221,7 @@
                 <span class="hidden sm:inline-block sm:h-screen sm:align-middle" aria-hidden="true">&#8203;</span>
 
                 <div
-                    x-show="createOpen"
-                    x-transition:enter="ease-out duration-200"
-                    x-transition:enter-start="opacity-0 scale-95"
-                    x-transition:enter-end="opacity-100 scale-100"
-                    x-transition:leave="ease-in duration-150"
-                    x-transition:leave-start="opacity-100 scale-100"
-                    x-transition:leave-end="opacity-0 scale-95"
+                    v-show="createOpen"
                     class="relative inline-block w-full max-w-lg transform overflow-hidden rounded-2xl bg-[var(--color-forest)] text-left align-bottom shadow-xl sm:my-8 sm:align-middle"
                     @click.stop
                 >
@@ -339,13 +330,13 @@
             </div>
         </div>
     </div>
-    </template>
+    </teleport>
 
     <!-- Edit Modal -->
-    <template x-teleport="body">
+    <teleport to="body">
         <div
-            x-show="editOpen"
-            x-cloak
+            v-show="editOpen"
+            v-cloak
             class="fixed inset-0 z-50 overflow-y-auto"
             aria-labelledby="modal-title"
             role="dialog"
@@ -353,8 +344,7 @@
         >
             <div class="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                 <div
-                    x-show="editOpen"
-                    x-transition.opacity.duration.200ms
+                    v-show="editOpen"
                     class="fixed inset-0 bg-black/60 backdrop-blur-sm"
                     @click="closeEdit()"
                 ></div>
@@ -362,13 +352,7 @@
                 <span class="hidden sm:inline-block sm:h-screen sm:align-middle" aria-hidden="true">&#8203;</span>
 
                 <div
-                    x-show="editOpen"
-                    x-transition:enter="ease-out duration-200"
-                    x-transition:enter-start="opacity-0 scale-95"
-                    x-transition:enter-end="opacity-100 scale-100"
-                    x-transition:leave="ease-in duration-150"
-                    x-transition:leave-start="opacity-100 scale-100"
-                    x-transition:leave-end="opacity-0 scale-95"
+                    v-show="editOpen"
                     class="relative inline-block w-full max-w-lg transform overflow-hidden rounded-2xl bg-[var(--color-forest)] text-left align-bottom shadow-xl sm:my-8 sm:align-middle"
                     @click.stop
                 >
@@ -394,7 +378,7 @@
                                 type="text"
                                 name="name"
                                 class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('name') border-red-500 @enderror"
-                                x-model="editCustomer.name"
+                                v-model="editCustomer.name"
                                 required
                             >
                             @if(old('form_action') === 'edit')
@@ -411,7 +395,7 @@
                                     type="text"
                                     name="firstname"
                                     class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('firstname') border-red-500 @enderror"
-                                    x-model="editCustomer.firstname"
+                                    v-model="editCustomer.firstname"
                                 >
                                 @if(old('form_action') === 'edit')
                                     @error('firstname')
@@ -425,7 +409,7 @@
                                     type="text"
                                     name="lastname"
                                     class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('lastname') border-red-500 @enderror"
-                                    x-model="editCustomer.lastname"
+                                    v-model="editCustomer.lastname"
                                 >
                                 @if(old('form_action') === 'edit')
                                     @error('lastname')
@@ -441,7 +425,7 @@
                                 type="text"
                                 name="phone"
                                 class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('phone') border-red-500 @enderror"
-                                x-model="editCustomer.phone"
+                                v-model="editCustomer.phone"
                             >
                             @if(old('form_action') === 'edit')
                                 @error('phone')
@@ -456,7 +440,7 @@
                                 type="email"
                                 name="email"
                                 class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('email') border-red-500 @enderror"
-                                x-model="editCustomer.email"
+                                v-model="editCustomer.email"
                             >
                             @if(old('form_action') === 'edit')
                                 @error('email')
@@ -478,6 +462,6 @@
             </div>
         </div>
     </div>
-    </template>
+    </teleport>
 </div>
 @endsection

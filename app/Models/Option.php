@@ -12,6 +12,8 @@ class Option extends Model
 
     protected $fillable = [
         'name',
+        'title',
+        'description',
     ];
 
     public function optionValues(): HasMany

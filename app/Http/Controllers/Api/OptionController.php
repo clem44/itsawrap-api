@@ -38,6 +38,8 @@ class OptionController extends Controller
                 required: ["name"],
                 properties: [
                     new OA\Property(property: "name", type: "string", example: "Size"),
+                    new OA\Property(property: "title", type: "string", nullable: true, example: "Choose a size"),
+                    new OA\Property(property: "description", type: "string", nullable: true, example: "Select the portion size for this item."),
                     new OA\Property(
                         property: "values",
                         type: "array",
@@ -61,12 +63,18 @@ class OptionController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'title' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
             'values' => 'array',
             'values.*.name' => 'required|string|max:255',
             'values.*.price' => 'numeric|min:0',
         ]);
 
-        $option = Option::create(['name' => $validated['name']]);
+        $option = Option::create([
+            'name' => $validated['name'],
+            'title' => $validated['title'] ?? null,
+            'description' => $validated['description'] ?? null,
+        ]);
 
         if (isset($validated['values'])) {
             foreach ($validated['values'] as $value) {
@@ -111,6 +119,8 @@ class OptionController extends Controller
             content: new OA\JsonContent(
                 properties: [
                     new OA\Property(property: "name", type: "string"),
+                    new OA\Property(property: "title", type: "string", nullable: true),
+                    new OA\Property(property: "description", type: "string", nullable: true),
                 ]
             )
         ),
@@ -125,6 +135,8 @@ class OptionController extends Controller
     {
         $validated = $request->validate([
             'name' => 'string|max:255',
+            'title' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
         ]);
 
         $option->update($validated);
