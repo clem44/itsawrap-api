@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-20T00:00:00.000Z",
+  "title": "Design System: It's A Wrap Admin CMS",
+  "extensions": {
+    "colorMeta": {
+      "deep-forest": { "role": "primary", "displayName": "Deep Forest", "canonical": "#1a3a2f", "tonalRamp": ["#18352b", "#2c6350", "#3f8d72", "#56b393", "#80c6ae", "#a7d8c7", "#cae7dd", "#edf7f4"] },
+      "forest-dark": { "role": "primary", "displayName": "Forest Dark", "canonical": "#152b21" },
+      "forest-light": { "role": "primary", "displayName": "Forest Light", "canonical": "#2d5a47" },
+      "sage-leaf": { "role": "tertiary", "displayName": "Sage Leaf", "canonical": "#7c9a8a", "tonalRamp": ["#212b26", "#3e5147", "#597365", "#759484", "#97afa2", "#b7c7bf", "#d4ded8", "#f1f4f2"] },
+      "sage-light": { "role": "tertiary", "displayName": "Sage Light", "canonical": "#a8c5b5" },
+      "burnt-terracotta": { "role": "secondary", "displayName": "Burnt Terracotta", "canonical": "#c4704f", "tonalRamp": ["#391e13", "#6b3824", "#995033", "#c26a48", "#d18f75", "#dfb1a0", "#ecd0c6", "#f9efec"] },
+      "terracotta-light": { "role": "secondary", "displayName": "Terracotta Light", "canonical": "#e89a7a" },
+      "warm-cream": { "role": "neutral", "displayName": "Warm Cream", "canonical": "#faf8f5", "tonalRamp": ["#33291a", "#5f4c30", "#886d44", "#ad8d5c", "#c2a985", "#d4c3aa", "#e5dbcc", "#f6f3ee"] },
+      "cream-dark": { "role": "neutral", "displayName": "Cream Dark", "canonical": "#f0ebe3" },
+      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "#2c2c2c", "tonalRamp": ["#262626", "#474747", "#666666", "#858585", "#a3a3a3", "#bfbfbf", "#d9d9d9", "#f2f2f2"] },
+      "ink-light": { "role": "neutral", "displayName": "Ink Light", "canonical": "#6b6b6b" },
+      "error": { "role": "neutral", "displayName": "Error", "canonical": "#b91c1c" },
+      "error-light": { "role": "neutral", "displayName": "Error Light", "canonical": "#fef2f2" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Dashboard stat values and the largest number on a screen." },
+      "headline": { "displayName": "Headline", "purpose": "Section titles, modal titles, empty-state titles, page h1s." },
+      "body": { "displayName": "Body", "purpose": "Table cell content and form input text." },
+      "label": { "displayName": "Label", "purpose": "Uppercase table column headers and stat labels." }
+    },
+    "shadows": [
+      { "name": "resting-card", "value": "0 4px 20px rgba(0,0,0,0.04)", "purpose": "Section cards, users table container." },
+      { "name": "resting-card-sm", "value": "0 2px 8px rgba(0,0,0,0.04)", "purpose": "Dashboard stat cards at rest." },
+      { "name": "resting-card-sm-hover", "value": "0 4px 16px rgba(0,0,0,0.08)", "purpose": "Dashboard stat card hover." },
+      { "name": "form-card", "value": "0 4px 24px rgba(0,0,0,0.04)", "purpose": "Form containers." },
+      { "name": "modal", "value": "0 20px 40px rgba(0,0,0,0.2)", "purpose": "Modal card floating over its backdrop — the strongest shadow in the system." },
+      { "name": "cta-glow-terracotta", "value": "0 4px 12px rgba(196,112,79,0.25)", "purpose": "Primary terracotta action at rest." },
+      { "name": "cta-glow-terracotta-hover", "value": "0 6px 20px rgba(196,112,79,0.35)", "purpose": "Primary terracotta action on hover." },
+      { "name": "cta-glow-forest", "value": "0 4px 12px rgba(26,58,47,0.25)", "purpose": "Forest-variant primary action at rest." },
+      { "name": "cta-glow-forest-hover", "value": "0 6px 20px rgba(26,58,47,0.35)", "purpose": "Forest-variant primary action on hover." }
+    ],
+    "motion": [
+      { "name": "ease-standard", "value": "ease 0.2s", "purpose": "Default transition for hovers, focus rings, and sidebar collapse." },
+      { "name": "ease-lift", "value": "ease 0.25s", "purpose": "Button lift transforms (translateY on hover)." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button (Terracotta)",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single primary action on a screen — gradient fill with a colored glow shadow that brightens and lifts on hover.",
+      "html": "<button class=\"ds-btn-primary\">Add User</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.875rem 1.75rem; font-family: 'DM Sans', sans-serif; font-size: 0.9375rem; font-weight: 500; color: #ffffff; background: linear-gradient(135deg, #c4704f 0%, #e89a7a 100%); border: none; border-radius: 0.75rem; cursor: pointer; box-shadow: 0 4px 12px rgba(196,112,79,0.25); transition: all 0.25s ease; } .ds-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(196,112,79,0.35); } .ds-btn-primary:focus-visible { outline: 2px solid #c4704f; outline-offset: 2px; }"
+    },
+    {
+      "name": "Primary Button (Forest)",
+      "kind": "button",
+      "refersTo": "button-forest",
+      "description": "Second-priority action color — same shape and lift behavior as the terracotta primary, forest gradient and glow instead.",
+      "html": "<button class=\"ds-btn-forest\">Save Changes</button>",
+      "css": ".ds-btn-forest { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.875rem 1.75rem; font-family: 'DM Sans', sans-serif; font-size: 0.9375rem; font-weight: 500; color: #ffffff; background: linear-gradient(135deg, #1a3a2f 0%, #2d5a47 100%); border: none; border-radius: 0.75rem; cursor: pointer; box-shadow: 0 4px 12px rgba(26,58,47,0.25); transition: all 0.25s ease; } .ds-btn-forest:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(26,58,47,0.35); } .ds-btn-forest:focus-visible { outline: 2px solid #1a3a2f; outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Flat, quiet, no shadow — for the non-primary action next to a primary button.",
+      "html": "<button class=\"ds-btn-secondary\">Cancel</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.875rem 1.75rem; font-family: 'DM Sans', sans-serif; font-size: 0.9375rem; font-weight: 500; color: #2c2c2c; background: #faf8f5; border: 1px solid #f0ebe3; border-radius: 0.75rem; cursor: pointer; transition: all 0.25s ease; } .ds-btn-secondary:hover { background: #f0ebe3; } .ds-btn-secondary:focus-visible { outline: 2px solid #7c9a8a; outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "form-input",
+      "description": "Cream-filled at rest, turns white with a sage focus ring on focus.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Enter value\" />",
+      "css": ".ds-input { width: 100%; padding: 0.875rem 1rem; font-family: 'DM Sans', sans-serif; font-size: 0.9375rem; color: #2c2c2c; background: #faf8f5; border: 2px solid transparent; border-radius: 0.75rem; transition: all 0.2s ease; } .ds-input::placeholder { color: #6b6b6b; } .ds-input:focus { outline: none; background: #ffffff; border-color: #7c9a8a; box-shadow: 0 0 0 3px rgba(124,154,138,0.15); }"
+    },
+    {
+      "name": "Section Card",
+      "kind": "card",
+      "refersTo": "section-card",
+      "description": "The default white content card with a terracotta accent bar next to its title.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-header\"><h3 class=\"ds-card-title\">Recent Activity</h3></div><div class=\"ds-card-body\">Card content goes here.</div></div>",
+      "css": ".ds-card { background: #ffffff; border-radius: 1.25rem; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.04); border: 1px solid #f0ebe3; } .ds-card-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid #f0ebe3; } .ds-card-title { font-family: 'Fraunces', serif; font-size: 1.125rem; font-weight: 500; color: #2c2c2c; display: flex; align-items: center; gap: 0.75rem; } .ds-card-title::before { content: ''; width: 3px; height: 1.25rem; background: #c4704f; border-radius: 2px; } .ds-card-body { padding: 1.5rem; font-family: 'DM Sans', sans-serif; font-size: 0.9375rem; color: #2c2c2c; }"
+    },
+    {
+      "name": "Role Badge",
+      "kind": "chip",
+      "refersTo": "badge-admin",
+      "description": "Pill-shaped status badge; admin gets the forest gradient, user gets a flat cream outline.",
+      "html": "<span class=\"ds-badge ds-badge-admin\">Admin</span> <span class=\"ds-badge ds-badge-user\">User</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.375rem 0.875rem; border-radius: 2rem; font-family: 'DM Sans', sans-serif; font-size: 0.8125rem; font-weight: 500; } .ds-badge-admin { background: linear-gradient(135deg, #1a3a2f 0%, #2d5a47 100%); color: #ffffff; } .ds-badge-user { background: #faf8f5; color: #6b6b6b; border: 1px solid #f0ebe3; }"
+    },
+    {
+      "name": "Sidebar Nav Link",
+      "kind": "nav",
+      "refersTo": "sidebar-nav-link",
+      "description": "Sage-light at rest, white and pill-highlighted when active, on the forest-gradient sidebar.",
+      "html": "<div style=\"background:#1a3a2f; padding: 1rem; border-radius: 0.75rem;\"><a class=\"ds-nav-link ds-nav-link-active\">Dashboard</a><a class=\"ds-nav-link\">Users</a></div>",
+      "css": ".ds-nav-link { display: flex; align-items: center; padding: 0.75rem 1rem; font-family: 'DM Sans', sans-serif; font-size: 0.9375rem; font-weight: 500; border-radius: 0.75rem; color: #a8c5b5; text-decoration: none; transition: all 0.2s ease; margin-bottom: 0.25rem; } .ds-nav-link:hover { background: rgba(255,255,255,0.1); color: #ffffff; } .ds-nav-link-active { background: rgba(255,255,255,0.15); color: #ffffff; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Harvest Table",
+    "overview": "The admin CMS reads like a farmhouse ledger, not a generic SaaS dashboard: deep forest green anchors the frame, sage sits quietly in the middle distance, and burnt terracotta is the one warm spark reserved for the action that matters on a given screen. Cream is the resting canvas everything else sits on. The voice is warm and grounded — unhurried, tactile, earthy — built for a single remote owner checking in on their shop, not for a crowded operations floor.\n\nFraunces (serif, optical sizing on) carries every title, stat value, and modal heading; DM Sans carries everything the owner actually reads and scans — table rows, labels, form fields, meta text. A subtle fractal-noise texture sits under every gradient header block at very low opacity, giving the forest-gradient panels a papery, non-digital grain instead of a flat corporate wash.",
+    "keyCharacteristics": [
+      "Deep forest green as the trusted, structural anchor color (headers, sidebar, admin badges)",
+      "Sage as the quiet secondary — icon fills, hover accents, meta text on dark grounds",
+      "Burnt terracotta rationed to the single primary action per view",
+      "Cream as the near-universal background; white reserved for cards and focused inputs",
+      "Fraunces for display/title moments only; DM Sans owns all reading and data",
+      "A faint fractal-noise grain (0.04–0.08 opacity) on every gradient header block"
+    ],
+    "rules": [
+      { "name": "The One Spark Rule", "body": "Burnt terracotta is the primary-action color for exactly one thing per screen — the single most important button or link. It never becomes a background fill or a secondary accent; when a screen needs two levels of emphasis, the second one is forest green (.btn-primary.btn-forest), not a second use of terracotta.", "section": "colors" },
+      { "name": "The Serif-Is-a-Signal Rule", "body": "Fraunces only ever marks a title, a heading, or a headline number. If DM Sans would read fine there, it belongs in DM Sans — Fraunces is reserved for the handful of moments per screen that deserve the extra weight.", "section": "typography" },
+      { "name": "The Escalating Shadow Rule", "body": "Shadow intensity tracks how much a surface is asking of the owner: near-flat for anything they're just reading, strongest for anything blocking (a modal) or anything they're being asked to click (the one primary action).", "section": "elevation" }
+    ],
+    "dos": [
+      "Do reserve burnt terracotta for the single primary action per screen; use the forest variant for a second-priority action instead of a second terracotta button.",
+      "Do use Fraunces exclusively for titles, headings, and headline-scale numbers; keep every table cell, form field, label, and meta string in DM Sans.",
+      "Do keep the fractal-noise overlay under gradient header blocks at 0.04–0.08 opacity — it should read as grain, not texture.",
+      "Do let shadow strength communicate stakes: near-flat for resting content, strongest for modals, colored-glow for the one primary action.",
+      "Do stay within the established radius scale (0.5rem through 1.5rem, plus pill and circle) rather than introducing new corner values."
+    ],
+    "donts": [
+      "Don't use burnt terracotta as a background fill or for more than one control per view.",
+      "Don't add heavy shadows to resting/list surfaces (tables, list rows) — that strength is reserved for the modal tier.",
+      "Don't use the error red palette for anything other than destructive actions and validation states.",
+      "Don't introduce a vertical table border or heavier row dividers — separation stays horizontal and low-contrast."
+    ]
+  }
+}
