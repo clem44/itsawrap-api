@@ -120,6 +120,35 @@ class RewardsFeatureTest extends TestCase
         $this->assertDatabaseCount('reward_ledger_entries', 1);
     }
 
+    public function test_activating_order_records_reward_progress(): void
+    {
+        Sanctum::actingAs($this->makeUser());
+        [$program, $wrap, $customer] = $this->rewardFixture();
+        $pending = Status::query()->create(['name' => 'pending']);
+        $active = Status::query()->create(['name' => 'active']);
+
+        $orderId = $this->postJson('/api/orders', [
+            'customer_id' => $customer->id,
+            'status_id' => $pending->id,
+            'subtotal' => 75,
+            'service_charge' => 0,
+            'total' => 75,
+            'items' => [
+                ['item_id' => $wrap->id, 'price' => 12.50, 'quantity' => 6],
+            ],
+        ])->assertCreated()->json('id');
+
+        $this->putJson("/api/orders/{$orderId}", ['status_id' => $active->id])->assertOk();
+
+        $this->assertRewardAccount($customer, $program, progress: 0, available: 1, lifetimeQuantity: 6, lifetimeEarned: 1);
+        $this->assertDatabaseHas('reward_ledger_entries', [
+            'order_id' => $orderId,
+            'type' => RewardLedgerEntry::TYPE_EARNED_PROGRESS,
+            'progress_delta' => 6,
+            'reason' => 'order_completed',
+        ]);
+    }
+
     public function test_cancelled_order_reverses_reward_progress(): void
     {
         Sanctum::actingAs($this->makeUser());

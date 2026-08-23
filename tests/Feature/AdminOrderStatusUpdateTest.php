@@ -2,7 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Models\Category;
+use App\Models\Customer;
+use App\Models\Item;
 use App\Models\Order;
+use App\Models\RewardLedgerEntry;
+use App\Models\RewardProgram;
+use App\Models\Setting;
 use App\Models\Status;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -69,10 +75,60 @@ class AdminOrderStatusUpdateTest extends TestCase
         ]);
     }
 
-    private function makeOrder(Status $status): Order
+    public function test_admin_order_status_update_to_active_records_reward_progress(): void
+    {
+        $admin = $this->makeAdmin();
+        Setting::query()->create(['key' => 'rewards_enabled', 'value' => 'true']);
+
+        $category = Category::query()->create(['name' => 'Wraps']);
+        $wrap = Item::query()->create(['name' => 'Chicken Wrap', 'category_id' => $category->id, 'cost' => 12.50]);
+        $customer = Customer::query()->create(['name' => 'Rewards Customer']);
+        $program = RewardProgram::query()->create([
+            'name' => 'Buy 6 Wraps, Get 1 Free Wrap',
+            'earn_category_id' => $category->id,
+            'qualifying_item_quantity_required' => 6,
+            'reward_category_id' => $category->id,
+            'reward_quantity' => 1,
+            'is_active' => true,
+        ]);
+        $pending = Status::query()->create(['name' => 'pending']);
+        $active = Status::query()->create(['name' => 'active']);
+        $order = $this->makeOrder($pending, $customer);
+
+        $order->orderItems()->create([
+            'item_id' => $wrap->id,
+            'price' => 12.50,
+            'quantity' => 6,
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.orders.update', $order), [
+                'status_id' => $active->id,
+            ])
+            ->assertRedirect(route('admin.orders.show', $order));
+
+        $this->assertDatabaseHas('reward_ledger_entries', [
+            'customer_id' => $customer->id,
+            'reward_program_id' => $program->id,
+            'order_id' => $order->id,
+            'type' => RewardLedgerEntry::TYPE_EARNED_PROGRESS,
+            'progress_delta' => 6,
+        ]);
+        $this->assertDatabaseHas('customer_reward_accounts', [
+            'customer_id' => $customer->id,
+            'reward_program_id' => $program->id,
+            'progress_quantity' => 0,
+            'rewards_available' => 1,
+            'lifetime_qualifying_quantity' => 6,
+            'lifetime_rewards_earned' => 1,
+        ]);
+    }
+
+    private function makeOrder(Status $status, ?Customer $customer = null): Order
     {
         return Order::query()->create([
             'number' => 'ORD-001',
+            'customer_id' => $customer?->id,
             'status_id' => $status->id,
             'subtotal' => 25,
             'service_charge' => 0,

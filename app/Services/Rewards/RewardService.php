@@ -16,7 +16,17 @@ use Illuminate\Validation\ValidationException;
 
 class RewardService
 {
+    private const REWARD_ELIGIBLE_ORDER_STATUSES = [
+        'active',
+        'completed',
+    ];
+
     public function recordOrderCompleted(Order $order): void
+    {
+        $this->recordEligibleOrderRewards($order);
+    }
+
+    public function recordEligibleOrderRewards(Order $order): void
     {
         if (! $this->rewardsEnabled() || $order->customer_id === null) {
             return;
@@ -24,7 +34,7 @@ class RewardService
 
         $order->loadMissing(['status', 'orderItems.item']);
 
-        if ($order->status?->name !== 'completed') {
+        if (! in_array($order->status?->name, self::REWARD_ELIGIBLE_ORDER_STATUSES, true)) {
             return;
         }
 

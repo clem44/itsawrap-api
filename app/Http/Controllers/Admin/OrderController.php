@@ -45,9 +45,7 @@ class OrderController extends Controller
 
         $order->refresh()->load('status');
 
-        if ($order->status?->name === 'completed') {
-            $rewards->recordOrderCompleted($order);
-        }
+        $rewards->recordEligibleOrderRewards($order);
 
         if ($oldStatusName !== 'cancelled' && $order->status?->name === 'cancelled') {
             $rewards->reverseOrder($order, 'order_cancelled', $request->user());

@@ -381,7 +381,7 @@ class OrderController extends Controller
                 $session->increment('total_service_charge', $order->service_charge);
             }
 
-            $rewards->recordOrderCompleted($order);
+            $rewards->recordEligibleOrderRewards($order);
 
             return $order;
         });
@@ -461,9 +461,7 @@ class OrderController extends Controller
         $order->update($validated);
         $order->refresh()->load('status');
 
-        if ($order->status?->name === 'completed') {
-            $rewards->recordOrderCompleted($order);
-        }
+        $rewards->recordEligibleOrderRewards($order);
 
         if ($oldStatusName !== 'cancelled' && $order->status?->name === 'cancelled') {
             $rewards->reverseOrder($order, 'order_cancelled', $request->user());
