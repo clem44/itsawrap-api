@@ -20,7 +20,7 @@
                 </div>
             </div>
             @php
-                $statusColor = match($order->status?->code ?? 'pending') {
+                $statusColor = match($order->status?->name ?? 'pending') {
                     'pending' => ['bg' => 'rgba(255, 193, 7, 0.2)', 'text' => '#FFC107'],
                     'confirmed' => ['bg' => 'rgba(33, 150, 243, 0.2)', 'text' => '#2196F3'],
                     'preparing' => ['bg' => 'rgba(156, 39, 176, 0.2)', 'text' => '#9C27B0'],
@@ -158,6 +158,29 @@
                         <span class="font-mono">#{{ $order->number }}</span>
                     </div>
                 </div>
+
+                <form method="POST" action="{{ route('admin.orders.update', $order) }}" class="mt-6 pt-6 border-t border-gray-200 space-y-3">
+                    @csrf
+                    @method('PUT')
+
+                    <div class="form-group">
+                        <label class="form-label" for="status_id">Status</label>
+                        <select id="status_id" name="status_id" class="form-select @error('status_id') error @enderror" required>
+                            @foreach($statuses as $status)
+                                <option value="{{ $status->id }}" @selected((int) old('status_id', $order->status_id) === $status->id)>
+                                    {{ ucfirst($status->name) }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('status_id')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <button type="submit" class="w-full btn btn-primary btn-forest justify-center">
+                        Update Status
+                    </button>
+                </form>
 
                 @if(auth()->user()->role_id === 1)
                     <form method="POST" action="{{ route('admin.orders.destroy', $order) }}" class="mt-6" onsubmit="return confirm('Delete this order? This action cannot be undone.')">

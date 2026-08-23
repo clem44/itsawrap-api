@@ -53,7 +53,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('branches', BranchController::class);
 
         // Orders management
-        Route::resource('orders', OrderController::class, ['only' => ['index', 'show', 'destroy']]);
+        Route::resource('orders', OrderController::class, ['only' => ['index', 'show', 'update', 'destroy']]);
 
         // Sessions management
         Route::resource('sessions', CashSessionController::class, ['only' => ['index', 'show', 'destroy']]);
