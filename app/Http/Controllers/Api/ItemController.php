@@ -228,6 +228,7 @@ class ItemController extends Controller
                         items: new OA\Items(
                             properties: [
                                 new OA\Property(property: "option_id", type: "integer", example: 1),
+                                new OA\Property(property: "sort_order", type: "integer", nullable: true, example: 1),
                                 new OA\Property(property: "required", type: "boolean", example: false),
                                 new OA\Property(property: "type", type: "string", enum: ["single", "multiple"], example: "single"),
                                 new OA\Property(property: "range", type: "integer", example: 0),
@@ -289,6 +290,7 @@ class ItemController extends Controller
         $validator = Validator::make($request->all(), [
             'options' => 'required|array',
             'options.*.option_id' => 'required|exists:options,id',
+            'options.*.sort_order' => 'nullable|integer|min:0',
             'options.*.required' => 'boolean',
             'options.*.type' => 'nullable|string|in:dependent',
             'options.*.range' => 'integer|min:0',
@@ -339,14 +341,15 @@ class ItemController extends Controller
             }
 
             // Delete existing item options (cascades to item_option_values via FK)
-            $item->itemOptions()->delete();
+            ItemOption::where('item_id', $item->id)->delete();
 
             $createdOptions = [];
 
-            foreach ($validated['options'] as $optionData) {
+            foreach (array_values($validated['options']) as $index => $optionData) {
                 $itemOption = ItemOption::create([
                     'item_id' => $item->id,
                     'option_id' => $optionData['option_id'],
+                    'sort_order' => $optionData['sort_order'] ?? $index + 1,
                     'required' => $optionData['required'] ?? false,
                     'type' => $optionData['type'] ?? null,
                     'range' => $optionData['range'] ?? 0,
@@ -376,6 +379,7 @@ class ItemController extends Controller
                             $dependentItemOption = ItemOption::create([
                                 'item_id' => $item->id,
                                 'option_id' => $dependencyData['child_option_id'],
+                                'sort_order' => (ItemOption::where('item_id', $item->id)->max('sort_order') ?? 0) + 1,
                                 'required' => false,
                                 'type' => 'dependent',
                                 'range' => 0,
@@ -429,6 +433,8 @@ class ItemController extends Controller
             'itemOptionValues.optionDependency.childOption.itemOptionValues.optionValue',
         ])
             ->whereIn('id', array_map(fn($o) => $o->id, $createdOptions))
+            ->orderBy('sort_order')
+            ->orderBy('id')
             ->get();
 
         return response()->json($itemOptions);

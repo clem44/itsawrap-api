@@ -39,7 +39,9 @@ class Item extends Model
 
     public function itemOptions(): HasMany
     {
-        return $this->hasMany(ItemOption::class);
+        return $this->hasMany(ItemOption::class)
+            ->orderBy('sort_order')
+            ->orderBy('id');
     }
 
     public function taxes(): BelongsToMany

@@ -1,5 +1,7 @@
 import './bootstrap';
-import { createApp } from 'vue/dist/vue.esm-bundler.js';
+import { createApp } from 'vue';
+import EditItemModal from './components/admin/EditItemModal.vue';
+import EditOptionValueModal from './components/admin/EditOptionValueModal.vue';
 
 function splitPageManager(manager) {
     const data = {};
@@ -30,6 +32,7 @@ function mountAdminApp() {
         data() {
             return {
                 sidebarOpen: false,
+                csrfToken: document.querySelector('meta[name="csrf-token"]')?.content || '',
                 dataMenuOpen: root.dataset.menuOpen === 'true',
                 sidebarCollapsed: JSON.parse(localStorage.getItem('adminSidebarCollapsed') || 'false'),
                 openEndpointGroups: {},
@@ -57,7 +60,10 @@ function mountAdminApp() {
 
             ...pageManager.methods,
         },
-    }).mount(root);
+    })
+        .component('edit-item-modal', EditItemModal)
+        .component('edit-option-value-modal', EditOptionValueModal)
+        .mount(root);
 }
 
 if (document.readyState === 'loading') {

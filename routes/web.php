@@ -85,6 +85,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::post('/items/{item}/option-values', [ItemController::class, 'updateOptionValues'])->name('items.update-option-values');
 
+        Route::patch('/items/{item}/item-options/order', [ItemController::class, 'updateItemOptionOrder'])->name('items.item-options.update-order');
+
         Route::patch('/items/{item}/item-options/{itemOption}', [ItemController::class, 'updateItemOptionQty'])->name('items.item-options.update-qty');
         
         Route::delete('/items/{item}/item-options/{itemOption}', [ItemController::class, 'destroyItemOption'])->name('items.item-options.destroy');

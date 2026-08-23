@@ -38,7 +38,13 @@ class ItemOptionController extends Controller
             $query->where('item_id', $request->item_id);
         }
 
-        return response()->json($query->get());
+        return response()->json(
+            $query
+                ->orderBy('item_id')
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get()
+        );
     }
 
     #[OA\Post(
@@ -54,6 +60,7 @@ class ItemOptionController extends Controller
                 properties: [
                     new OA\Property(property: "item_id", type: "integer", example: 1),
                     new OA\Property(property: "option_id", type: "integer", example: 1),
+                    new OA\Property(property: "sort_order", type: "integer", example: 1),
                     new OA\Property(property: "required", type: "boolean", example: false),
                     new OA\Property(property: "type", type: "string", enum: ["single", "multiple", "dependent"], example: "single"),
                     new OA\Property(property: "range", type: "integer", example: 0),
@@ -75,6 +82,7 @@ class ItemOptionController extends Controller
         $validated = $request->validate([
             'item_id' => 'required|exists:items,id',
             'option_id' => 'required|exists:options,id',
+            'sort_order' => 'integer|min:0',
             'required' => 'boolean',
             'type' => 'string|in:single,multiple,dependent',
             'range' => 'integer|min:0',
@@ -83,6 +91,10 @@ class ItemOptionController extends Controller
             'qty' => 'nullable|integer|min:0',
             'enable_qty' => 'boolean',
         ]);
+
+        if (! array_key_exists('sort_order', $validated)) {
+            $validated['sort_order'] = (ItemOption::where('item_id', $validated['item_id'])->max('sort_order') ?? 0) + 1;
+        }
 
         $itemOption = ItemOption::create($validated);
 
@@ -133,6 +145,7 @@ class ItemOptionController extends Controller
             content: new OA\JsonContent(
                 properties: [
                     new OA\Property(property: "required", type: "boolean"),
+                    new OA\Property(property: "sort_order", type: "integer"),
                     new OA\Property(property: "type", type: "string", enum: ["single", "multiple", "dependent"]),
                     new OA\Property(property: "range", type: "integer"),
                     new OA\Property(property: "max", type: "integer", nullable: true),
@@ -153,6 +166,7 @@ class ItemOptionController extends Controller
     {
         $validated = $request->validate([
             'required' => 'boolean',
+            'sort_order' => 'integer|min:0',
             'type' => 'string|in:single,multiple,dependent',
             'range' => 'integer|min:0',
             'max' => 'nullable|integer|min:0',

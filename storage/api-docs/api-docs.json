@@ -1683,6 +1683,11 @@
                                                     "type": "integer",
                                                     "example": 1
                                                 },
+                                                "sort_order": {
+                                                    "type": "integer",
+                                                    "example": 1,
+                                                    "nullable": true
+                                                },
                                                 "required": {
                                                     "type": "boolean",
                                                     "example": false
@@ -1882,6 +1887,10 @@
                                         "type": "integer",
                                         "example": 1
                                     },
+                                    "sort_order": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
                                     "required": {
                                         "type": "boolean",
                                         "example": false
@@ -2018,6 +2027,9 @@
                                 "properties": {
                                     "required": {
                                         "type": "boolean"
+                                    },
+                                    "sort_order": {
+                                        "type": "integer"
                                     },
                                     "type": {
                                         "type": "string",
@@ -5608,6 +5620,10 @@
                         "example": 1
                     },
                     "option_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "sort_order": {
                         "type": "integer",
                         "example": 1
                     },

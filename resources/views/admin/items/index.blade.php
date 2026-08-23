@@ -12,6 +12,10 @@
             createOpen: {{ $errors->any() && old('form_action') === 'create' ? 'true' : 'false' }},
             editOpen: {{ $errors->any() && old('form_action') === 'edit' ? 'true' : 'false' }},
             editOptionsOpen: false,
+            categories: @js($categories->map(fn ($category) => ['id' => $category->id, 'name' => $category->name])->values()),
+            editItemErrors: @js(old('form_action') === 'edit' ? $errors->getMessages() : []),
+            editItemErrorList: @js(old('form_action') === 'edit' ? $errors->all() : []),
+            editItemShowErrors: {{ $errors->any() && old('form_action') === 'edit' ? 'true' : 'false' }},
             editItem: {
                 id: {{ old('form_action') === 'edit' ? (old('edit_id') ?: 'null') : 'null' }},
                 name: '{{ old('form_action') === 'edit' ? addslashes(old('name', '')) : '' }}',
@@ -21,7 +25,7 @@
                 image_path: '{{ old('form_action') === 'edit' ? addslashes(old('image_path', '')) : '' }}',
                 short_code: '{{ old('form_action') === 'edit' ? addslashes(old('short_code', '')) : '' }}',
                 active: {{ old('form_action') === 'edit' ? (old('active') ? 'true' : 'false') : 'false' }},
-                options: @js(old('form_action') === 'edit' ? old('options', []) : [])
+                options: @js(old('form_action') === 'edit' ? collect(old('options', []))->map(fn ($optionId) => (int) $optionId)->all() : [])
             },
             editOptionsItem: {
                 id: null,
@@ -32,7 +36,7 @@
             expandedValues: {},
             selectedOptionInModal: null,
             newDependencyOptions: {},
-            createOptions: [],
+            createOptions: @js(old('form_action') === 'create' ? collect(old('options', []))->map(fn ($optionId) => (int) $optionId)->all() : []),
             createItem: {
                 name: '',
                 description: '',
@@ -44,7 +48,9 @@
             },
             editAction: '{{ route('admin.items.update', ['item' => '__ID__']) }}',
             itemOptionRoute: '{{ url('/admin/items/__ITEM__/item-options/__ITEM_OPTION__') }}',
+            itemOptionOrderRoute: '{{ url('/admin/items/__ITEM__/item-options/order') }}',
             itemsData: @js($itemsData),
+            draggedItemOptionId: null,
 
             openCreate() {
                 this.createOpen = true;
@@ -156,6 +162,74 @@
 
             isOptionExpanded(optionId) {
                 return this.expandedOptions[optionId] === true;
+            },
+
+            startDraggingItemOption(option) {
+                this.draggedItemOptionId = option.itemOptionId;
+            },
+
+            stopDraggingItemOption() {
+                this.draggedItemOptionId = null;
+            },
+
+            async dropItemOptionBefore(targetOption) {
+                if (!this.draggedItemOptionId || this.draggedItemOptionId === targetOption.itemOptionId) {
+                    this.stopDraggingItemOption();
+                    return;
+                }
+
+                const previousOptions = [...this.editOptionsItem.options];
+                const draggedIndex = this.editOptionsItem.options.findIndex(option => option.itemOptionId === this.draggedItemOptionId);
+                const targetIndex = this.editOptionsItem.options.findIndex(option => option.itemOptionId === targetOption.itemOptionId);
+
+                if (draggedIndex < 0 || targetIndex < 0) {
+                    this.stopDraggingItemOption();
+                    return;
+                }
+
+                const [draggedOption] = this.editOptionsItem.options.splice(draggedIndex, 1);
+                const insertIndex = this.editOptionsItem.options.findIndex(option => option.itemOptionId === targetOption.itemOptionId);
+                this.editOptionsItem.options.splice(insertIndex, 0, draggedOption);
+
+                try {
+                    await this.persistItemOptionOrder();
+                } catch (error) {
+                    this.editOptionsItem.options = previousOptions;
+                    console.error('Error updating item option order:', error);
+                    alert('Failed to update option order. Please try again.');
+                } finally {
+                    this.stopDraggingItemOption();
+                }
+            },
+
+            async persistItemOptionOrder() {
+                const visibleOptions = this.getVisibleItemOptions();
+                const response = await fetch(
+                    this.itemOptionOrderRoute.replace('__ITEM__', this.editOptionsItem.id),
+                    {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        },
+                        body: JSON.stringify({
+                            item_options: visibleOptions.map(option => option.itemOptionId)
+                        })
+                    }
+                );
+
+                const result = await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                    throw new Error(result.message || 'Failed to update option order.');
+                }
+
+                (result.item_options || []).forEach((orderedOption) => {
+                    const option = this.editOptionsItem.options.find(itemOption => itemOption.itemOptionId === orderedOption.id);
+                    if (option) {
+                        option.sort_order = orderedOption.sort_order;
+                    }
+                });
             },
 
             async updateOptionEnableQty(option, enabled) {
@@ -756,13 +830,15 @@
                         <!-- Options Selection -->
                         <div>
                             <label class="mb-3 block text-sm font-medium text-gray-900">Available Options</label>
+                            <template v-for="optionId in createOptions" :key="'create_option_input_' + optionId">
+                                <input type="hidden" name="options[]" :value="optionId">
+                            </template>
                             <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
                                 @forelse($options as $option)
                                     <div class="flex items-center">
                                         <input
                                             type="checkbox"
                                             :id="'create_option_' + {{ $option->id }}"
-                                            name="options[]"
                                             value="{{ $option->id }}"
                                             @change="toggleCreateOption({{ $option->id }})"
                                             :checked="createOptions.includes({{ $option->id }})"
@@ -805,215 +881,18 @@
     </div>
     </teleport>
 
-    <!-- Edit Modal -->
-    <teleport to="body">
-        <div
-            v-show="editOpen"
-            v-cloak
-            class="fixed inset-0 z-50 overflow-y-auto"
-            aria-labelledby="modal-title"
-            role="dialog"
-            aria-modal="true"
-        >
-            <div class="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-                <!-- Backdrop -->
-                <div
-                    v-show="editOpen"
-                    class="fixed inset-0 bg-black/60 backdrop-blur-sm"
-                    @click="closeEdit()"
-                ></div>
-
-                <!-- Centering trick -->
-                <span class="hidden sm:inline-block sm:h-screen sm:align-middle" aria-hidden="true">&#8203;</span>
-
-                <!-- Modal panel - Large Size -->
-                <div
-                    v-show="editOpen"
-                    class="relative inline-block w-full max-w-4xl transform overflow-hidden rounded-2xl bg-white text-left align-bottom shadow-xl sm:my-8 sm:align-middle"
-                    @click.stop
-                >
-                <form method="POST" :action="getEditAction()">
-                    @csrf
-                    @method('PUT')
-                    <input type="hidden" name="form_action" value="edit">
-                    <input type="hidden" name="edit_id" :value="editItem.id">
-
-                    <!-- Header -->
-                    <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-                        <h2 class="text-xl font-semibold text-gray-900">Edit Item</h2>
-                        <button type="button" class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors" @click="closeEdit()">
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
-                        </button>
-                    </div>
-
-                    <!-- Body -->
-                    <div class="space-y-6 px-6 py-5 max-h-96 overflow-y-auto">
-                        @if(old('form_action') === 'create' && $errors->any())
-                            <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                                <p class="font-semibold mb-1">Please fix the following:</p>
-                                <ul class="list-disc pl-5 space-y-1">
-                                    @foreach($errors->all() as $error)
-                                        <li>{{ $error }}</li>
-                                    @endforeach
-                                </ul>
-                            </div>
-                        @endif
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                            <div>
-                                <label class="mb-2 block text-sm font-medium text-gray-900">Item Name</label>
-                                <input
-                                    type="text"
-                                    name="name"
-                                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('name') border-red-500 @enderror"
-                                    v-model="editItem.name"
-                                    required
-                                >
-                                @if(old('form_action') === 'edit')
-                                    @error('name')
-                                        <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
-                                    @enderror
-                                @endif
-                            </div>
-
-                            <div>
-                                <label class="mb-2 block text-sm font-medium text-gray-900">Cost</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    name="cost"
-                                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('cost') border-red-500 @enderror"
-                                    v-model="editItem.cost"
-                                    required
-                                >
-                                @if(old('form_action') === 'edit')
-                                    @error('cost')
-                                        <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
-                                    @enderror
-                                @endif
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="mb-2 block text-sm font-medium text-gray-900">Description</label>
-                            <textarea
-                                name="description"
-                                rows="3"
-                                class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('description') border-red-500 @enderror"
-                                v-model="editItem.description"
-                            ></textarea>
-                            @if(old('form_action') === 'edit')
-                                @error('description')
-                                    <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
-                                @enderror
-                            @endif
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                            <div>
-                                <label class="mb-2 block text-sm font-medium text-gray-900">Category</label>
-                                <select
-                                    name="category_id"
-                                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('category_id') border-red-500 @enderror"
-                                    v-model="editItem.category_id"
-                                    required
-                                >
-                                    <option value="">Select a category</option>
-                                    @foreach($categories as $category)
-                                        <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                    @endforeach
-                                </select>
-                                @if(old('form_action') === 'edit')
-                                    @error('category_id')
-                                        <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
-                                    @enderror
-                                @endif
-                            </div>
-
-                            <div>
-                                <label class="mb-2 block text-sm font-medium text-gray-900">Short Code</label>
-                                <input
-                                    type="text"
-                                    name="short_code"
-                                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('short_code') border-red-500 @enderror"
-                                    v-model="editItem.short_code"
-                                >
-                                @if(old('form_action') === 'edit')
-                                    @error('short_code')
-                                        <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
-                                    @enderror
-                                @endif
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="mb-2 block text-sm font-medium text-gray-900">Image Path</label>
-                            <input
-                                type="text"
-                                name="image_path"
-                                class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('image_path') border-red-500 @enderror"
-                                v-model="editItem.image_path"
-                            >
-                            @if(old('form_action') === 'edit')
-                                @error('image_path')
-                                    <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
-                                @enderror
-                            @endif
-                        </div>
-
-                        <!-- Options Selection -->
-                        <div>
-                            <label class="mb-3 block text-sm font-medium text-gray-900">Available Options</label>
-                            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                @forelse($options as $option)
-                                    <div class="flex items-center">
-                                        <input
-                                            type="checkbox"
-                                            :id="'edit_option_' + {{ $option->id }}"
-                                            name="options[]"
-                                            value="{{ $option->id }}"
-                                            @change="toggleEditOption({{ $option->id }})"
-                                            :checked="editItem.options.includes({{ $option->id }})"
-                                            class="h-4 w-4 rounded border-gray-300 text-[var(--color-sage)] focus:ring-[var(--color-sage)]"
-                                        >
-                                        <label :for="'edit_option_' + {{ $option->id }}" class="ml-2 block text-sm text-gray-700">
-                                            {{ $option->name }}
-                                        </label>
-                                    </div>
-                                @empty
-                                    <p class="text-sm text-gray-500">No options available</p>
-                                @endforelse
-                            </div>
-                        </div>
-
-                        <div class="flex items-center gap-3">
-                            <input
-                                type="checkbox"
-                                id="edit_active"
-                                name="active"
-                                class="h-4 w-4 rounded border-gray-300 text-[var(--color-sage)] focus:ring-[var(--color-sage)]"
-                                v-model="editItem.active"
-                            >
-                            <label for="edit_active" class="text-sm font-medium text-gray-900">Active Item</label>
-                        </div>
-                    </div>
-
-                    <!-- Footer -->
-                    <div class="flex justify-end gap-3 border-t border-gray-200 px-6 py-4">
-                        <button type="button" class="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors" @click="closeEdit()">
-                            Cancel
-                        </button>
-                        <button type="submit" class="rounded-lg bg-[var(--color-forest)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--color-forest-dark)] transition-colors">
-                            Save Changes
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    </teleport>
+    <edit-item-modal
+        :action="getEditAction()"
+        :categories="categories"
+        :csrf-token="csrfToken"
+        :error-list="editItemErrorList"
+        :errors="editItemErrors"
+        :item="editItem"
+        :open="editOpen"
+        :options="allOptions"
+        :show-errors="editItemShowErrors"
+        @close="closeEdit()"
+    ></edit-item-modal>
 
     <!-- Edit Options Modal -->
     <teleport to="body">
@@ -1054,8 +933,16 @@
                         <div class="col-span-2 overflow-y-auto px-6 py-5">
                             <h3 class="mb-4 text-sm font-semibold text-gray-900">Options</h3>
                             <div class="space-y-2">
-                                <template v-for="option in getVisibleItemOptions()" :key="option.id">
-                                    <div class="border border-gray-200 rounded-lg overflow-hidden">
+                                <template v-for="option in getVisibleItemOptions()" :key="option.itemOptionId">
+                                    <div
+                                        class="border border-gray-200 rounded-lg overflow-hidden transition-shadow"
+                                        :class="{ 'ring-2 ring-[var(--color-sage)] shadow-md': draggedItemOptionId === option.itemOptionId }"
+                                        draggable="true"
+                                        @dragstart="startDraggingItemOption(option)"
+                                        @dragend="stopDraggingItemOption()"
+                                        @dragover.prevent
+                                        @drop.prevent="dropItemOptionBefore(option)"
+                                    >
                                         <button
                                             type="button"
                                             @click.stop="toggleOptionPanel(option.id)"
@@ -1063,12 +950,17 @@
                                                 'bg-[var(--color-sage)] text-white': selectedOptionInModal === option.id,
                                                 'bg-gray-100 text-gray-900 hover:bg-gray-200': selectedOptionInModal !== option.id
                                             }"
-                                            class="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium transition-colors"
+                                            class="w-full flex items-center justify-between gap-3 px-3 py-2.5 text-sm font-medium transition-colors"
                                         >
-                                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-90': isOptionExpanded(option.id) }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <span class="shrink-0 cursor-grab text-gray-400" title="Drag to reorder">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 6h.01M8 12h.01M8 18h.01M16 6h.01M16 12h.01M16 18h.01"></path>
+                                                </svg>
+                                            </span>
+                                            <span class="min-w-0 flex-1 text-left" v-text="option.name"></span>
+                                            <svg class="shrink-0 w-4 h-4 transition-transform" :class="{ 'rotate-90': isOptionExpanded(option.id) }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                                             </svg>
-                                            <span class="flex-1 text-left" v-text="option.name"></span>
                                         </button>
                                         <div v-show="isOptionExpanded(option.id)" class="border-t border-gray-200 bg-white px-3 py-3 space-y-3">
                                             <div class="flex items-center justify-between gap-2">

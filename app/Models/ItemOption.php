@@ -14,6 +14,7 @@ class ItemOption extends Model
     protected $fillable = [
         'item_id',
         'option_id',
+        'sort_order',
         'required',
         'type',
         'range',
@@ -27,6 +28,7 @@ class ItemOption extends Model
     {
         return [
             'required' => 'boolean',
+            'sort_order' => 'integer',
             'range' => 'boolean',
             'max' => 'integer',
             'min' => 'integer',

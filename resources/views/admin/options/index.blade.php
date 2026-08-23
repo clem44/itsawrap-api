@@ -10,6 +10,8 @@
             editOpen: {{ $errors->any() && old('form_action') === 'edit' ? 'true' : 'false' }},
             createValueOpen: false,
             editValueOpen: false,
+            editValueErrors: @js(old('form_action') === 'edit_value' ? $errors->getMessages() : []),
+            editValueShowErrors: {{ $errors->any() && old('form_action') === 'edit_value' ? 'true' : 'false' }},
             selectedOption: null,
             editOption: {
                 id: {{ old('form_action') === 'edit' ? (old('edit_id') ?: 'null') : 'null' }},
@@ -536,101 +538,15 @@
     </div>
     </teleport>
 
-    <!-- Edit Option Value Modal -->
-    <teleport to="body">
-        <div
-            v-show="editValueOpen"
-            v-cloak
-            class="fixed inset-0 z-50 overflow-y-auto"
-            aria-labelledby="modal-title"
-            role="dialog"
-            aria-modal="true"
-        >
-            <div class="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-                <!-- Backdrop -->
-                <div
-                    v-show="editValueOpen"
-                    class="fixed inset-0 bg-black/60 backdrop-blur-sm"
-                    @click="closeEditValue()"
-                ></div>
-
-                <!-- Centering trick -->
-                <span class="hidden sm:inline-block sm:h-screen sm:align-middle" aria-hidden="true">&#8203;</span>
-
-                <!-- Modal panel -->
-                <div
-                    v-show="editValueOpen"
-                    class="relative inline-block w-full max-w-lg transform overflow-hidden rounded-2xl bg-[var(--color-forest)] text-left align-bottom shadow-xl sm:my-8 sm:align-middle"
-                    @click.stop
-                >
-                <form method="POST" :action="getEditValueAction()">
-                    @csrf
-                    @method('PUT')
-                    <input type="hidden" name="form_action" value="edit_value">
-
-                    <!-- Header -->
-                    <div class="flex items-center justify-between border-b border-white/10 px-6 py-4">
-                        <h2 class="text-xl font-semibold text-white">Edit Option Value</h2>
-                        <button type="button" class="rounded-lg p-2 text-white/60 hover:bg-white/10 hover:text-white transition-colors" @click="closeEditValue()">
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
-                        </button>
-                    </div>
-
-                    <!-- Body -->
-                    <div class="space-y-5 px-6 py-5">
-                        <div class="text-sm text-white/60">
-                            For: <span class="font-semibold text-white" v-text="selectedOption?.name || ''"></span>
-                        </div>
-
-                        <div>
-                            <label class="mb-2 block text-sm font-medium text-white/80">Value Name</label>
-                            <input
-                                type="text"
-                                name="name"
-                                class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('name') border-red-500 @enderror"
-                                v-model="editValue.name"
-                                required
-                            >
-                            @if(old('form_action') === 'edit_value')
-                                @error('name')
-                                    <p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>
-                                @enderror
-                            @endif
-                        </div>
-
-                        <div>
-                            <label class="mb-2 block text-sm font-medium text-white/80">Price (Optional)</label>
-                            <input
-                                type="number"
-                                name="price"
-                                step="0.01"
-                                min="0"
-                                class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('price') border-red-500 @enderror"
-                                v-model="editValue.price"
-                            >
-                            @if(old('form_action') === 'edit_value')
-                                @error('price')
-                                    <p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>
-                                @enderror
-                            @endif
-                        </div>
-                    </div>
-
-                    <!-- Footer -->
-                    <div class="flex justify-end gap-3 border-t border-white/10 px-6 py-4">
-                        <button type="button" class="rounded-lg border border-white/20 bg-transparent px-5 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition-colors" @click="closeEditValue()">
-                            Cancel
-                        </button>
-                        <button type="submit" class="rounded-lg bg-[var(--color-forest)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--color-forest-dark)] transition-colors">
-                            Save Changes
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    </teleport>
+    <edit-option-value-modal
+        :action="getEditValueAction()"
+        :csrf-token="csrfToken"
+        :errors="editValueErrors"
+        :open="editValueOpen"
+        :selected-option="selectedOption"
+        :show-errors="editValueShowErrors"
+        :value="editValue"
+        @close="closeEditValue()"
+    ></edit-option-value-modal>
 </div>
 @endsection

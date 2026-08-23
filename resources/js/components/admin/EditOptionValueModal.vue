@@ -1,0 +1,134 @@
+<template>
+    <teleport to="body">
+        <div
+            v-show="open"
+            v-cloak
+            class="fixed inset-0 z-50 overflow-y-auto"
+            aria-labelledby="modal-title"
+            role="dialog"
+            aria-modal="true"
+        >
+            <div class="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                <div v-show="open" class="fixed inset-0 bg-black/60 backdrop-blur-sm" @click="close"></div>
+
+                <span class="hidden sm:inline-block sm:h-screen sm:align-middle" aria-hidden="true">&#8203;</span>
+
+                <div
+                    v-show="open"
+                    class="relative inline-block w-100 max-w-lg transform overflow-hidden rounded-2xl bg-[var(--color-forest)] text-left align-bottom shadow-xl sm:my-8 sm:align-middle"
+                    @click.stop
+                >
+                    <form method="POST" :action="action">
+                        <input type="hidden" name="_token" :value="csrfToken">
+                        <input type="hidden" name="_method" value="PUT">
+                        <input type="hidden" name="form_action" value="edit_value">
+
+                        <div class="flex items-center justify-between border-b border-white/10 px-6 py-4">
+                            <h2 class="text-xl font-semibold text-white">Edit Option Value</h2>
+                            <button type="button" class="rounded-lg p-2 text-white/60 hover:bg-white/10 hover:text-white transition-colors" @click="close">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="space-y-5 px-6 py-5">
+                            <div class="text-sm text-white/60">
+                                For: <span class="font-semibold text-white" v-text="selectedOption?.name || ''"></span>
+                            </div>
+
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-white/80">Value Name</label>
+                                <input
+                                    type="text"
+                                    name="name"
+                                    class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)]"
+                                    :class="fieldClass('name')"
+                                    v-model="value.name"
+                                    required
+                                >
+                                <p v-for="error in fieldErrors('name')" :key="error" class="mt-1.5 text-sm text-red-400" v-text="error"></p>
+                            </div>
+
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-white/80">Price (Optional)</label>
+                                <input
+                                    type="number"
+                                    name="price"
+                                    step="0.01"
+                                    min="0"
+                                    class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)]"
+                                    :class="fieldClass('price')"
+                                    v-model="value.price"
+                                >
+                                <p v-for="error in fieldErrors('price')" :key="error" class="mt-1.5 text-sm text-red-400" v-text="error"></p>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end gap-3 border-t border-white/10 px-6 py-4">
+                            <button type="button" class="rounded-lg border border-white/20 bg-transparent px-5 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition-colors" @click="close">
+                                Cancel
+                            </button>
+                            <button type="submit" class="rounded-lg bg-[var(--color-forest)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--color-forest-dark)] transition-colors">
+                                Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </teleport>
+</template>
+
+<script>
+export default {
+    name: 'EditOptionValueModal',
+
+    props: {
+        action: {
+            type: String,
+            required: true,
+        },
+        csrfToken: {
+            type: String,
+            required: true,
+        },
+        errors: {
+            type: Object,
+            default: () => ({}),
+        },
+        open: {
+            type: Boolean,
+            default: false,
+        },
+        selectedOption: {
+            type: Object,
+            default: null,
+        },
+        showErrors: {
+            type: Boolean,
+            default: false,
+        },
+        value: {
+            type: Object,
+            required: true,
+        },
+    },
+
+    emits: ['close'],
+
+    methods: {
+        close() {
+            this.$emit('close');
+        },
+
+        fieldClass(field) {
+            return this.showErrors && this.errors[field] ? 'border-red-500' : '';
+        },
+
+        fieldErrors(field) {
+            return this.showErrors ? this.errors[field] || [] : [];
+        },
+    },
+};
+</script>

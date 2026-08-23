@@ -62,6 +62,7 @@ class ItemController extends Controller
                 'id' => $io->option_id,
                 'itemOptionId' => $io->id,
                 'name' => $io->option->name,
+                'sort_order' => $io->sort_order,
                 'type' => $io->type,
                 'range' => (bool) $io->range,
                 'max' => $io->max,
@@ -119,9 +120,10 @@ class ItemController extends Controller
 
         // Attach options to item if provided
         if (!empty($request->input('options'))) {
-            foreach ($request->input('options') as $optionId) {
+            foreach (array_values($request->input('options')) as $index => $optionId) {
                 $item->itemOptions()->create([
                     'option_id' => $optionId,
+                    'sort_order' => $index + 1,
                     'required' => false,
                 ]);
             }
@@ -161,11 +163,12 @@ class ItemController extends Controller
             $item->update($validated);
 
             // Sync options
-            $item->itemOptions()->delete();
+            ItemOption::where('item_id', $item->id)->delete();
             if (!empty($request->input('options'))) {
-                foreach ($request->input('options') as $optionId) {
+                foreach (array_values($request->input('options')) as $index => $optionId) {
                     $item->itemOptions()->create([
                         'option_id' => $optionId,
+                        'sort_order' => $index + 1,
                         'required' => false,
                     ]);
                 }
@@ -193,7 +196,7 @@ class ItemController extends Controller
                 ->with('error', 'Cannot delete an item that has been ordered.');
         }
 
-        $item->itemOptions()->delete();
+        ItemOption::where('item_id', $item->id)->delete();
         $item->delete();
 
         return redirect()->route('admin.items.index')
@@ -294,6 +297,7 @@ class ItemController extends Controller
                     // Find or create ItemOption for this child option
                     $itemOption = $item->itemOptions()->create([
                         'option_id' => $childOptionId,
+                        'sort_order' => (ItemOption::where('item_id', $item->id)->max('sort_order') ?? 0) + 1,
                         'required' => false,
                         'type' => 'dependent',
                         'range' => null,
@@ -378,6 +382,48 @@ class ItemController extends Controller
             'range' => $itemOption->range,
             'min' => $itemOption->min,
             'max' => $itemOption->max,
+        ]);
+    }
+
+    public function updateItemOptionOrder(Request $request, Item $item): JsonResponse
+    {
+        $validated = $request->validate([
+            'item_options' => 'required|array|min:1',
+            'item_options.*' => 'integer|exists:item_options,id',
+        ]);
+
+        $itemOptionIds = collect($validated['item_options'])
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+
+        $ownedItemOptionIds = ItemOption::query()
+            ->where('item_id', $item->id)
+            ->whereIn('id', $itemOptionIds)
+            ->pluck('id');
+
+        if ($ownedItemOptionIds->count() !== $itemOptionIds->count()) {
+            return response()->json([
+                'message' => 'One or more item options do not belong to this item.',
+                'errors' => [
+                    'item_options' => ['One or more item options do not belong to this item.'],
+                ],
+            ], 422);
+        }
+
+        foreach ($itemOptionIds as $index => $itemOptionId) {
+            ItemOption::query()
+                ->where('id', $itemOptionId)
+                ->update(['sort_order' => $index + 1]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'item_options' => ItemOption::query()
+                ->whereIn('id', $itemOptionIds)
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get(['id', 'sort_order']),
         ]);
     }
 

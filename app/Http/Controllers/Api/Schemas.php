@@ -60,6 +60,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: "id", type: "integer", example: 1),
         new OA\Property(property: "item_id", type: "integer", example: 1),
         new OA\Property(property: "option_id", type: "integer", example: 1),
+        new OA\Property(property: "sort_order", type: "integer", example: 1),
         new OA\Property(property: "required", type: "boolean", example: false),
         new OA\Property(property: "type", type: "string", example: "single"),
         new OA\Property(property: "range", type: "integer", example: 0),
