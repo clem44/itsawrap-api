@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\Option;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class OptionSeeder extends Seeder
@@ -14,7 +13,7 @@ class OptionSeeder extends Seeder
     public function run(): void
     {
         $options = [
-           
+
             [
                 'name' => 'Protein',
                 'optionValues' => [
@@ -46,7 +45,7 @@ class OptionSeeder extends Seeder
                 ],
             ],
             ['name' => 'Sauce',
-             'optionValues' => [
+                'optionValues' => [
                     ['name' => 'Cucumber Chill', 'price' => 0.00],
                     ['name' => 'Sesame Whisper',  'price' => 0.00],
                     ['name' => 'Herb Harmony', 'price' => 0.00],
@@ -57,7 +56,7 @@ class OptionSeeder extends Seeder
                 ],
             ],
             ['name' => 'Additional Sauces',
-             'optionValues' => [
+                'optionValues' => [
                     ['name' => 'Cucumber Chill', 'price' => 0.50],
                     ['name' => 'Sesame Whisper',  'price' => 0.50],
                     ['name' => 'Herb Harmony', 'price' => 0.50],
@@ -67,7 +66,7 @@ class OptionSeeder extends Seeder
                     ['name' => 'Sweet Fusion', 'price' => 0.50],
                 ],
             ],
-            
+
             [
                 'name' => 'Temperature',
                 'optionValues' => [
@@ -77,7 +76,7 @@ class OptionSeeder extends Seeder
                     ['name' => 'Medium-Well', 'price' => 0.00],
                     ['name' => 'Well-Done', 'price' => 0.00],
                 ],
-            ],           
+            ],
             [
                 'name' => 'Free Additions',
                 'optionValues' => [

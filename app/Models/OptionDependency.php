@@ -29,5 +29,4 @@ class OptionDependency extends Model
     {
         return $this->belongsTo(ItemOptionValue::class, 'option_dependency_id');
     }
-
 }

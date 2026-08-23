@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
+use App\Services\Rewards\RewardService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use OpenApi\Attributes as OA;
@@ -11,20 +12,20 @@ use OpenApi\Attributes as OA;
 class PaymentController extends Controller
 {
     #[OA\Get(
-        path: "/payments",
-        summary: "List all payments",
-        description: "Get all payments with optional filtering",
-        tags: ["Payments"],
-        security: [["bearerAuth" => []]],
+        path: '/payments',
+        summary: 'List all payments',
+        description: 'Get all payments with optional filtering',
+        tags: ['Payments'],
+        security: [['bearerAuth' => []]],
         parameters: [
-            new OA\Parameter(name: "order_id", in: "query", required: false, description: "Filter by order", schema: new OA\Schema(type: "integer")),
-            new OA\Parameter(name: "status", in: "query", required: false, description: "Filter by status", schema: new OA\Schema(type: "string", enum: ["pending", "completed", "failed", "refunded"])),
-            new OA\Parameter(name: "method", in: "query", required: false, description: "Filter by payment method", schema: new OA\Schema(type: "string", enum: ["cash", "card", "mobile", "other"])),
-            new OA\Parameter(name: "session_id", in: "query", required: false, description: "Filter by session via order", schema: new OA\Schema(type: "integer"))
+            new OA\Parameter(name: 'order_id', in: 'query', required: false, description: 'Filter by order', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'status', in: 'query', required: false, description: 'Filter by status', schema: new OA\Schema(type: 'string', enum: ['pending', 'completed', 'failed', 'refunded'])),
+            new OA\Parameter(name: 'method', in: 'query', required: false, description: 'Filter by payment method', schema: new OA\Schema(type: 'string', enum: ['cash', 'card', 'mobile', 'other'])),
+            new OA\Parameter(name: 'session_id', in: 'query', required: false, description: 'Filter by session via order', schema: new OA\Schema(type: 'integer')),
         ],
         responses: [
-            new OA\Response(response: 200, description: "List of payments", content: new OA\JsonContent(type: "array", items: new OA\Items(ref: "#/components/schemas/Payment"))),
-            new OA\Response(response: 401, description: "Unauthenticated")
+            new OA\Response(response: 200, description: 'List of payments', content: new OA\JsonContent(type: 'array', items: new OA\Items(ref: '#/components/schemas/Payment'))),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
         ]
     )]
     public function index(Request $request): JsonResponse
@@ -54,32 +55,32 @@ class PaymentController extends Controller
     }
 
     #[OA\Post(
-        path: "/payments",
-        summary: "Create a payment",
-        description: "Record a new payment for an order",
-        tags: ["Payments"],
-        security: [["bearerAuth" => []]],
+        path: '/payments',
+        summary: 'Create a payment',
+        description: 'Record a new payment for an order',
+        tags: ['Payments'],
+        security: [['bearerAuth' => []]],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ["order_id", "amount"],
+                required: ['order_id', 'amount'],
                 properties: [
-                    new OA\Property(property: "order_id", type: "integer", example: 1),
-                    new OA\Property(property: "amount", type: "number", example: 28.13),
-                    new OA\Property(property: "method", type: "string", enum: ["cash", "card", "mobile", "other"], example: "cash"),
-                    new OA\Property(property: "status", type: "string", enum: ["pending", "completed", "failed", "refunded"], example: "completed"),
-                    new OA\Property(property: "type", type: "string", nullable: true),
-                    new OA\Property(property: "charges", type: "object", nullable: true),
+                    new OA\Property(property: 'order_id', type: 'integer', example: 1),
+                    new OA\Property(property: 'amount', type: 'number', example: 28.13),
+                    new OA\Property(property: 'method', type: 'string', enum: ['cash', 'card', 'mobile', 'other'], example: 'cash'),
+                    new OA\Property(property: 'status', type: 'string', enum: ['pending', 'completed', 'failed', 'refunded'], example: 'completed'),
+                    new OA\Property(property: 'type', type: 'string', nullable: true),
+                    new OA\Property(property: 'charges', type: 'object', nullable: true),
                 ]
             )
         ),
         responses: [
-            new OA\Response(response: 201, description: "Payment created", content: new OA\JsonContent(ref: "#/components/schemas/Payment")),
-            new OA\Response(response: 401, description: "Unauthenticated"),
-            new OA\Response(response: 422, description: "Validation error")
+            new OA\Response(response: 201, description: 'Payment created', content: new OA\JsonContent(ref: '#/components/schemas/Payment')),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 422, description: 'Validation error'),
         ]
     )]
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, RewardService $rewards): JsonResponse
     {
         $validated = $request->validate([
             'order_id' => 'required|exists:orders,id',
@@ -92,22 +93,26 @@ class PaymentController extends Controller
 
         $payment = Payment::create($validated);
 
+        if ($payment->status === 'refunded') {
+            $rewards->reverseOrder($payment->order, 'payment_refunded', $request->user());
+        }
+
         return response()->json($payment->load('order'), 201);
     }
 
     #[OA\Get(
-        path: "/payments/{id}",
-        summary: "Get a payment",
-        description: "Get a single payment with its order",
-        tags: ["Payments"],
-        security: [["bearerAuth" => []]],
+        path: '/payments/{id}',
+        summary: 'Get a payment',
+        description: 'Get a single payment with its order',
+        tags: ['Payments'],
+        security: [['bearerAuth' => []]],
         parameters: [
-            new OA\Parameter(name: "id", in: "path", required: true, description: "Payment ID", schema: new OA\Schema(type: "integer"))
+            new OA\Parameter(name: 'id', in: 'path', required: true, description: 'Payment ID', schema: new OA\Schema(type: 'integer')),
         ],
         responses: [
-            new OA\Response(response: 200, description: "Payment details", content: new OA\JsonContent(ref: "#/components/schemas/Payment")),
-            new OA\Response(response: 401, description: "Unauthenticated"),
-            new OA\Response(response: 404, description: "Payment not found")
+            new OA\Response(response: 200, description: 'Payment details', content: new OA\JsonContent(ref: '#/components/schemas/Payment')),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 404, description: 'Payment not found'),
         ]
     )]
     public function show(Payment $payment): JsonResponse
@@ -116,33 +121,33 @@ class PaymentController extends Controller
     }
 
     #[OA\Put(
-        path: "/payments/{id}",
-        summary: "Update a payment",
+        path: '/payments/{id}',
+        summary: 'Update a payment',
         description: "Update a payment's method, amount, status, or charges",
-        tags: ["Payments"],
-        security: [["bearerAuth" => []]],
+        tags: ['Payments'],
+        security: [['bearerAuth' => []]],
         parameters: [
-            new OA\Parameter(name: "id", in: "path", required: true, description: "Payment ID", schema: new OA\Schema(type: "integer"))
+            new OA\Parameter(name: 'id', in: 'path', required: true, description: 'Payment ID', schema: new OA\Schema(type: 'integer')),
         ],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
                 properties: [
-                    new OA\Property(property: "method", type: "string", enum: ["cash", "card", "mobile", "other", "reward"]),
-                    new OA\Property(property: "amount", type: "number", example: 28.13),
-                    new OA\Property(property: "status", type: "string", enum: ["pending", "completed", "failed", "refunded"]),
-                    new OA\Property(property: "charges", type: "object", nullable: true),
+                    new OA\Property(property: 'method', type: 'string', enum: ['cash', 'card', 'mobile', 'other', 'reward']),
+                    new OA\Property(property: 'amount', type: 'number', example: 28.13),
+                    new OA\Property(property: 'status', type: 'string', enum: ['pending', 'completed', 'failed', 'refunded']),
+                    new OA\Property(property: 'charges', type: 'object', nullable: true),
                 ]
             )
         ),
         responses: [
-            new OA\Response(response: 200, description: "Payment updated", content: new OA\JsonContent(ref: "#/components/schemas/Payment")),
-            new OA\Response(response: 401, description: "Unauthenticated"),
-            new OA\Response(response: 404, description: "Payment not found"),
-            new OA\Response(response: 422, description: "Validation error")
+            new OA\Response(response: 200, description: 'Payment updated', content: new OA\JsonContent(ref: '#/components/schemas/Payment')),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 404, description: 'Payment not found'),
+            new OA\Response(response: 422, description: 'Validation error'),
         ]
     )]
-    public function update(Request $request, Payment $payment): JsonResponse
+    public function update(Request $request, Payment $payment, RewardService $rewards): JsonResponse
     {
         $validated = $request->validate([
             'method' => 'string|in:cash,card,mobile,other,reward',
@@ -151,24 +156,30 @@ class PaymentController extends Controller
             'charges' => 'nullable|array',
         ]);
 
+        $oldStatus = $payment->status;
+
         $payment->update($validated);
+
+        if ($oldStatus !== 'refunded' && $payment->status === 'refunded') {
+            $rewards->reverseOrder($payment->order, 'payment_refunded', $request->user());
+        }
 
         return response()->json($payment);
     }
 
     #[OA\Delete(
-        path: "/payments/{id}",
-        summary: "Delete a payment",
-        description: "Delete a payment",
-        tags: ["Payments"],
-        security: [["bearerAuth" => []]],
+        path: '/payments/{id}',
+        summary: 'Delete a payment',
+        description: 'Delete a payment',
+        tags: ['Payments'],
+        security: [['bearerAuth' => []]],
         parameters: [
-            new OA\Parameter(name: "id", in: "path", required: true, description: "Payment ID", schema: new OA\Schema(type: "integer"))
+            new OA\Parameter(name: 'id', in: 'path', required: true, description: 'Payment ID', schema: new OA\Schema(type: 'integer')),
         ],
         responses: [
-            new OA\Response(response: 204, description: "Payment deleted"),
-            new OA\Response(response: 401, description: "Unauthenticated"),
-            new OA\Response(response: 404, description: "Payment not found")
+            new OA\Response(response: 204, description: 'Payment deleted'),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 404, description: 'Payment not found'),
         ]
     )]
     public function destroy(Payment $payment): JsonResponse

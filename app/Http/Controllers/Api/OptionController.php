@@ -11,14 +11,14 @@ use OpenApi\Attributes as OA;
 class OptionController extends Controller
 {
     #[OA\Get(
-        path: "/options",
-        summary: "List all options",
-        description: "Get all options with their values",
-        tags: ["Options"],
-        security: [["bearerAuth" => []]],
+        path: '/options',
+        summary: 'List all options',
+        description: 'Get all options with their values',
+        tags: ['Options'],
+        security: [['bearerAuth' => []]],
         responses: [
-            new OA\Response(response: 200, description: "List of options", content: new OA\JsonContent(type: "array", items: new OA\Items(ref: "#/components/schemas/Option"))),
-            new OA\Response(response: 401, description: "Unauthenticated")
+            new OA\Response(response: 200, description: 'List of options', content: new OA\JsonContent(type: 'array', items: new OA\Items(ref: '#/components/schemas/Option'))),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
         ]
     )]
     public function index(): JsonResponse
@@ -27,26 +27,26 @@ class OptionController extends Controller
     }
 
     #[OA\Post(
-        path: "/options",
-        summary: "Create an option",
-        description: "Create a new option with values",
-        tags: ["Options"],
-        security: [["bearerAuth" => []]],
+        path: '/options',
+        summary: 'Create an option',
+        description: 'Create a new option with values',
+        tags: ['Options'],
+        security: [['bearerAuth' => []]],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ["name"],
+                required: ['name'],
                 properties: [
-                    new OA\Property(property: "name", type: "string", example: "Size"),
-                    new OA\Property(property: "title", type: "string", nullable: true, example: "Choose a size"),
-                    new OA\Property(property: "description", type: "string", nullable: true, example: "Select the portion size for this item."),
+                    new OA\Property(property: 'name', type: 'string', example: 'Size'),
+                    new OA\Property(property: 'title', type: 'string', nullable: true, example: 'Choose a size'),
+                    new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Select the portion size for this item.'),
                     new OA\Property(
-                        property: "values",
-                        type: "array",
+                        property: 'values',
+                        type: 'array',
                         items: new OA\Items(
                             properties: [
-                                new OA\Property(property: "name", type: "string", example: "Large"),
-                                new OA\Property(property: "price", type: "number", example: 2.00),
+                                new OA\Property(property: 'name', type: 'string', example: 'Large'),
+                                new OA\Property(property: 'price', type: 'number', example: 2.00),
                             ]
                         )
                     ),
@@ -54,9 +54,9 @@ class OptionController extends Controller
             )
         ),
         responses: [
-            new OA\Response(response: 201, description: "Option created", content: new OA\JsonContent(ref: "#/components/schemas/Option")),
-            new OA\Response(response: 401, description: "Unauthenticated"),
-            new OA\Response(response: 422, description: "Validation error")
+            new OA\Response(response: 201, description: 'Option created', content: new OA\JsonContent(ref: '#/components/schemas/Option')),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 422, description: 'Validation error'),
         ]
     )]
     public function store(Request $request): JsonResponse
@@ -86,18 +86,18 @@ class OptionController extends Controller
     }
 
     #[OA\Get(
-        path: "/options/{id}",
-        summary: "Get an option",
-        description: "Get a single option with its values",
-        tags: ["Options"],
-        security: [["bearerAuth" => []]],
+        path: '/options/{id}',
+        summary: 'Get an option',
+        description: 'Get a single option with its values',
+        tags: ['Options'],
+        security: [['bearerAuth' => []]],
         parameters: [
-            new OA\Parameter(name: "id", in: "path", required: true, description: "Option ID", schema: new OA\Schema(type: "integer"))
+            new OA\Parameter(name: 'id', in: 'path', required: true, description: 'Option ID', schema: new OA\Schema(type: 'integer')),
         ],
         responses: [
-            new OA\Response(response: 200, description: "Option details", content: new OA\JsonContent(ref: "#/components/schemas/Option")),
-            new OA\Response(response: 401, description: "Unauthenticated"),
-            new OA\Response(response: 404, description: "Option not found")
+            new OA\Response(response: 200, description: 'Option details', content: new OA\JsonContent(ref: '#/components/schemas/Option')),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 404, description: 'Option not found'),
         ]
     )]
     public function show(Option $option): JsonResponse
@@ -106,29 +106,29 @@ class OptionController extends Controller
     }
 
     #[OA\Put(
-        path: "/options/{id}",
-        summary: "Update an option",
-        description: "Update an existing option",
-        tags: ["Options"],
-        security: [["bearerAuth" => []]],
+        path: '/options/{id}',
+        summary: 'Update an option',
+        description: 'Update an existing option',
+        tags: ['Options'],
+        security: [['bearerAuth' => []]],
         parameters: [
-            new OA\Parameter(name: "id", in: "path", required: true, description: "Option ID", schema: new OA\Schema(type: "integer"))
+            new OA\Parameter(name: 'id', in: 'path', required: true, description: 'Option ID', schema: new OA\Schema(type: 'integer')),
         ],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
                 properties: [
-                    new OA\Property(property: "name", type: "string"),
-                    new OA\Property(property: "title", type: "string", nullable: true),
-                    new OA\Property(property: "description", type: "string", nullable: true),
+                    new OA\Property(property: 'name', type: 'string'),
+                    new OA\Property(property: 'title', type: 'string', nullable: true),
+                    new OA\Property(property: 'description', type: 'string', nullable: true),
                 ]
             )
         ),
         responses: [
-            new OA\Response(response: 200, description: "Option updated", content: new OA\JsonContent(ref: "#/components/schemas/Option")),
-            new OA\Response(response: 401, description: "Unauthenticated"),
-            new OA\Response(response: 404, description: "Option not found"),
-            new OA\Response(response: 422, description: "Validation error")
+            new OA\Response(response: 200, description: 'Option updated', content: new OA\JsonContent(ref: '#/components/schemas/Option')),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 404, description: 'Option not found'),
+            new OA\Response(response: 422, description: 'Validation error'),
         ]
     )]
     public function update(Request $request, Option $option): JsonResponse
@@ -145,18 +145,18 @@ class OptionController extends Controller
     }
 
     #[OA\Delete(
-        path: "/options/{id}",
-        summary: "Delete an option",
-        description: "Delete an option",
-        tags: ["Options"],
-        security: [["bearerAuth" => []]],
+        path: '/options/{id}',
+        summary: 'Delete an option',
+        description: 'Delete an option',
+        tags: ['Options'],
+        security: [['bearerAuth' => []]],
         parameters: [
-            new OA\Parameter(name: "id", in: "path", required: true, description: "Option ID", schema: new OA\Schema(type: "integer"))
+            new OA\Parameter(name: 'id', in: 'path', required: true, description: 'Option ID', schema: new OA\Schema(type: 'integer')),
         ],
         responses: [
-            new OA\Response(response: 204, description: "Option deleted"),
-            new OA\Response(response: 401, description: "Unauthenticated"),
-            new OA\Response(response: 404, description: "Option not found")
+            new OA\Response(response: 204, description: 'Option deleted'),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 404, description: 'Option not found'),
         ]
     )]
     public function destroy(Option $option): JsonResponse

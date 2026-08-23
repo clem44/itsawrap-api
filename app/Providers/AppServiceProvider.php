@@ -55,6 +55,22 @@ class AppServiceProvider extends ServiceProvider
                 });
         });
 
+        RateLimiter::for('guest-register', function (Request $request): Limit {
+            return Limit::perMinute(10)
+                ->by($request->ip())
+                ->response(function () use ($request) {
+                    Log::warning('guest-register-throttled', [
+                        'ip' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                        'path' => $request->path(),
+                    ]);
+
+                    return response()->json([
+                        'message' => 'Too many registration requests.',
+                    ], 429);
+                });
+        });
+
         RateLimiter::for('guest-order', function (Request $request): Limit {
             $idempotencyKey = (string) ($request->header('Idempotency-Key') ?? $request->input('idempotency_key', ''));
 

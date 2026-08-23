@@ -16,22 +16,22 @@ use OpenApi\Attributes as OA;
 class ItemController extends Controller
 {
     #[OA\Get(
-        path: "/items",
-        summary: "List all items",
-        description: "Get all items with optional filtering by category and active status",
-        tags: ["Items"],
-        security: [["bearerAuth" => []]],
+        path: '/items',
+        summary: 'List all items',
+        description: 'Get all items with optional filtering by category and active status',
+        tags: ['Items'],
+        security: [['bearerAuth' => []]],
         parameters: [
-            new OA\Parameter(name: "category_id", in: "query", required: false, description: "Filter by category", schema: new OA\Schema(type: "integer")),
-            new OA\Parameter(name: "active", in: "query", required: false, description: "Filter by active status", schema: new OA\Schema(type: "boolean"))
+            new OA\Parameter(name: 'category_id', in: 'query', required: false, description: 'Filter by category', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'active', in: 'query', required: false, description: 'Filter by active status', schema: new OA\Schema(type: 'boolean')),
         ],
         responses: [
             new OA\Response(
                 response: 200,
-                description: "List of items",
-                content: new OA\JsonContent(type: "array", items: new OA\Items(ref: "#/components/schemas/Item"))
+                description: 'List of items',
+                content: new OA\JsonContent(type: 'array', items: new OA\Items(ref: '#/components/schemas/Item'))
             ),
-            new OA\Response(response: 401, description: "Unauthenticated")
+            new OA\Response(response: 401, description: 'Unauthenticated'),
         ]
     )]
     public function index(Request $request): JsonResponse
@@ -57,31 +57,31 @@ class ItemController extends Controller
     }
 
     #[OA\Post(
-        path: "/items",
-        summary: "Create an item",
-        description: "Create a new menu item",
-        tags: ["Items"],
-        security: [["bearerAuth" => []]],
+        path: '/items',
+        summary: 'Create an item',
+        description: 'Create a new menu item',
+        tags: ['Items'],
+        security: [['bearerAuth' => []]],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ["name"],
+                required: ['name'],
                 properties: [
-                    new OA\Property(property: "name", type: "string", example: "Chicken Wrap"),
-                    new OA\Property(property: "description", type: "string", nullable: true),
-                    new OA\Property(property: "cost", type: "number", example: 9.99),
-                    new OA\Property(property: "category_id", type: "integer", nullable: true),
-                    new OA\Property(property: "active", type: "boolean", example: true),
-                    new OA\Property(property: "image_path", type: "string", nullable: true),
-                    new OA\Property(property: "short_code", type: "string", nullable: true),
-                    new OA\Property(property: "tax_ids", type: "array", items: new OA\Items(type: "integer")),
+                    new OA\Property(property: 'name', type: 'string', example: 'Chicken Wrap'),
+                    new OA\Property(property: 'description', type: 'string', nullable: true),
+                    new OA\Property(property: 'cost', type: 'number', example: 9.99),
+                    new OA\Property(property: 'category_id', type: 'integer', nullable: true),
+                    new OA\Property(property: 'active', type: 'boolean', example: true),
+                    new OA\Property(property: 'image_path', type: 'string', nullable: true),
+                    new OA\Property(property: 'short_code', type: 'string', nullable: true),
+                    new OA\Property(property: 'tax_ids', type: 'array', items: new OA\Items(type: 'integer')),
                 ]
             )
         ),
         responses: [
-            new OA\Response(response: 201, description: "Item created", content: new OA\JsonContent(ref: "#/components/schemas/Item")),
-            new OA\Response(response: 401, description: "Unauthenticated"),
-            new OA\Response(response: 422, description: "Validation error")
+            new OA\Response(response: 201, description: 'Item created', content: new OA\JsonContent(ref: '#/components/schemas/Item')),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 422, description: 'Validation error'),
         ]
     )]
     public function store(Request $request): JsonResponse
@@ -106,18 +106,18 @@ class ItemController extends Controller
     }
 
     #[OA\Get(
-        path: "/items/{id}",
-        summary: "Get an item",
-        description: "Get a single item with its relationships",
-        tags: ["Items"],
-        security: [["bearerAuth" => []]],
+        path: '/items/{id}',
+        summary: 'Get an item',
+        description: 'Get a single item with its relationships',
+        tags: ['Items'],
+        security: [['bearerAuth' => []]],
         parameters: [
-            new OA\Parameter(name: "id", in: "path", required: true, description: "Item ID", schema: new OA\Schema(type: "integer"))
+            new OA\Parameter(name: 'id', in: 'path', required: true, description: 'Item ID', schema: new OA\Schema(type: 'integer')),
         ],
         responses: [
-            new OA\Response(response: 200, description: "Item details", content: new OA\JsonContent(ref: "#/components/schemas/Item")),
-            new OA\Response(response: 401, description: "Unauthenticated"),
-            new OA\Response(response: 404, description: "Item not found")
+            new OA\Response(response: 200, description: 'Item details', content: new OA\JsonContent(ref: '#/components/schemas/Item')),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 404, description: 'Item not found'),
         ]
     )]
     public function show(Item $item): JsonResponse
@@ -135,34 +135,34 @@ class ItemController extends Controller
     }
 
     #[OA\Put(
-        path: "/items/{id}",
-        summary: "Update an item",
-        description: "Update an existing item",
-        tags: ["Items"],
-        security: [["bearerAuth" => []]],
+        path: '/items/{id}',
+        summary: 'Update an item',
+        description: 'Update an existing item',
+        tags: ['Items'],
+        security: [['bearerAuth' => []]],
         parameters: [
-            new OA\Parameter(name: "id", in: "path", required: true, description: "Item ID", schema: new OA\Schema(type: "integer"))
+            new OA\Parameter(name: 'id', in: 'path', required: true, description: 'Item ID', schema: new OA\Schema(type: 'integer')),
         ],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
                 properties: [
-                    new OA\Property(property: "name", type: "string"),
-                    new OA\Property(property: "description", type: "string", nullable: true),
-                    new OA\Property(property: "cost", type: "number"),
-                    new OA\Property(property: "category_id", type: "integer", nullable: true),
-                    new OA\Property(property: "active", type: "boolean"),
-                    new OA\Property(property: "image_path", type: "string", nullable: true),
-                    new OA\Property(property: "short_code", type: "string", nullable: true),
-                    new OA\Property(property: "tax_ids", type: "array", items: new OA\Items(type: "integer")),
+                    new OA\Property(property: 'name', type: 'string'),
+                    new OA\Property(property: 'description', type: 'string', nullable: true),
+                    new OA\Property(property: 'cost', type: 'number'),
+                    new OA\Property(property: 'category_id', type: 'integer', nullable: true),
+                    new OA\Property(property: 'active', type: 'boolean'),
+                    new OA\Property(property: 'image_path', type: 'string', nullable: true),
+                    new OA\Property(property: 'short_code', type: 'string', nullable: true),
+                    new OA\Property(property: 'tax_ids', type: 'array', items: new OA\Items(type: 'integer')),
                 ]
             )
         ),
         responses: [
-            new OA\Response(response: 200, description: "Item updated", content: new OA\JsonContent(ref: "#/components/schemas/Item")),
-            new OA\Response(response: 401, description: "Unauthenticated"),
-            new OA\Response(response: 404, description: "Item not found"),
-            new OA\Response(response: 422, description: "Validation error")
+            new OA\Response(response: 200, description: 'Item updated', content: new OA\JsonContent(ref: '#/components/schemas/Item')),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 404, description: 'Item not found'),
+            new OA\Response(response: 422, description: 'Validation error'),
         ]
     )]
     public function update(Request $request, Item $item): JsonResponse
@@ -187,18 +187,18 @@ class ItemController extends Controller
     }
 
     #[OA\Delete(
-        path: "/items/{id}",
-        summary: "Delete an item",
-        description: "Delete an item",
-        tags: ["Items"],
-        security: [["bearerAuth" => []]],
+        path: '/items/{id}',
+        summary: 'Delete an item',
+        description: 'Delete an item',
+        tags: ['Items'],
+        security: [['bearerAuth' => []]],
         parameters: [
-            new OA\Parameter(name: "id", in: "path", required: true, description: "Item ID", schema: new OA\Schema(type: "integer"))
+            new OA\Parameter(name: 'id', in: 'path', required: true, description: 'Item ID', schema: new OA\Schema(type: 'integer')),
         ],
         responses: [
-            new OA\Response(response: 204, description: "Item deleted"),
-            new OA\Response(response: 401, description: "Unauthenticated"),
-            new OA\Response(response: 404, description: "Item not found")
+            new OA\Response(response: 204, description: 'Item deleted'),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 404, description: 'Item not found'),
         ]
     )]
     public function destroy(Item $item): JsonResponse
@@ -209,57 +209,57 @@ class ItemController extends Controller
     }
 
     #[OA\Post(
-        path: "/items/{id}/options",
-        summary: "Sync item options",
-        description: "Replace all item options for an item in a single batch operation. Deletes existing options and creates new ones. Dependencies are scoped per parent ItemOptionValue; each dependency creates a dependent ItemOption linked to that parent value.",
-        tags: ["Items"],
-        security: [["bearerAuth" => []]],
+        path: '/items/{id}/options',
+        summary: 'Sync item options',
+        description: 'Replace all item options for an item in a single batch operation. Deletes existing options and creates new ones. Dependencies are scoped per parent ItemOptionValue; each dependency creates a dependent ItemOption linked to that parent value.',
+        tags: ['Items'],
+        security: [['bearerAuth' => []]],
         parameters: [
-            new OA\Parameter(name: "id", in: "path", required: true, description: "Item ID", schema: new OA\Schema(type: "integer"))
+            new OA\Parameter(name: 'id', in: 'path', required: true, description: 'Item ID', schema: new OA\Schema(type: 'integer')),
         ],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ["options"],
+                required: ['options'],
                 properties: [
                     new OA\Property(
-                        property: "options",
-                        type: "array",
+                        property: 'options',
+                        type: 'array',
                         items: new OA\Items(
                             properties: [
-                                new OA\Property(property: "option_id", type: "integer", example: 1),
-                                new OA\Property(property: "sort_order", type: "integer", nullable: true, example: 1),
-                                new OA\Property(property: "required", type: "boolean", example: false),
-                                new OA\Property(property: "type", type: "string", enum: ["single", "multiple"], example: "single"),
-                                new OA\Property(property: "range", type: "integer", example: 0),
-                                new OA\Property(property: "max", type: "integer", nullable: true, example: 2),
-                                new OA\Property(property: "min", type: "integer", nullable: true, example: 0),
-                                new OA\Property(property: "qty", type: "integer", nullable: true, example: 1),
-                                new OA\Property(property: "enable_qty", type: "boolean", example: false),
+                                new OA\Property(property: 'option_id', type: 'integer', example: 1),
+                                new OA\Property(property: 'sort_order', type: 'integer', nullable: true, example: 1),
+                                new OA\Property(property: 'required', type: 'boolean', example: false),
+                                new OA\Property(property: 'type', type: 'string', enum: ['single', 'multiple'], example: 'single'),
+                                new OA\Property(property: 'range', type: 'integer', example: 0),
+                                new OA\Property(property: 'max', type: 'integer', nullable: true, example: 2),
+                                new OA\Property(property: 'min', type: 'integer', nullable: true, example: 0),
+                                new OA\Property(property: 'qty', type: 'integer', nullable: true, example: 1),
+                                new OA\Property(property: 'enable_qty', type: 'boolean', example: false),
                                 new OA\Property(
-                                    property: "values",
-                                    type: "array",
+                                    property: 'values',
+                                    type: 'array',
                                     items: new OA\Items(
                                         properties: [
-                                            new OA\Property(property: "option_value_id", type: "integer", example: 1),
-                                            new OA\Property(property: "price", type: "number", example: 1.50),
-                                            new OA\Property(property: "in_stock", type: "boolean", example: true),
-                                            new OA\Property(property: "qty", type: "integer", nullable: true, example: 1),
-                                            new OA\Property(property: "option_dependency_id", type: "integer", nullable: true),
+                                            new OA\Property(property: 'option_value_id', type: 'integer', example: 1),
+                                            new OA\Property(property: 'price', type: 'number', example: 1.50),
+                                            new OA\Property(property: 'in_stock', type: 'boolean', example: true),
+                                            new OA\Property(property: 'qty', type: 'integer', nullable: true, example: 1),
+                                            new OA\Property(property: 'option_dependency_id', type: 'integer', nullable: true),
                                             new OA\Property(
-                                                property: "dependency",
-                                                type: "object",
+                                                property: 'dependency',
+                                                type: 'object',
                                                 nullable: true,
-                                                description: "Nested dependency for this parent value. API creates a dependent ItemOption per parent value and an OptionDependency link.",
+                                                description: 'Nested dependency for this parent value. API creates a dependent ItemOption per parent value and an OptionDependency link.',
                                                 properties: [
-                                                    new OA\Property(property: "child_option_id", type: "integer", description: "The Option ID to use for the dependent ItemOption"),
+                                                    new OA\Property(property: 'child_option_id', type: 'integer', description: 'The Option ID to use for the dependent ItemOption'),
                                                     new OA\Property(
-                                                        property: "child_values",
-                                                        type: "array",
+                                                        property: 'child_values',
+                                                        type: 'array',
                                                         items: new OA\Items(
                                                             properties: [
-                                                                new OA\Property(property: "option_value_id", type: "integer"),
-                                                                new OA\Property(property: "price", type: "number", description: "Override price for the dependent ItemOptionValue"),
+                                                                new OA\Property(property: 'option_value_id', type: 'integer'),
+                                                                new OA\Property(property: 'price', type: 'number', description: 'Override price for the dependent ItemOptionValue'),
                                                             ]
                                                         )
                                                     ),
@@ -277,12 +277,12 @@ class ItemController extends Controller
         responses: [
             new OA\Response(
                 response: 200,
-                description: "Item options synced",
-                content: new OA\JsonContent(type: "array", items: new OA\Items(ref: "#/components/schemas/ItemOption"))
+                description: 'Item options synced',
+                content: new OA\JsonContent(type: 'array', items: new OA\Items(ref: '#/components/schemas/ItemOption'))
             ),
-            new OA\Response(response: 401, description: "Unauthenticated"),
-            new OA\Response(response: 404, description: "Item not found"),
-            new OA\Response(response: 422, description: "Validation error")
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 404, description: 'Item not found'),
+            new OA\Response(response: 422, description: 'Validation error'),
         ]
     )]
     public function syncOptions(Request $request, Item $item): JsonResponse
@@ -336,7 +336,7 @@ class ItemController extends Controller
         $createdOptions = DB::transaction(function () use ($item, $validated) {
             // Delete existing option dependencies that reference this item's options
             $existingOptionIds = $item->itemOptions()->pluck('id')->toArray();
-            if (!empty($existingOptionIds)) {
+            if (! empty($existingOptionIds)) {
                 OptionDependency::whereIn('child_option_id', $existingOptionIds)->delete();
             }
 
@@ -359,7 +359,7 @@ class ItemController extends Controller
                     'enable_qty' => $optionData['enable_qty'] ?? false,
                 ]);
 
-                if (!empty($optionData['values'])) {
+                if (! empty($optionData['values'])) {
                     foreach ($optionData['values'] as $valueData) {
                         // Create the parent ItemOptionValue first
                         $itemOptionValue = ItemOptionValue::create([
@@ -372,7 +372,7 @@ class ItemController extends Controller
                         ]);
 
                         // If this value has a nested dependency, create the dependent ItemOption and OptionDependency
-                        if (!empty($valueData['dependency'])) {
+                        if (! empty($valueData['dependency'])) {
                             $dependencyData = $valueData['dependency'];
 
                             // Create the dependent ItemOption with type 'dependent'
@@ -390,7 +390,7 @@ class ItemController extends Controller
                             ]);
 
                             // Create ItemOptionValues for the dependent option's values
-                            if (!empty($dependencyData['child_values'])) {
+                            if (! empty($dependencyData['child_values'])) {
                                 foreach ($dependencyData['child_values'] as $childValueData) {
                                     ItemOptionValue::create([
                                         'item_option_id' => $dependentItemOption->id,
@@ -432,7 +432,7 @@ class ItemController extends Controller
             'itemOptionValues.optionDependency.childOption.option',
             'itemOptionValues.optionDependency.childOption.itemOptionValues.optionValue',
         ])
-            ->whereIn('id', array_map(fn($o) => $o->id, $createdOptions))
+            ->whereIn('id', array_map(fn ($o) => $o->id, $createdOptions))
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get();

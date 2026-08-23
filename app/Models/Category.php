@@ -29,4 +29,14 @@ class Category extends Model
     {
         return $this->hasMany(Item::class);
     }
+
+    public function earningRewardPrograms(): HasMany
+    {
+        return $this->hasMany(RewardProgram::class, 'earn_category_id');
+    }
+
+    public function redeemableRewardPrograms(): HasMany
+    {
+        return $this->hasMany(RewardProgram::class, 'reward_category_id');
+    }
 }

@@ -26,6 +26,16 @@ class Customer extends Model
         return $this->hasMany(Order::class);
     }
 
+    public function rewardAccounts(): HasMany
+    {
+        return $this->hasMany(CustomerRewardAccount::class);
+    }
+
+    public function rewardLedgerEntries(): HasMany
+    {
+        return $this->hasMany(RewardLedgerEntry::class);
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

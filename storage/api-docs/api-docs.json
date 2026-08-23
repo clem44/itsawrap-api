@@ -1347,6 +1347,50 @@
                 ]
             }
         },
+        "/customers/{customer}/rewards": {
+            "get": {
+                "tags": [
+                    "Rewards"
+                ],
+                "summary": "Get customer reward summary",
+                "description": "Get current reward progress and available rewards for a customer.",
+                "operationId": "4d8544d4c87bdc36e66d243b8b70a798",
+                "parameters": [
+                    {
+                        "name": "customer",
+                        "in": "path",
+                        "description": "Customer ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Customer reward summary",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CustomerRewardSummary"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Customer not found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/items": {
             "get": {
                 "tags": [
@@ -3901,6 +3945,82 @@
                 ]
             }
         },
+        "/orders/{order}/rewards/redeem": {
+            "post": {
+                "tags": [
+                    "Rewards"
+                ],
+                "summary": "Redeem a customer reward on an order",
+                "description": "Add a free reward item to an order and decrement the customer reward balance.",
+                "operationId": "8d2a9064318e576077c2495fd8cfa52d",
+                "parameters": [
+                    {
+                        "name": "order",
+                        "in": "path",
+                        "description": "Order ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "reward_program_id",
+                                    "item_id"
+                                ],
+                                "properties": {
+                                    "reward_program_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "item_id": {
+                                        "type": "integer",
+                                        "example": 10
+                                    },
+                                    "quantity": {
+                                        "type": "integer",
+                                        "example": 1,
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Reward item added to order",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OrderItem"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Order, reward program, or item not found"
+                    },
+                    "422": {
+                        "description": "Validation error or unavailable reward"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/payments": {
             "get": {
                 "tags": [
@@ -4221,6 +4341,39 @@
                     },
                     "404": {
                         "description": "Payment not found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/rewards/programs": {
+            "get": {
+                "tags": [
+                    "Rewards"
+                ],
+                "summary": "List active reward programs",
+                "description": "Get active customer reward programs with their earn and reward categories.",
+                "operationId": "37a76c10577c836c88dfb51373801b37",
+                "responses": {
+                    "200": {
+                        "description": "List of active reward programs",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/RewardProgram"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
                     }
                 },
                 "security": [
@@ -6002,6 +6155,26 @@
                         "type": "integer",
                         "example": 2
                     },
+                    "is_reward_item": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "reward_program_id": {
+                        "type": "integer",
+                        "example": 1,
+                        "nullable": true
+                    },
+                    "reward_ledger_entry_id": {
+                        "type": "integer",
+                        "example": 10,
+                        "nullable": true
+                    },
+                    "reward_discount_amount": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 12.5,
+                        "nullable": true
+                    },
                     "unit_price": {
                         "type": "number",
                         "format": "float",
@@ -6014,6 +6187,225 @@
                     },
                     "notes": {
                         "type": "string",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "RewardProgram": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Buy 6 Wraps, Get 1 Free Wrap"
+                    },
+                    "is_active": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "earn_category_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "qualifying_item_quantity_required": {
+                        "type": "integer",
+                        "example": 6
+                    },
+                    "reward_category_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "reward_quantity": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "starts_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "ends_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "created_by_user_id": {
+                        "type": "integer",
+                        "example": 1,
+                        "nullable": true
+                    },
+                    "earn_category": {
+                        "$ref": "#/components/schemas/Category"
+                    },
+                    "reward_category": {
+                        "$ref": "#/components/schemas/Category"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "CustomerRewardProgramSummary": {
+                "properties": {
+                    "program_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Buy 6 Wraps, Get 1 Free Wrap"
+                    },
+                    "earn_category": {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "name": {
+                                "type": "string",
+                                "example": "Wraps"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "reward_category": {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "name": {
+                                "type": "string",
+                                "example": "Wraps"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "qualifying_item_quantity_required": {
+                        "type": "integer",
+                        "example": 6
+                    },
+                    "reward_quantity": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "progress_quantity": {
+                        "type": "integer",
+                        "example": 4
+                    },
+                    "rewards_available": {
+                        "type": "integer",
+                        "example": 0
+                    },
+                    "lifetime_qualifying_quantity": {
+                        "type": "integer",
+                        "example": 16
+                    },
+                    "lifetime_rewards_earned": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "lifetime_rewards_redeemed": {
+                        "type": "integer",
+                        "example": 1
+                    }
+                },
+                "type": "object"
+            },
+            "CustomerRewardSummary": {
+                "properties": {
+                    "rewards_enabled": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "programs": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CustomerRewardProgramSummary"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "RewardLedgerEntry": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "customer_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "reward_program_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "order_id": {
+                        "type": "integer",
+                        "example": 10,
+                        "nullable": true
+                    },
+                    "order_item_id": {
+                        "type": "integer",
+                        "example": 20,
+                        "nullable": true
+                    },
+                    "reverses_ledger_entry_id": {
+                        "type": "integer",
+                        "example": null,
+                        "nullable": true
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "earned_progress",
+                            "redeemed",
+                            "reversed",
+                            "adjusted",
+                            "expired"
+                        ],
+                        "example": "redeemed"
+                    },
+                    "progress_delta": {
+                        "type": "integer",
+                        "example": 0
+                    },
+                    "rewards_delta": {
+                        "type": "integer",
+                        "example": -1
+                    },
+                    "reason": {
+                        "type": "string",
+                        "example": "reward_redemption",
+                        "nullable": true
+                    },
+                    "metadata": {
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "created_by_user_id": {
+                        "type": "integer",
+                        "example": 1,
                         "nullable": true
                     },
                     "created_at": {
@@ -6271,6 +6663,10 @@
         {
             "name": "Customers",
             "description": "Customer management"
+        },
+        {
+            "name": "Rewards",
+            "description": "Customer rewards and loyalty programs"
         },
         {
             "name": "Settings",

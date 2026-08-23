@@ -11,12 +11,13 @@ class EnsureUserIsAdmin
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (!Auth::check() || Auth::user()->role_id !== 1) {
+        if (! Auth::check() || Auth::user()->role_id !== 1) {
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Unauthorized. Admin access required.'], 403);
             }
 
             Auth::logout();
+
             return redirect()->route('admin.login')->withErrors([
                 'username' => 'You do not have admin access.',
             ]);

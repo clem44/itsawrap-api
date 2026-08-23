@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Withdrawal;
 use App\Models\CashSession;
+use App\Models\Withdrawal;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use OpenApi\Attributes as OA;
@@ -12,18 +12,18 @@ use OpenApi\Attributes as OA;
 class WithdrawalController extends Controller
 {
     #[OA\Get(
-        path: "/withdrawals",
-        summary: "List all withdrawals",
-        description: "Get all withdrawals with optional filtering",
-        tags: ["Withdrawals"],
-        security: [["bearerAuth" => []]],
+        path: '/withdrawals',
+        summary: 'List all withdrawals',
+        description: 'Get all withdrawals with optional filtering',
+        tags: ['Withdrawals'],
+        security: [['bearerAuth' => []]],
         parameters: [
-            new OA\Parameter(name: "session_id", in: "query", required: false, description: "Filter by cash session", schema: new OA\Schema(type: "integer")),
-            new OA\Parameter(name: "user_id", in: "query", required: false, description: "Filter by user", schema: new OA\Schema(type: "integer"))
+            new OA\Parameter(name: 'session_id', in: 'query', required: false, description: 'Filter by cash session', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'user_id', in: 'query', required: false, description: 'Filter by user', schema: new OA\Schema(type: 'integer')),
         ],
         responses: [
-            new OA\Response(response: 200, description: "List of withdrawals", content: new OA\JsonContent(type: "array", items: new OA\Items(ref: "#/components/schemas/Withdrawal"))),
-            new OA\Response(response: 401, description: "Unauthenticated")
+            new OA\Response(response: 200, description: 'List of withdrawals', content: new OA\JsonContent(type: 'array', items: new OA\Items(ref: '#/components/schemas/Withdrawal'))),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
         ]
     )]
     public function index(Request $request): JsonResponse
@@ -42,25 +42,25 @@ class WithdrawalController extends Controller
     }
 
     #[OA\Post(
-        path: "/withdrawals",
-        summary: "Create a withdrawal",
-        description: "Record a new withdrawal from the current cash session",
-        tags: ["Withdrawals"],
-        security: [["bearerAuth" => []]],
+        path: '/withdrawals',
+        summary: 'Create a withdrawal',
+        description: 'Record a new withdrawal from the current cash session',
+        tags: ['Withdrawals'],
+        security: [['bearerAuth' => []]],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ["amount"],
+                required: ['amount'],
                 properties: [
-                    new OA\Property(property: "description", type: "string", nullable: true, example: "Bank deposit"),
-                    new OA\Property(property: "amount", type: "number", example: 50.00),
+                    new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Bank deposit'),
+                    new OA\Property(property: 'amount', type: 'number', example: 50.00),
                 ]
             )
         ),
         responses: [
-            new OA\Response(response: 201, description: "Withdrawal created", content: new OA\JsonContent(ref: "#/components/schemas/Withdrawal")),
-            new OA\Response(response: 401, description: "Unauthenticated"),
-            new OA\Response(response: 422, description: "No open session or validation error")
+            new OA\Response(response: 201, description: 'Withdrawal created', content: new OA\JsonContent(ref: '#/components/schemas/Withdrawal')),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 422, description: 'No open session or validation error'),
         ]
     )]
     public function store(Request $request): JsonResponse
@@ -75,7 +75,7 @@ class WithdrawalController extends Controller
             ->where('is_open', true)
             ->first();
 
-        if (!$session) {
+        if (! $session) {
             return response()->json(['message' => 'No open session found'], 422);
         }
 
@@ -92,18 +92,18 @@ class WithdrawalController extends Controller
     }
 
     #[OA\Get(
-        path: "/withdrawals/{id}",
-        summary: "Get a withdrawal",
-        description: "Get a single withdrawal with details",
-        tags: ["Withdrawals"],
-        security: [["bearerAuth" => []]],
+        path: '/withdrawals/{id}',
+        summary: 'Get a withdrawal',
+        description: 'Get a single withdrawal with details',
+        tags: ['Withdrawals'],
+        security: [['bearerAuth' => []]],
         parameters: [
-            new OA\Parameter(name: "id", in: "path", required: true, description: "Withdrawal ID", schema: new OA\Schema(type: "integer"))
+            new OA\Parameter(name: 'id', in: 'path', required: true, description: 'Withdrawal ID', schema: new OA\Schema(type: 'integer')),
         ],
         responses: [
-            new OA\Response(response: 200, description: "Withdrawal details", content: new OA\JsonContent(ref: "#/components/schemas/Withdrawal")),
-            new OA\Response(response: 401, description: "Unauthenticated"),
-            new OA\Response(response: 404, description: "Withdrawal not found")
+            new OA\Response(response: 200, description: 'Withdrawal details', content: new OA\JsonContent(ref: '#/components/schemas/Withdrawal')),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 404, description: 'Withdrawal not found'),
         ]
     )]
     public function show(Withdrawal $withdrawal): JsonResponse
@@ -112,18 +112,18 @@ class WithdrawalController extends Controller
     }
 
     #[OA\Delete(
-        path: "/withdrawals/{id}",
-        summary: "Delete a withdrawal",
-        description: "Delete a withdrawal and adjust session totals",
-        tags: ["Withdrawals"],
-        security: [["bearerAuth" => []]],
+        path: '/withdrawals/{id}',
+        summary: 'Delete a withdrawal',
+        description: 'Delete a withdrawal and adjust session totals',
+        tags: ['Withdrawals'],
+        security: [['bearerAuth' => []]],
         parameters: [
-            new OA\Parameter(name: "id", in: "path", required: true, description: "Withdrawal ID", schema: new OA\Schema(type: "integer"))
+            new OA\Parameter(name: 'id', in: 'path', required: true, description: 'Withdrawal ID', schema: new OA\Schema(type: 'integer')),
         ],
         responses: [
-            new OA\Response(response: 204, description: "Withdrawal deleted"),
-            new OA\Response(response: 401, description: "Unauthenticated"),
-            new OA\Response(response: 404, description: "Withdrawal not found")
+            new OA\Response(response: 204, description: 'Withdrawal deleted'),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 404, description: 'Withdrawal not found'),
         ]
     )]
     public function destroy(Withdrawal $withdrawal): JsonResponse

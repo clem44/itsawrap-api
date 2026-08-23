@@ -13,17 +13,17 @@ use OpenApi\Attributes as OA;
 class ItemOptionValueController extends Controller
 {
     #[OA\Get(
-        path: "/item-option-values",
-        summary: "List item option values",
-        description: "Get all item option values, optionally filtered by item option",
-        tags: ["Item Option Values"],
-        security: [["bearerAuth" => []]],
+        path: '/item-option-values',
+        summary: 'List item option values',
+        description: 'Get all item option values, optionally filtered by item option',
+        tags: ['Item Option Values'],
+        security: [['bearerAuth' => []]],
         parameters: [
-            new OA\Parameter(name: "item_option_id", in: "query", required: false, description: "Filter by item option ID", schema: new OA\Schema(type: "integer")),
+            new OA\Parameter(name: 'item_option_id', in: 'query', required: false, description: 'Filter by item option ID', schema: new OA\Schema(type: 'integer')),
         ],
         responses: [
-            new OA\Response(response: 200, description: "List of item option values", content: new OA\JsonContent(type: "array", items: new OA\Items(ref: "#/components/schemas/ItemOptionValue"))),
-            new OA\Response(response: 401, description: "Unauthenticated")
+            new OA\Response(response: 200, description: 'List of item option values', content: new OA\JsonContent(type: 'array', items: new OA\Items(ref: '#/components/schemas/ItemOptionValue'))),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
         ]
     )]
     public function index(Request $request): JsonResponse
@@ -38,29 +38,29 @@ class ItemOptionValueController extends Controller
     }
 
     #[OA\Post(
-        path: "/item-option-values",
-        summary: "Create an item option value",
-        description: "Create a new item option value",
-        tags: ["Item Option Values"],
-        security: [["bearerAuth" => []]],
+        path: '/item-option-values',
+        summary: 'Create an item option value',
+        description: 'Create a new item option value',
+        tags: ['Item Option Values'],
+        security: [['bearerAuth' => []]],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ["item_option_id", "option_value_id"],
+                required: ['item_option_id', 'option_value_id'],
                 properties: [
-                    new OA\Property(property: "item_option_id", type: "integer", example: 1),
-                    new OA\Property(property: "option_value_id", type: "integer", example: 1),
-                    new OA\Property(property: "price", type: "number", example: 0.50),
-                    new OA\Property(property: "in_stock", type: "boolean", example: true),
-                    new OA\Property(property: "qty", type: "integer", nullable: true, example: 1),
-                    new OA\Property(property: "option_dependency_id", type: "integer", nullable: true, example: 2),
+                    new OA\Property(property: 'item_option_id', type: 'integer', example: 1),
+                    new OA\Property(property: 'option_value_id', type: 'integer', example: 1),
+                    new OA\Property(property: 'price', type: 'number', example: 0.50),
+                    new OA\Property(property: 'in_stock', type: 'boolean', example: true),
+                    new OA\Property(property: 'qty', type: 'integer', nullable: true, example: 1),
+                    new OA\Property(property: 'option_dependency_id', type: 'integer', nullable: true, example: 2),
                 ]
             )
         ),
         responses: [
-            new OA\Response(response: 201, description: "Item option value created", content: new OA\JsonContent(ref: "#/components/schemas/ItemOptionValue")),
-            new OA\Response(response: 401, description: "Unauthenticated"),
-            new OA\Response(response: 422, description: "Validation error")
+            new OA\Response(response: 201, description: 'Item option value created', content: new OA\JsonContent(ref: '#/components/schemas/ItemOptionValue')),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 422, description: 'Validation error'),
         ]
     )]
     public function store(Request $request): JsonResponse
@@ -77,7 +77,7 @@ class ItemOptionValueController extends Controller
         $validator->after(function ($validator) use ($request) {
             if ($request->filled('qty')) {
                 $enableQty = ItemOption::whereKey($request->input('item_option_id'))->value('enable_qty');
-                if (!$enableQty) {
+                if (! $enableQty) {
                     $validator->errors()->add('qty', 'Quantity is only allowed when the parent item option has enable_qty set to true.');
                 }
             }
@@ -91,18 +91,18 @@ class ItemOptionValueController extends Controller
     }
 
     #[OA\Get(
-        path: "/item-option-values/{id}",
-        summary: "Get an item option value",
-        description: "Get a single item option value",
-        tags: ["Item Option Values"],
-        security: [["bearerAuth" => []]],
+        path: '/item-option-values/{id}',
+        summary: 'Get an item option value',
+        description: 'Get a single item option value',
+        tags: ['Item Option Values'],
+        security: [['bearerAuth' => []]],
         parameters: [
-            new OA\Parameter(name: "id", in: "path", required: true, description: "Item option value ID", schema: new OA\Schema(type: "integer"))
+            new OA\Parameter(name: 'id', in: 'path', required: true, description: 'Item option value ID', schema: new OA\Schema(type: 'integer')),
         ],
         responses: [
-            new OA\Response(response: 200, description: "Item option value details", content: new OA\JsonContent(ref: "#/components/schemas/ItemOptionValue")),
-            new OA\Response(response: 401, description: "Unauthenticated"),
-            new OA\Response(response: 404, description: "Item option value not found")
+            new OA\Response(response: 200, description: 'Item option value details', content: new OA\JsonContent(ref: '#/components/schemas/ItemOptionValue')),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 404, description: 'Item option value not found'),
         ]
     )]
     public function show(ItemOptionValue $itemOptionValue): JsonResponse
@@ -111,30 +111,30 @@ class ItemOptionValueController extends Controller
     }
 
     #[OA\Put(
-        path: "/item-option-values/{id}",
-        summary: "Update an item option value",
-        description: "Update an existing item option value",
-        tags: ["Item Option Values"],
-        security: [["bearerAuth" => []]],
+        path: '/item-option-values/{id}',
+        summary: 'Update an item option value',
+        description: 'Update an existing item option value',
+        tags: ['Item Option Values'],
+        security: [['bearerAuth' => []]],
         parameters: [
-            new OA\Parameter(name: "id", in: "path", required: true, description: "Item option value ID", schema: new OA\Schema(type: "integer"))
+            new OA\Parameter(name: 'id', in: 'path', required: true, description: 'Item option value ID', schema: new OA\Schema(type: 'integer')),
         ],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
                 properties: [
-                    new OA\Property(property: "price", type: "number"),
-                    new OA\Property(property: "in_stock", type: "boolean"),
-                    new OA\Property(property: "qty", type: "integer", nullable: true),
-                    new OA\Property(property: "option_dependency_id", type: "integer", nullable: true),
+                    new OA\Property(property: 'price', type: 'number'),
+                    new OA\Property(property: 'in_stock', type: 'boolean'),
+                    new OA\Property(property: 'qty', type: 'integer', nullable: true),
+                    new OA\Property(property: 'option_dependency_id', type: 'integer', nullable: true),
                 ]
             )
         ),
         responses: [
-            new OA\Response(response: 200, description: "Item option value updated", content: new OA\JsonContent(ref: "#/components/schemas/ItemOptionValue")),
-            new OA\Response(response: 401, description: "Unauthenticated"),
-            new OA\Response(response: 404, description: "Item option value not found"),
-            new OA\Response(response: 422, description: "Validation error")
+            new OA\Response(response: 200, description: 'Item option value updated', content: new OA\JsonContent(ref: '#/components/schemas/ItemOptionValue')),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 404, description: 'Item option value not found'),
+            new OA\Response(response: 422, description: 'Validation error'),
         ]
     )]
     public function update(Request $request, ItemOptionValue $itemOptionValue): JsonResponse
@@ -149,7 +149,7 @@ class ItemOptionValueController extends Controller
         $validator->after(function ($validator) use ($request, $itemOptionValue) {
             if ($request->filled('qty')) {
                 $itemOptionValue->loadMissing('itemOption');
-                if (!$itemOptionValue->itemOption?->enable_qty) {
+                if (! $itemOptionValue->itemOption?->enable_qty) {
                     $validator->errors()->add('qty', 'Quantity is only allowed when the parent item option has enable_qty set to true.');
                 }
             }
@@ -163,18 +163,18 @@ class ItemOptionValueController extends Controller
     }
 
     #[OA\Delete(
-        path: "/item-option-values/{id}",
-        summary: "Delete an item option value",
-        description: "Delete an item option value",
-        tags: ["Item Option Values"],
-        security: [["bearerAuth" => []]],
+        path: '/item-option-values/{id}',
+        summary: 'Delete an item option value',
+        description: 'Delete an item option value',
+        tags: ['Item Option Values'],
+        security: [['bearerAuth' => []]],
         parameters: [
-            new OA\Parameter(name: "id", in: "path", required: true, description: "Item option value ID", schema: new OA\Schema(type: "integer"))
+            new OA\Parameter(name: 'id', in: 'path', required: true, description: 'Item option value ID', schema: new OA\Schema(type: 'integer')),
         ],
         responses: [
-            new OA\Response(response: 204, description: "Item option value deleted"),
-            new OA\Response(response: 401, description: "Unauthenticated"),
-            new OA\Response(response: 404, description: "Item option value not found")
+            new OA\Response(response: 204, description: 'Item option value deleted'),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 404, description: 'Item option value not found'),
         ]
     )]
     public function destroy(ItemOptionValue $itemOptionValue): JsonResponse

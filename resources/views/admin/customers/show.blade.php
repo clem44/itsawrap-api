@@ -90,6 +90,95 @@
 
     <div class="section-card animate-in animate-delay-1">
         <div class="section-header">
+            <h2 class="section-title">Rewards</h2>
+            <a href="{{ route('admin.rewards.index') }}" class="view-all-link">Manage Programs</a>
+        </div>
+
+        <div class="section-content">
+            @if(collect($rewardSummary['programs'])->isNotEmpty())
+                <div class="profile-stats" style="margin-bottom: 1.5rem;">
+                    @foreach($rewardSummary['programs'] as $program)
+                        <div class="stat-card" style="background: var(--color-cream); border-color: var(--color-cream-dark);">
+                            <div class="stat-label" style="color: var(--color-ink-light);">{{ $program['name'] }}</div>
+                            <div class="stat-value" style="color: var(--color-ink);">{{ $program['progress_quantity'] }} / {{ $program['qualifying_item_quantity_required'] }}</div>
+                            <div class="user-meta">{{ $program['rewards_available'] }} available rewards</div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="empty-state-small">No active reward programs are configured.</div>
+            @endif
+
+            @if($rewardPrograms->isNotEmpty())
+                <form method="POST" action="{{ route('admin.customers.reward-adjustments.store', $customer) }}" class="form-grid">
+                    @csrf
+                    <div class="form-group">
+                        <label class="form-label" for="reward_program_id">Program</label>
+                        <select id="reward_program_id" name="reward_program_id" class="form-select" required>
+                            @foreach($rewardPrograms as $program)
+                                <option value="{{ $program->id }}">{{ $program->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="progress_delta">Progress Adjustment</label>
+                        <input id="progress_delta" name="progress_delta" type="number" class="form-input" value="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="rewards_delta">Reward Adjustment</label>
+                        <input id="rewards_delta" name="rewards_delta" type="number" class="form-input" value="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="note">Note</label>
+                        <input id="note" name="note" type="text" class="form-input" placeholder="Reason for adjustment" required>
+                    </div>
+                    <div class="form-actions full-width">
+                        <button type="submit" class="btn btn-primary btn-forest">Record Adjustment</button>
+                    </div>
+                </form>
+            @endif
+        </div>
+    </div>
+
+    <div class="section-card animate-in animate-delay-2">
+        <div class="section-header">
+            <h2 class="section-title">Reward Ledger</h2>
+        </div>
+
+        @if($rewardLedgerEntries->isNotEmpty())
+            <div class="overflow-x-auto">
+                <table class="tokens-table">
+                    <thead>
+                        <tr>
+                            <th>Program</th>
+                            <th>Type</th>
+                            <th>Progress</th>
+                            <th>Rewards</th>
+                            <th>Reason</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($rewardLedgerEntries as $entry)
+                            <tr>
+                                <td><span class="token-name">{{ $entry->rewardProgram?->name ?? 'Program removed' }}</span></td>
+                                <td><span class="token-meta">{{ str_replace('_', ' ', ucfirst($entry->type)) }}</span></td>
+                                <td><span class="token-meta">{{ $entry->progress_delta > 0 ? '+' : '' }}{{ $entry->progress_delta }}</span></td>
+                                <td><span class="token-meta">{{ $entry->rewards_delta > 0 ? '+' : '' }}{{ $entry->rewards_delta }}</span></td>
+                                <td><span class="token-meta">{{ str_replace('_', ' ', $entry->reason ?? 'n/a') }}</span></td>
+                                <td><span class="token-meta">{{ $entry->created_at->format('M d, Y H:i') }}</span></td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @else
+            <div class="empty-state-small">No reward activity yet.</div>
+        @endif
+    </div>
+
+    <div class="section-card animate-in animate-delay-1">
+        <div class="section-header">
             <h2 class="section-title">Customer Orders</h2>
         </div>
 

@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\RewardLedgerEntry;
+use App\Models\RewardProgram;
+use App\Services\Rewards\RewardService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -46,7 +49,7 @@ class CustomerController extends Controller
             ->with('success', 'Customer created successfully.');
     }
 
-    public function show(Customer $customer): View
+    public function show(Customer $customer, RewardService $rewards): View
     {
         $customer->loadCount('orders');
         $orders = $customer->orders()
@@ -56,8 +59,27 @@ class CustomerController extends Controller
 
         $totalSpent = $orders->sum('total');
         $lastOrderAt = $orders->first()?->created_at;
+        $rewardSummary = $rewards->summaryForCustomer($customer);
+        $rewardPrograms = RewardProgram::query()
+            ->currentlyActive()
+            ->orderBy('name')
+            ->get();
+        $rewardLedgerEntries = RewardLedgerEntry::query()
+            ->where('customer_id', $customer->id)
+            ->with('rewardProgram')
+            ->orderByDesc('created_at')
+            ->limit(25)
+            ->get();
 
-        return view('admin.customers.show', compact('customer', 'orders', 'totalSpent', 'lastOrderAt'));
+        return view('admin.customers.show', compact(
+            'customer',
+            'orders',
+            'totalSpent',
+            'lastOrderAt',
+            'rewardSummary',
+            'rewardPrograms',
+            'rewardLedgerEntries'
+        ));
     }
 
     public function update(Request $request, Customer $customer): RedirectResponse

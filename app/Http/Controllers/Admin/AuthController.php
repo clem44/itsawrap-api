@@ -28,6 +28,7 @@ class AuthController extends Controller
             // Only allow admin users (role_id = 1)
             if ($user->role_id !== 1) {
                 Auth::logout();
+
                 return back()->withErrors([
                     'username' => 'You do not have admin access.',
                 ])->onlyInput('username');

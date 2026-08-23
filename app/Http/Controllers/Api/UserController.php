@@ -16,21 +16,21 @@ class UserController extends Controller
     }
 
     #[OA\Get(
-        path: "/users/username-exists",
-        summary: "Check if a username exists",
-        description: "Check if a username is already used, with optional exclude_id",
-        tags: ["Users"],
-        security: [["bearerAuth" => []]],
+        path: '/users/username-exists',
+        summary: 'Check if a username exists',
+        description: 'Check if a username is already used, with optional exclude_id',
+        tags: ['Users'],
+        security: [['bearerAuth' => []]],
         parameters: [
-            new OA\Parameter(name: "username", in: "query", required: true, schema: new OA\Schema(type: "string")),
-            new OA\Parameter(name: "exclude_id", in: "query", required: false, schema: new OA\Schema(type: "integer")),
+            new OA\Parameter(name: 'username', in: 'query', required: true, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'exclude_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
         ],
         responses: [
-            new OA\Response(response: 200, description: "Exists response", content: new OA\JsonContent(
-                properties: [new OA\Property(property: "exists", type: "boolean")]
+            new OA\Response(response: 200, description: 'Exists response', content: new OA\JsonContent(
+                properties: [new OA\Property(property: 'exists', type: 'boolean')]
             )),
-            new OA\Response(response: 401, description: "Unauthenticated"),
-            new OA\Response(response: 422, description: "Validation error")
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 422, description: 'Validation error'),
         ]
     )]
     public function usernameExists(Request $request): JsonResponse
@@ -42,7 +42,7 @@ class UserController extends Controller
 
         $query = User::where('username', $validated['username']);
 
-        if (!empty($validated['exclude_id'])) {
+        if (! empty($validated['exclude_id'])) {
             $query->where('id', '!=', $validated['exclude_id']);
         }
 
@@ -52,21 +52,21 @@ class UserController extends Controller
     }
 
     #[OA\Get(
-        path: "/users/email-exists",
-        summary: "Check if an email exists",
-        description: "Check if an email is already used, with optional exclude_id",
-        tags: ["Users"],
-        security: [["bearerAuth" => []]],
+        path: '/users/email-exists',
+        summary: 'Check if an email exists',
+        description: 'Check if an email is already used, with optional exclude_id',
+        tags: ['Users'],
+        security: [['bearerAuth' => []]],
         parameters: [
-            new OA\Parameter(name: "email", in: "query", required: true, schema: new OA\Schema(type: "string", format: "email")),
-            new OA\Parameter(name: "exclude_id", in: "query", required: false, schema: new OA\Schema(type: "integer")),
+            new OA\Parameter(name: 'email', in: 'query', required: true, schema: new OA\Schema(type: 'string', format: 'email')),
+            new OA\Parameter(name: 'exclude_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
         ],
         responses: [
-            new OA\Response(response: 200, description: "Exists response", content: new OA\JsonContent(
-                properties: [new OA\Property(property: "exists", type: "boolean")]
+            new OA\Response(response: 200, description: 'Exists response', content: new OA\JsonContent(
+                properties: [new OA\Property(property: 'exists', type: 'boolean')]
             )),
-            new OA\Response(response: 401, description: "Unauthenticated"),
-            new OA\Response(response: 422, description: "Validation error")
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 422, description: 'Validation error'),
         ]
     )]
     public function emailExists(Request $request): JsonResponse
@@ -78,7 +78,7 @@ class UserController extends Controller
 
         $query = User::where('email', $validated['email']);
 
-        if (!empty($validated['exclude_id'])) {
+        if (! empty($validated['exclude_id'])) {
             $query->where('id', '!=', $validated['exclude_id']);
         }
 
@@ -113,8 +113,8 @@ class UserController extends Controller
         $validated = $request->validate([
             'firstname' => 'string|max:255',
             'lastname' => 'string|max:255',
-            'username' => 'string|max:255|unique:users,username,' . $user->id,
-            'email' => 'nullable|email|unique:users,email,' . $user->id,
+            'username' => 'string|max:255|unique:users,username,'.$user->id,
+            'email' => 'nullable|email|unique:users,email,'.$user->id,
             'password' => 'nullable|string|min:6',
             'role_id' => 'integer',
         ]);

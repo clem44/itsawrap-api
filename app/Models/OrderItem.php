@@ -16,6 +16,10 @@ class OrderItem extends Model
         'item_id',
         'price',
         'quantity',
+        'is_reward_item',
+        'reward_program_id',
+        'reward_ledger_entry_id',
+        'reward_discount_amount',
         'comment',
     ];
 
@@ -24,6 +28,8 @@ class OrderItem extends Model
         return [
             'price' => 'decimal:2',
             'quantity' => 'integer',
+            'is_reward_item' => 'boolean',
+            'reward_discount_amount' => 'decimal:2',
         ];
     }
 
@@ -40,5 +46,15 @@ class OrderItem extends Model
     public function orderItemOptions(): HasMany
     {
         return $this->hasMany(OrderItemOption::class);
+    }
+
+    public function rewardProgram(): BelongsTo
+    {
+        return $this->belongsTo(RewardProgram::class);
+    }
+
+    public function rewardLedgerEntry(): BelongsTo
+    {
+        return $this->belongsTo(RewardLedgerEntry::class);
     }
 }

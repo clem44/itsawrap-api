@@ -5,13 +5,13 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Item;
-use App\Models\Option;
-use App\Models\OptionValue;
-use App\Models\OptionDependency;
 use App\Models\ItemOption;
 use App\Models\ItemOptionValue;
-use Illuminate\Http\RedirectResponse;
+use App\Models\Option;
+use App\Models\OptionDependency;
+use App\Models\OptionValue;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
@@ -32,7 +32,7 @@ class ItemController extends Controller
                         $query->whereNull('type')
                             ->orWhere('type', '!=', 'dependent');
                     });
-                },               
+                },
                 'orderItems',
             ])
             ->when($request->filled('category_id'), function ($query) use ($request) {
@@ -45,20 +45,20 @@ class ItemController extends Controller
         $categories = Category::orderBy('name')->get();
         $options = Option::with('optionValues')->orderBy('name')->get();
 
-        $allOptions = $options->map(fn($o) => [
+        $allOptions = $options->map(fn ($o) => [
             'id' => $o->id,
             'name' => $o->name,
             'optionValues' => $o->optionValues
-                ->map(fn($ov) => [
+                ->map(fn ($ov) => [
                     'id' => $ov->id,
                     'name' => $ov->name,
                     'price' => $ov->price,
                 ])->values()->toArray(),
         ])->values();
 
-        $itemsData = $items->getCollection()->map(fn($item) => [
+        $itemsData = $items->getCollection()->map(fn ($item) => [
             'id' => $item->id,
-            'itemOptions' => $item->itemOptions->map(fn($io) => [
+            'itemOptions' => $item->itemOptions->map(fn ($io) => [
                 'id' => $io->option_id,
                 'itemOptionId' => $io->id,
                 'name' => $io->option->name,
@@ -78,19 +78,19 @@ class ItemController extends Controller
                         'price' => $itemOptionValue?->price ?? $ov->price,
                         'optionDependencies' => (
                             ($itemOptionValue?->parentDependencies ?? collect())
-                                ->map(fn($od) => [
+                                ->map(fn ($od) => [
                                     'childOptionId' => $od->childOption?->option_id,
                                     'childItemOptionId' => $od->child_option_id,
                                     'optionValues' => $od->childOption
                                         ?->itemOptionValues
-                                        ->map(fn($iov) => [
+                                        ->map(fn ($iov) => [
                                             'id' => $iov->option_value_id,
                                             'itemOptionValueId' => $iov->id,
                                             'name' => $iov->optionValue?->name,
                                             'price' => $iov->price,
                                         ])->values()->toArray() ?? [],
                                 ])
-                                ->filter(fn($dep) => !is_null($dep['childOptionId']))
+                                ->filter(fn ($dep) => ! is_null($dep['childOptionId']))
                         )->values()->toArray(),
                     ];
                 })->values()->toArray(),
@@ -119,7 +119,7 @@ class ItemController extends Controller
         $item = Item::create($validated);
 
         // Attach options to item if provided
-        if (!empty($request->input('options'))) {
+        if (! empty($request->input('options'))) {
             foreach (array_values($request->input('options')) as $index => $optionId) {
                 $item->itemOptions()->create([
                     'option_id' => $optionId,
@@ -164,7 +164,7 @@ class ItemController extends Controller
 
             // Sync options
             ItemOption::where('item_id', $item->id)->delete();
-            if (!empty($request->input('options'))) {
+            if (! empty($request->input('options'))) {
                 foreach (array_values($request->input('options')) as $index => $optionId) {
                     $item->itemOptions()->create([
                         'option_id' => $optionId,
@@ -173,7 +173,7 @@ class ItemController extends Controller
                     ]);
                 }
             }
-            //dd($item, "item should be saved");
+            // dd($item, "item should be saved");
 
             return redirect()->route('admin.items.index')
                 ->with('success', 'Item updated successfully.');
@@ -219,7 +219,7 @@ class ItemController extends Controller
         // Update item option value prices (per item, not base OptionValue)
         foreach ($validated['values'] as $optionValueId => $price) {
             $optionValue = OptionValue::find($optionValueId);
-            if (!$optionValue) {
+            if (! $optionValue) {
                 continue;
             }
 
@@ -227,7 +227,7 @@ class ItemController extends Controller
                 ->where('option_id', $optionValue->option_id)
                 ->first();
 
-            if (!$itemOption) {
+            if (! $itemOption) {
                 continue;
             }
 
@@ -238,18 +238,18 @@ class ItemController extends Controller
         }
 
         // Update dependent item option value prices if provided
-        if (!empty($validated['dependency_values'])) {
+        if (! empty($validated['dependency_values'])) {
             foreach ($validated['dependency_values'] as $itemOptionValueId => $price) {
                 ItemOptionValue::where('id', $itemOptionValueId)->update(['price' => $price]);
             }
         }
 
         // Update dependencies if provided
-        if (!empty($validated['dependencies'])) {
+        if (! empty($validated['dependencies'])) {
             foreach ($validated['dependencies'] as $optionValueId => $childOptionIds) {
                 // Resolve the parent ItemOptionValue for this item and option value
                 $optionValue = OptionValue::find($optionValueId);
-                if (!$optionValue) {
+                if (! $optionValue) {
                     continue;
                 }
 
@@ -257,7 +257,7 @@ class ItemController extends Controller
                     ->where('option_id', $optionValue->option_id)
                     ->first();
 
-                if (!$parentItemOption) {
+                if (! $parentItemOption) {
                     continue;
                 }
 
@@ -269,13 +269,13 @@ class ItemController extends Controller
                 $existingChildOptionIds = OptionDependency::where('parent_option_value_id', $parentItemOptionValue->id)
                     ->with('childOption')
                     ->get()
-                    ->map(fn($dep) => $dep->childOption?->option_id)
+                    ->map(fn ($dep) => $dep->childOption?->option_id)
                     ->filter()
                     ->values()
                     ->all();
 
                 $normalizedChildOptionIds = collect($childOptionIds)
-                    ->map(fn($id) => (int) $id)
+                    ->map(fn ($id) => (int) $id)
                     ->unique()
                     ->values()
                     ->all();
@@ -283,9 +283,9 @@ class ItemController extends Controller
                 $toAdd = array_values(array_diff($normalizedChildOptionIds, $existingChildOptionIds));
                 $toRemove = array_values(array_diff($existingChildOptionIds, $normalizedChildOptionIds));
 
-                if (!empty($toRemove)) {
+                if (! empty($toRemove)) {
                     OptionDependency::where('parent_option_value_id', $parentItemOptionValue->id)
-                        ->whereHas('childOption', fn($q) => $q->whereIn('option_id', $toRemove))
+                        ->whereHas('childOption', fn ($q) => $q->whereIn('option_id', $toRemove))
                         ->delete();
                 }
 
@@ -304,10 +304,10 @@ class ItemController extends Controller
                         'min' => null,
                         'max' => null,
                     ]);
-                    
+
                     // Get all option values for the child option
                     $childOption = Option::with('optionValues')->find($childOptionId);
-                    
+
                     if ($childOption) {
                         // Create ItemOptionValue for each value with type 'dependent'
                         foreach ($childOption->optionValues as $childOptionValue) {
@@ -318,7 +318,7 @@ class ItemController extends Controller
                             );
                         }
                     }
-                    
+
                     // Create the dependency
                     OptionDependency::create([
                         'parent_option_value_id' => $parentItemOptionValue->id,
@@ -372,7 +372,7 @@ class ItemController extends Controller
             'max' => array_key_exists('max', $validated) ? $validated['max'] : $itemOption->max,
         ]);
 
-        if (!$itemOption->enable_qty) {
+        if (! $itemOption->enable_qty) {
             $itemOption->itemOptionValues()->update(['qty' => null]);
         }
 

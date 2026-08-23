@@ -26,7 +26,7 @@ class ReportController extends Controller
             $selectedSession = CashSession::with('user')->find($request->input('session_id'));
         }
 
-        if (!$selectedSession) {
+        if (! $selectedSession) {
             $selectedSession = $sessions->first();
         }
 

@@ -13,33 +13,33 @@ use OpenApi\Attributes as OA;
 class AuthController extends Controller
 {
     #[OA\Post(
-        path: "/login",
-        summary: "Authenticate user",
-        description: "Login with username and password to receive a Bearer token",
-        tags: ["Authentication"],
+        path: '/login',
+        summary: 'Authenticate user',
+        description: 'Login with username and password to receive a Bearer token',
+        tags: ['Authentication'],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ["username", "password", "device_name"],
+                required: ['username', 'password', 'device_name'],
                 properties: [
-                    new OA\Property(property: "username", type: "string", example: "admin"),
-                    new OA\Property(property: "password", type: "string", example: "admin123"),
-                    new OA\Property(property: "device_name", type: "string", example: "Flutter POS App"),
+                    new OA\Property(property: 'username', type: 'string', example: 'admin'),
+                    new OA\Property(property: 'password', type: 'string', example: 'admin123'),
+                    new OA\Property(property: 'device_name', type: 'string', example: 'Flutter POS App'),
                 ]
             )
         ),
         responses: [
             new OA\Response(
                 response: 200,
-                description: "Successful login",
+                description: 'Successful login',
                 content: new OA\JsonContent(
                     properties: [
-                        new OA\Property(property: "user", type: "object"),
-                        new OA\Property(property: "token", type: "string", example: "1|abc123..."),
+                        new OA\Property(property: 'user', type: 'object'),
+                        new OA\Property(property: 'token', type: 'string', example: '1|abc123...'),
                     ]
                 )
             ),
-            new OA\Response(response: 422, description: "Invalid credentials"),
+            new OA\Response(response: 422, description: 'Invalid credentials'),
         ]
     )]
     public function login(Request $request): JsonResponse
@@ -67,22 +67,22 @@ class AuthController extends Controller
     }
 
     #[OA\Post(
-        path: "/logout",
-        summary: "Logout user",
-        description: "Revoke the current access token",
-        tags: ["Authentication"],
-        security: [["bearerAuth" => []]],
+        path: '/logout',
+        summary: 'Logout user',
+        description: 'Revoke the current access token',
+        tags: ['Authentication'],
+        security: [['bearerAuth' => []]],
         responses: [
             new OA\Response(
                 response: 200,
-                description: "Successfully logged out",
+                description: 'Successfully logged out',
                 content: new OA\JsonContent(
                     properties: [
-                        new OA\Property(property: "message", type: "string", example: "Logged out successfully"),
+                        new OA\Property(property: 'message', type: 'string', example: 'Logged out successfully'),
                     ]
                 )
             ),
-            new OA\Response(response: 401, description: "Unauthenticated"),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
         ]
     )]
     public function logout(Request $request): JsonResponse
@@ -93,27 +93,27 @@ class AuthController extends Controller
     }
 
     #[OA\Get(
-        path: "/user",
-        summary: "Get authenticated user",
-        description: "Returns the currently authenticated user",
-        tags: ["Authentication"],
-        security: [["bearerAuth" => []]],
+        path: '/user',
+        summary: 'Get authenticated user',
+        description: 'Returns the currently authenticated user',
+        tags: ['Authentication'],
+        security: [['bearerAuth' => []]],
         responses: [
             new OA\Response(
                 response: 200,
-                description: "Current user data",
+                description: 'Current user data',
                 content: new OA\JsonContent(
                     properties: [
-                        new OA\Property(property: "id", type: "integer", example: 1),
-                        new OA\Property(property: "firstname", type: "string", example: "John"),
-                        new OA\Property(property: "lastname", type: "string", example: "Doe"),
-                        new OA\Property(property: "username", type: "string", example: "admin"),
-                        new OA\Property(property: "email", type: "string", example: "admin@example.com"),
-                        new OA\Property(property: "role_id", type: "integer", example: 1),
+                        new OA\Property(property: 'id', type: 'integer', example: 1),
+                        new OA\Property(property: 'firstname', type: 'string', example: 'John'),
+                        new OA\Property(property: 'lastname', type: 'string', example: 'Doe'),
+                        new OA\Property(property: 'username', type: 'string', example: 'admin'),
+                        new OA\Property(property: 'email', type: 'string', example: 'admin@example.com'),
+                        new OA\Property(property: 'role_id', type: 'integer', example: 1),
                     ]
                 )
             ),
-            new OA\Response(response: 401, description: "Unauthenticated"),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
         ]
     )]
     public function user(Request $request): JsonResponse

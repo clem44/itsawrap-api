@@ -5,7 +5,7 @@ return [
     'documentations' => [
         'default' => [
             'api' => [
-                'title' => "Its A Wrap POS API",
+                'title' => 'Its A Wrap POS API',
             ],
 
             'routes' => [

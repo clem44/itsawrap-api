@@ -64,6 +64,11 @@ class Order extends Model
         return $this->hasMany(OrderItem::class);
     }
 
+    public function rewardLedgerEntries(): HasMany
+    {
+        return $this->hasMany(RewardLedgerEntry::class);
+    }
+
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Services\Rewards\RewardService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -28,8 +29,10 @@ class OrderController extends Controller
         return view('admin.orders.show', compact('order'));
     }
 
-    public function destroy(Order $order): RedirectResponse
+    public function destroy(Request $request, Order $order, RewardService $rewards): RedirectResponse
     {
+        $rewards->reverseOrder($order, 'order_deleted', $request->user());
+
         $order->delete();
 
         return redirect()->route('admin.orders.index')

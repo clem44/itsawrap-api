@@ -48,9 +48,9 @@ class DownloadController extends Controller
         [$relativeDirectory, $directory] = $this->resolveUploadDirectory($validated['name'], $isIpa);
 
         $fileSize = $file->getSize();
-        $filename = time() . '_' . preg_replace('/[^A-Za-z0-9._-]/', '_', $file->getClientOriginalName());
+        $filename = time().'_'.preg_replace('/[^A-Za-z0-9._-]/', '_', $file->getClientOriginalName());
         $file->move($directory, $filename);
-        $filepath = $relativeDirectory . '/' . $filename;
+        $filepath = $relativeDirectory.'/'.$filename;
 
         if ($isIpa) {
             $manifestTitle = $validated['title'] ?? $validated['name'];
@@ -92,7 +92,7 @@ class DownloadController extends Controller
         $file = $request->file('file');
         $isNewIpa = $this->isIpaUpload($file);
         $isExistingIpa = strtolower($download->ext ?? '') === 'ipa';
-        $requiresManifest = $isNewIpa || (!$request->hasFile('file') && $isExistingIpa);
+        $requiresManifest = $isNewIpa || (! $request->hasFile('file') && $isExistingIpa);
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -119,16 +119,16 @@ class DownloadController extends Controller
             [$relativeDirectory, $directory] = $this->resolveUploadDirectory($validated['name'], $isNewIpa);
 
             $fileSize = $file->getSize();
-            $filename = time() . '_' . preg_replace('/[^A-Za-z0-9._-]/', '_', $file->getClientOriginalName());
+            $filename = time().'_'.preg_replace('/[^A-Za-z0-9._-]/', '_', $file->getClientOriginalName());
             $file->move($directory, $filename);
-            $filepath = $relativeDirectory . '/' . $filename;
+            $filepath = $relativeDirectory.'/'.$filename;
 
             $oldPath = public_path($download->filepath);
             if ($download->filepath && File::exists($oldPath)) {
                 File::delete($oldPath);
             }
             if ($download->ext === 'ipa') {
-                $oldManifest = public_path(rtrim(dirname($download->filepath), '.') . '/manifest.plist');
+                $oldManifest = public_path(rtrim(dirname($download->filepath), '.').'/manifest.plist');
                 if (File::exists($oldManifest)) {
                     File::delete($oldManifest);
                 }
@@ -154,7 +154,7 @@ class DownloadController extends Controller
             ]);
         }
 
-        if (!$request->hasFile('file') && $isExistingIpa) {
+        if (! $request->hasFile('file') && $isExistingIpa) {
             $directory = public_path(dirname($download->filepath));
             $manifestTitle = $validated['title'] ?? $validated['name'];
             $this->writeManifestPlist(
@@ -174,7 +174,7 @@ class DownloadController extends Controller
 
     private function isIpaUpload(?UploadedFile $file): bool
     {
-        if (!$file) {
+        if (! $file) {
             return false;
         }
 
@@ -186,15 +186,15 @@ class DownloadController extends Controller
         if ($isIpa) {
             $folder = Str::slug($name);
             if ($folder === '') {
-                $folder = 'app-' . time();
+                $folder = 'app-'.time();
             }
-            $relativeDirectory = 'downloads/' . $folder;
+            $relativeDirectory = 'downloads/'.$folder;
         } else {
             $relativeDirectory = 'downloads';
         }
 
         $directory = public_path($relativeDirectory);
-        if (!File::exists($directory)) {
+        if (! File::exists($directory)) {
             File::makeDirectory($directory, 0755, true);
         }
 
@@ -208,7 +208,7 @@ class DownloadController extends Controller
         string $bundleVersion,
         string $title
     ): void {
-        $manifestPath = $directory . DIRECTORY_SEPARATOR . 'manifest.plist';
+        $manifestPath = $directory.DIRECTORY_SEPARATOR.'manifest.plist';
         $manifest = $this->buildManifestPlist(
             url($relativeIpaPath),
             $bundleIdentifier,

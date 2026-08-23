@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use OpenApi\Attributes\Items;
 
 class DatabaseSeeder extends Seeder
 {
@@ -14,6 +13,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             CategorySeeder::class,
             SettingSeeder::class,
+            RewardProgramSeeder::class,
             OptionSeeder::class,
             ItemsSeeder::class,
             BranchSeeder::class,

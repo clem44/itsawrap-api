@@ -17,6 +17,7 @@ class SettingSeeder extends Seeder
             ['key' => 'business_address', 'value' => 'The Dune Preserve, Anguilla'],
             ['key' => 'business_phone', 'value' => '264 235 5433'],
             ['key' => 'receipt_footer', 'value' => 'Thank you for your order!'],
+            ['key' => 'rewards_enabled', 'value' => 'true'],
         ];
 
         foreach ($settings as $setting) {

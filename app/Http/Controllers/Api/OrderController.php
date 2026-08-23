@@ -3,35 +3,36 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Order;
 use App\Models\CashSession;
+use App\Models\Order;
+use App\Models\RewardProgram;
+use App\Services\Rewards\RewardService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
-use App\Models\OrderItemOption;
+use Illuminate\Support\Facades\Log;
 use OpenApi\Attributes as OA;
 
 class OrderController extends Controller
 {
     #[OA\Get(
-        path: "/orders/history",
-        summary: "List order history (summary)",
-        description: "Get lightweight order history summaries",
-        tags: ["Orders"],
-        security: [["bearerAuth" => []]],
+        path: '/orders/history',
+        summary: 'List order history (summary)',
+        description: 'Get lightweight order history summaries',
+        tags: ['Orders'],
+        security: [['bearerAuth' => []]],
         parameters: [
-            new OA\Parameter(name: "status_ids", in: "query", required: false, description: "Filter by multiple statuses (comma-separated or array)", schema: new OA\Schema(type: "array", items: new OA\Items(type: "integer"))),
-            new OA\Parameter(name: "session_id", in: "query", required: false, description: "Filter by cash session", schema: new OA\Schema(type: "integer")),
-            new OA\Parameter(name: "search", in: "query", required: false, description: "Search by customer or order number", schema: new OA\Schema(type: "string")),
-            new OA\Parameter(name: "date_start", in: "query", required: false, description: "Filter start date (YYYY-MM-DD)", schema: new OA\Schema(type: "string", format: "date")),
-            new OA\Parameter(name: "date_end", in: "query", required: false, description: "Filter end date (YYYY-MM-DD)", schema: new OA\Schema(type: "string", format: "date")),
-            new OA\Parameter(name: "limit", in: "query", required: false, description: "Max rows", schema: new OA\Schema(type: "integer")),
-            new OA\Parameter(name: "page", in: "query", required: false, description: "Page number", schema: new OA\Schema(type: "integer")),
+            new OA\Parameter(name: 'status_ids', in: 'query', required: false, description: 'Filter by multiple statuses (comma-separated or array)', schema: new OA\Schema(type: 'array', items: new OA\Items(type: 'integer'))),
+            new OA\Parameter(name: 'session_id', in: 'query', required: false, description: 'Filter by cash session', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'search', in: 'query', required: false, description: 'Search by customer or order number', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'date_start', in: 'query', required: false, description: 'Filter start date (YYYY-MM-DD)', schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter(name: 'date_end', in: 'query', required: false, description: 'Filter end date (YYYY-MM-DD)', schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter(name: 'limit', in: 'query', required: false, description: 'Max rows', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'page', in: 'query', required: false, description: 'Page number', schema: new OA\Schema(type: 'integer')),
         ],
         responses: [
-            new OA\Response(response: 200, description: "List of order summaries", content: new OA\JsonContent(type: "array", items: new OA\Items(ref: "#/components/schemas/Order"))),
-            new OA\Response(response: 401, description: "Unauthenticated")
+            new OA\Response(response: 200, description: 'List of order summaries', content: new OA\JsonContent(type: 'array', items: new OA\Items(ref: '#/components/schemas/Order'))),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
         ]
     )]
     public function history(Request $request): JsonResponse
@@ -88,7 +89,7 @@ class OrderController extends Controller
             if (is_string($statusIds)) {
                 $statusIds = array_filter(explode(',', $statusIds));
             }
-            if (is_array($statusIds) && !empty($statusIds)) {
+            if (is_array($statusIds) && ! empty($statusIds)) {
                 $query->whereIn('orders.status_id', $statusIds);
             }
         } elseif ($request->has('status_id')) {
@@ -128,21 +129,21 @@ class OrderController extends Controller
     }
 
     #[OA\Get(
-        path: "/orders",
-        summary: "List all orders",
-        description: "Get all orders with optional filtering",
-        tags: ["Orders"],
-        security: [["bearerAuth" => []]],
+        path: '/orders',
+        summary: 'List all orders',
+        description: 'Get all orders with optional filtering',
+        tags: ['Orders'],
+        security: [['bearerAuth' => []]],
         parameters: [
-            new OA\Parameter(name: "status_id", in: "query", required: false, description: "Filter by status", schema: new OA\Schema(type: "integer")),
-            new OA\Parameter(name: "status_ids", in: "query", required: false, description: "Filter by multiple statuses (comma-separated or array)", schema: new OA\Schema(type: "array", items: new OA\Items(type: "integer"))),
-            new OA\Parameter(name: "session_id", in: "query", required: false, description: "Filter by cash session", schema: new OA\Schema(type: "integer")),
-            new OA\Parameter(name: "customer_id", in: "query", required: false, description: "Filter by customer", schema: new OA\Schema(type: "integer")),
-            new OA\Parameter(name: "date", in: "query", required: false, description: "Filter by date (YYYY-MM-DD)", schema: new OA\Schema(type: "string", format: "date"))
+            new OA\Parameter(name: 'status_id', in: 'query', required: false, description: 'Filter by status', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'status_ids', in: 'query', required: false, description: 'Filter by multiple statuses (comma-separated or array)', schema: new OA\Schema(type: 'array', items: new OA\Items(type: 'integer'))),
+            new OA\Parameter(name: 'session_id', in: 'query', required: false, description: 'Filter by cash session', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'customer_id', in: 'query', required: false, description: 'Filter by customer', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'date', in: 'query', required: false, description: 'Filter by date (YYYY-MM-DD)', schema: new OA\Schema(type: 'string', format: 'date')),
         ],
         responses: [
-            new OA\Response(response: 200, description: "List of orders", content: new OA\JsonContent(type: "array", items: new OA\Items(ref: "#/components/schemas/Order"))),
-            new OA\Response(response: 401, description: "Unauthenticated")
+            new OA\Response(response: 200, description: 'List of orders', content: new OA\JsonContent(type: 'array', items: new OA\Items(ref: '#/components/schemas/Order'))),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
         ]
     )]
     public function index(Request $request): JsonResponse
@@ -182,7 +183,7 @@ class OrderController extends Controller
             if (is_string($statusIds)) {
                 $statusIds = array_filter(explode(',', $statusIds));
             }
-            if (is_array($statusIds) && !empty($statusIds)) {
+            if (is_array($statusIds) && ! empty($statusIds)) {
                 $query->whereIn('orders.status_id', $statusIds);
             }
         } elseif ($request->has('status_id')) {
@@ -205,45 +206,45 @@ class OrderController extends Controller
     }
 
     #[OA\Post(
-        path: "/orders",
-        summary: "Create an order",
-        description: "Create a new order with items",
-        tags: ["Orders"],
-        security: [["bearerAuth" => []]],
+        path: '/orders',
+        summary: 'Create an order',
+        description: 'Create a new order with items',
+        tags: ['Orders'],
+        security: [['bearerAuth' => []]],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ["status_id", "subtotal", "total"],
+                required: ['status_id', 'subtotal', 'total'],
                 properties: [
-                    new OA\Property(property: "number", type: "string", nullable: true, example: "ORD-001"),
-                    new OA\Property(property: "customer_id", type: "integer", nullable: true),
-                    new OA\Property(property: "status_id", type: "integer", example: 1),
-                    new OA\Property(property: "subtotal", type: "number", example: 25.99),
-                    new OA\Property(property: "discount", type: "number", nullable: true, example: 0),
-                    new OA\Property(property: "discount_percent", type: "number", nullable: true, example: 0),
-                    new OA\Property(property: "service_charge", type: "number", example: 0),
-                    new OA\Property(property: "total", type: "number", example: 25.99),
-                    new OA\Property(property: "comments", type: "string", nullable: true),
-                    new OA\Property(property: "is_delivery", type: "boolean", example: false),
-                    new OA\Property(property: "is_reward", type: "boolean", example: false),
+                    new OA\Property(property: 'number', type: 'string', nullable: true, example: 'ORD-001'),
+                    new OA\Property(property: 'customer_id', type: 'integer', nullable: true),
+                    new OA\Property(property: 'status_id', type: 'integer', example: 1),
+                    new OA\Property(property: 'subtotal', type: 'number', example: 25.99),
+                    new OA\Property(property: 'discount', type: 'number', nullable: true, example: 0),
+                    new OA\Property(property: 'discount_percent', type: 'number', nullable: true, example: 0),
+                    new OA\Property(property: 'service_charge', type: 'number', example: 0),
+                    new OA\Property(property: 'total', type: 'number', example: 25.99),
+                    new OA\Property(property: 'comments', type: 'string', nullable: true),
+                    new OA\Property(property: 'is_delivery', type: 'boolean', example: false),
+                    new OA\Property(property: 'is_reward', type: 'boolean', example: false),
                     new OA\Property(
-                        property: "items",
-                        type: "array",
+                        property: 'items',
+                        type: 'array',
                         items: new OA\Items(
                             properties: [
-                                new OA\Property(property: "item_id", type: "integer"),
-                                new OA\Property(property: "price", type: "number"),
-                                new OA\Property(property: "quantity", type: "integer"),
-                                new OA\Property(property: "comment", type: "string", nullable: true),
+                                new OA\Property(property: 'item_id', type: 'integer'),
+                                new OA\Property(property: 'price', type: 'number'),
+                                new OA\Property(property: 'quantity', type: 'integer'),
+                                new OA\Property(property: 'comment', type: 'string', nullable: true),
                                 new OA\Property(
-                                    property: "options",
-                                    type: "array",
+                                    property: 'options',
+                                    type: 'array',
                                     items: new OA\Items(
                                         properties: [
-                                            new OA\Property(property: "option_value_id", type: "integer"),
-                                            new OA\Property(property: "price", type: "number"),
-                                            new OA\Property(property: "qty", type: "integer", nullable: true, example: 1),
-                                            new OA\Property(property: "parent_option_value_id", type: "integer", nullable: true),
+                                            new OA\Property(property: 'option_value_id', type: 'integer'),
+                                            new OA\Property(property: 'price', type: 'number'),
+                                            new OA\Property(property: 'qty', type: 'integer', nullable: true, example: 1),
+                                            new OA\Property(property: 'parent_option_value_id', type: 'integer', nullable: true),
                                         ]
                                     )
                                 ),
@@ -254,12 +255,12 @@ class OrderController extends Controller
             )
         ),
         responses: [
-            new OA\Response(response: 201, description: "Order created", content: new OA\JsonContent(ref: "#/components/schemas/Order")),
-            new OA\Response(response: 401, description: "Unauthenticated"),
-            new OA\Response(response: 422, description: "Validation error")
+            new OA\Response(response: 201, description: 'Order created', content: new OA\JsonContent(ref: '#/components/schemas/Order')),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 422, description: 'Validation error'),
         ]
     )]
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, RewardService $rewards): JsonResponse
     {
         $validated = $request->validate([
             'number' => 'nullable|string',
@@ -277,6 +278,9 @@ class OrderController extends Controller
             'items.*.item_id' => 'required|exists:items,id',
             'items.*.price' => 'required|numeric|min:0',
             'items.*.quantity' => 'integer|min:1',
+            'items.*.is_reward_item' => 'boolean',
+            'items.*.reward_program_id' => 'nullable|exists:reward_programs,id',
+            'items.*.reward_discount_amount' => 'nullable|numeric|min:0',
             'items.*.comment' => 'nullable|string',
             'items.*.options' => 'array',
             'items.*.options.*.option_value_id' => 'required|exists:option_values,id',
@@ -284,8 +288,6 @@ class OrderController extends Controller
             'items.*.options.*.qty' => 'nullable|integer|min:1',
             'items.*.options.*.parent_option_value_id' => 'nullable|exists:option_values,id',
         ]);
-
-
 
         DB::listen(function ($query) {
             if (str_contains($query->sql, 'order_item_options')) {
@@ -296,7 +298,7 @@ class OrderController extends Controller
             }
         });
 
-        $optionModel = new \App\Models\OrderItemOption();
+        $optionModel = new \App\Models\OrderItemOption;
         /*Log::info('OrderController.fillable', [
             'fillable' => $optionModel->getFillable(),
             'is_fillable_parent' => $optionModel->isFillable('parent_option_value_id'),
@@ -327,49 +329,62 @@ class OrderController extends Controller
 
         $validated['session_id'] = $session?->id;
 
-        $order = Order::create($validated);
+        $order = DB::transaction(function () use ($validated, $session, $rewards, $request) {
+            $order = Order::create($validated);
 
-        if (isset($validated['items'])) {
-            foreach ($validated['items'] as $itemData) {
-                $orderItem = $order->orderItems()->create([
-                    'item_id' => $itemData['item_id'],
-                    'price' => $itemData['price'],
-                    'quantity' => $itemData['quantity'] ?? 1,
-                    'comment' => $itemData['comment'] ?? null,
-                ]);
+            if (isset($validated['items'])) {
+                foreach ($validated['items'] as $itemData) {
+                    $orderItem = $order->orderItems()->create([
+                        'item_id' => $itemData['item_id'],
+                        'price' => $itemData['price'],
+                        'quantity' => $itemData['quantity'] ?? 1,
+                        'is_reward_item' => $itemData['is_reward_item'] ?? false,
+                        'reward_program_id' => $itemData['reward_program_id'] ?? null,
+                        'reward_discount_amount' => $itemData['reward_discount_amount'] ?? null,
+                        'comment' => $itemData['comment'] ?? null,
+                    ]);
 
-                if (isset($itemData['options'])) {
-                    foreach ($itemData['options'] as $optionData) {
-                        $optionPayload = [
-                            'option_value_id' => $optionData['option_value_id'],
-                            'price' => $optionData['price'] ?? 0,
-                            'qty' => $optionData['qty'] ?? null,
-                            'parent_option_value_id' => $optionData['parent_option_value_id'] ?? null,
-                        ];
-                        /*Log::info('OrderController.store option payload', [
-                            'order_item_id' => $orderItem->id,
-                            'payload' => $optionPayload,
-                        ]);*/
-                        $createdOption = $orderItem->orderItemOptions()->create($optionPayload);
-                        $dbParentOptionValueId = DB::table('order_item_options')
-                            ->where('id', $createdOption->id)
-                            ->value('parent_option_value_id');
-                        /*Log::info('OrderController.store saved option', [
-                            'order_item_id' => $orderItem->id,
-                            'option_value_id' => $createdOption->option_value_id,
-                            'parent_option_value_id' => $createdOption->parent_option_value_id,
-                            'db_parent_option_value_id' => $dbParentOptionValueId,
-                        ]);*/
+                    if (($itemData['is_reward_item'] ?? false) === true) {
+                        $program = RewardProgram::query()->findOrFail($itemData['reward_program_id'] ?? null);
+                        $rewards->redeemReward($order, $orderItem, $program, $request->user());
+                    }
+
+                    if (isset($itemData['options'])) {
+                        foreach ($itemData['options'] as $optionData) {
+                            $optionPayload = [
+                                'option_value_id' => $optionData['option_value_id'],
+                                'price' => $optionData['price'] ?? 0,
+                                'qty' => $optionData['qty'] ?? null,
+                                'parent_option_value_id' => $optionData['parent_option_value_id'] ?? null,
+                            ];
+                            /*Log::info('OrderController.store option payload', [
+                                'order_item_id' => $orderItem->id,
+                                'payload' => $optionPayload,
+                            ]);*/
+                            $createdOption = $orderItem->orderItemOptions()->create($optionPayload);
+                            $dbParentOptionValueId = DB::table('order_item_options')
+                                ->where('id', $createdOption->id)
+                                ->value('parent_option_value_id');
+                            /*Log::info('OrderController.store saved option', [
+                                'order_item_id' => $orderItem->id,
+                                'option_value_id' => $createdOption->option_value_id,
+                                'parent_option_value_id' => $createdOption->parent_option_value_id,
+                                'db_parent_option_value_id' => $dbParentOptionValueId,
+                            ]);*/
+                        }
                     }
                 }
             }
-        }
 
-        // Update session totals
-        if ($session) {
-            $session->increment('total_sales', $order->total);
-            $session->increment('total_service_charge', $order->service_charge);
-        }
+            if ($session) {
+                $session->increment('total_sales', $order->total);
+                $session->increment('total_service_charge', $order->service_charge);
+            }
+
+            $rewards->recordOrderCompleted($order);
+
+            return $order;
+        });
 
         return response()->json(
             $order->load(['customer', 'status', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option']),
@@ -378,18 +393,18 @@ class OrderController extends Controller
     }
 
     #[OA\Get(
-        path: "/orders/{id}",
-        summary: "Get an order",
-        description: "Get a single order with all details",
-        tags: ["Orders"],
-        security: [["bearerAuth" => []]],
+        path: '/orders/{id}',
+        summary: 'Get an order',
+        description: 'Get a single order with all details',
+        tags: ['Orders'],
+        security: [['bearerAuth' => []]],
         parameters: [
-            new OA\Parameter(name: "id", in: "path", required: true, description: "Order ID", schema: new OA\Schema(type: "integer"))
+            new OA\Parameter(name: 'id', in: 'path', required: true, description: 'Order ID', schema: new OA\Schema(type: 'integer')),
         ],
         responses: [
-            new OA\Response(response: 200, description: "Order details", content: new OA\JsonContent(ref: "#/components/schemas/Order")),
-            new OA\Response(response: 401, description: "Unauthenticated"),
-            new OA\Response(response: 404, description: "Order not found")
+            new OA\Response(response: 200, description: 'Order details', content: new OA\JsonContent(ref: '#/components/schemas/Order')),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 404, description: 'Order not found'),
         ]
     )]
     public function show(Order $order): JsonResponse
@@ -400,33 +415,33 @@ class OrderController extends Controller
     }
 
     #[OA\Put(
-        path: "/orders/{id}",
-        summary: "Update an order",
-        description: "Update an existing order",
-        tags: ["Orders"],
-        security: [["bearerAuth" => []]],
+        path: '/orders/{id}',
+        summary: 'Update an order',
+        description: 'Update an existing order',
+        tags: ['Orders'],
+        security: [['bearerAuth' => []]],
         parameters: [
-            new OA\Parameter(name: "id", in: "path", required: true, description: "Order ID", schema: new OA\Schema(type: "integer"))
+            new OA\Parameter(name: 'id', in: 'path', required: true, description: 'Order ID', schema: new OA\Schema(type: 'integer')),
         ],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
                 properties: [
-                    new OA\Property(property: "status_id", type: "integer"),
-                    new OA\Property(property: "comments", type: "string", nullable: true),
-                    new OA\Property(property: "discount", type: "number", nullable: true),
-                    new OA\Property(property: "discount_percent", type: "number", nullable: true),
+                    new OA\Property(property: 'status_id', type: 'integer'),
+                    new OA\Property(property: 'comments', type: 'string', nullable: true),
+                    new OA\Property(property: 'discount', type: 'number', nullable: true),
+                    new OA\Property(property: 'discount_percent', type: 'number', nullable: true),
                 ]
             )
         ),
         responses: [
-            new OA\Response(response: 200, description: "Order updated", content: new OA\JsonContent(ref: "#/components/schemas/Order")),
-            new OA\Response(response: 401, description: "Unauthenticated"),
-            new OA\Response(response: 404, description: "Order not found"),
-            new OA\Response(response: 422, description: "Validation error")
+            new OA\Response(response: 200, description: 'Order updated', content: new OA\JsonContent(ref: '#/components/schemas/Order')),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 404, description: 'Order not found'),
+            new OA\Response(response: 422, description: 'Validation error'),
         ]
     )]
-    public function update(Request $request, Order $order): JsonResponse
+    public function update(Request $request, Order $order, RewardService $rewards): JsonResponse
     {
         $validated = $request->validate([
             'status_id' => 'integer|exists:statuses,id',
@@ -441,28 +456,41 @@ class OrderController extends Controller
             'customer_id' => 'nullable|exists:customers,id',
         ]);
 
+        $oldStatusName = $order->status?->name;
+
         $order->update($validated);
+        $order->refresh()->load('status');
+
+        if ($order->status?->name === 'completed') {
+            $rewards->recordOrderCompleted($order);
+        }
+
+        if ($oldStatusName !== 'cancelled' && $order->status?->name === 'cancelled') {
+            $rewards->reverseOrder($order, 'order_cancelled', $request->user());
+        }
 
         return response()->json($order->load(['customer', 'status', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option']));
     }
 
     #[OA\Delete(
-        path: "/orders/{id}",
-        summary: "Delete an order",
-        description: "Delete an order",
-        tags: ["Orders"],
-        security: [["bearerAuth" => []]],
+        path: '/orders/{id}',
+        summary: 'Delete an order',
+        description: 'Delete an order',
+        tags: ['Orders'],
+        security: [['bearerAuth' => []]],
         parameters: [
-            new OA\Parameter(name: "id", in: "path", required: true, description: "Order ID", schema: new OA\Schema(type: "integer"))
+            new OA\Parameter(name: 'id', in: 'path', required: true, description: 'Order ID', schema: new OA\Schema(type: 'integer')),
         ],
         responses: [
-            new OA\Response(response: 204, description: "Order deleted"),
-            new OA\Response(response: 401, description: "Unauthenticated"),
-            new OA\Response(response: 404, description: "Order not found")
+            new OA\Response(response: 204, description: 'Order deleted'),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 404, description: 'Order not found'),
         ]
     )]
-    public function destroy(Order $order): JsonResponse
+    public function destroy(Request $request, Order $order, RewardService $rewards): JsonResponse
     {
+        $rewards->reverseOrder($order, 'order_deleted', $request->user());
+
         $order->delete();
 
         return response()->json(null, 204);

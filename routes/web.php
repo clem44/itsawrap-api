@@ -3,28 +3,27 @@
 use App\Http\Controllers\Admin\ApiDocsController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\BranchController;
+use App\Http\Controllers\Admin\CashSessionController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DownloadController;
 use App\Http\Controllers\Admin\ItemController;
 use App\Http\Controllers\Admin\OrderController;
-use App\Http\Controllers\Admin\CashSessionController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\RewardController;
 use App\Http\Controllers\Admin\TipController;
 use App\Http\Controllers\Admin\UserController;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return Auth::check()
         ? redirect()->route('admin.dashboard')
         : redirect()->route('admin.login');
-    //return view('welcome');
+    // return view('welcome');
 });
-
-
 
 // Admin routes
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -61,6 +60,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Customers management
         Route::resource('customers', CustomerController::class, ['only' => ['index', 'store', 'show', 'update', 'destroy']]);
+        Route::post('/customers/{customer}/reward-adjustments', [\App\Http\Controllers\Admin\CustomerRewardController::class, 'storeAdjustment'])->name('customers.reward-adjustments.store');
 
         // Tips management
         Route::resource('tips', TipController::class, ['only' => ['index', 'show']]);
@@ -70,6 +70,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Reports
         Route::get('/reports', [ReportController::class, 'index'])->name('reports');
+
+        // Rewards
+        Route::get('/rewards', [RewardController::class, 'index'])->name('rewards.index');
+        Route::post('/rewards', [RewardController::class, 'store'])->name('rewards.store');
+        Route::put('/rewards/{reward}', [RewardController::class, 'update'])->name('rewards.update');
+        Route::patch('/rewards/{reward}/activate', [RewardController::class, 'activate'])->name('rewards.activate');
+        Route::patch('/rewards/{reward}/deactivate', [RewardController::class, 'deactivate'])->name('rewards.deactivate');
+        Route::delete('/rewards/{reward}', [RewardController::class, 'destroy'])->name('rewards.destroy');
 
         // Downloads
         Route::resource('downloads', DownloadController::class, ['only' => ['index', 'create', 'store', 'edit', 'update']]);
@@ -88,7 +96,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::patch('/items/{item}/item-options/order', [ItemController::class, 'updateItemOptionOrder'])->name('items.item-options.update-order');
 
         Route::patch('/items/{item}/item-options/{itemOption}', [ItemController::class, 'updateItemOptionQty'])->name('items.item-options.update-qty');
-        
+
         Route::delete('/items/{item}/item-options/{itemOption}', [ItemController::class, 'destroyItemOption'])->name('items.item-options.destroy');
 
         // API Documentation
