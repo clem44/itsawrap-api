@@ -46,6 +46,11 @@ class User extends Authenticatable
         return $this->hasMany(Withdrawal::class);
     }
 
+    public function pushSubscriptions(): HasMany
+    {
+        return $this->hasMany(PushSubscription::class);
+    }
+
     public function customer(): HasOne
     {
         return $this->hasOne(Customer::class);

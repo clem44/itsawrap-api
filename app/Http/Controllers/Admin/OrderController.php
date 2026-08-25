@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Status;
+use App\Services\Push\CustomerPushNotifier;
 use App\Services\Rewards\RewardService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,13 +32,14 @@ class OrderController extends Controller
         return view('admin.orders.show', compact('order', 'statuses'));
     }
 
-    public function update(Request $request, Order $order, RewardService $rewards): RedirectResponse
+    public function update(Request $request, Order $order, RewardService $rewards, CustomerPushNotifier $customerPushNotifier): RedirectResponse
     {
         $validated = $request->validate([
             'status_id' => 'required|exists:statuses,id',
         ]);
 
         $oldStatusName = $order->status?->name;
+        $oldStatusId = $order->status_id;
 
         $order->update([
             'status_id' => $validated['status_id'],
@@ -49,6 +51,10 @@ class OrderController extends Controller
 
         if ($oldStatusName !== 'cancelled' && $order->status?->name === 'cancelled') {
             $rewards->reverseOrder($order, 'order_cancelled', $request->user());
+        }
+
+        if ((int) $oldStatusId !== (int) $order->status_id) {
+            $customerPushNotifier->orderStatusUpdated($order);
         }
 
         return redirect()->route('admin.orders.show', $order)

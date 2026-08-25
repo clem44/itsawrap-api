@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\OrderItemController;
 use App\Http\Controllers\Api\OrderRewardController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\PushSubscriptionController;
 use App\Http\Controllers\Api\RewardProgramController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\StatusController;
@@ -44,6 +45,8 @@ Route::prefix('guest')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
+    Route::post('/push-subscriptions', [PushSubscriptionController::class, 'store']);
+    Route::delete('/push-subscriptions/{pushSubscription}', [PushSubscriptionController::class, 'destroy']);
 });
 
 // Customer self-service routes — identity resolved from the token, never from a route parameter

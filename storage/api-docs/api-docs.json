@@ -1347,6 +1347,39 @@
                 ]
             }
         },
+        "/me/rewards": {
+            "get": {
+                "tags": [
+                    "Rewards"
+                ],
+                "summary": "Get the authenticated customer's reward summary",
+                "description": "Get current reward progress and available rewards for the logged-in customer.",
+                "operationId": "e7c58ac206f350b997b8aa82bd428a75",
+                "responses": {
+                    "200": {
+                        "description": "Customer reward summary",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CustomerRewardSummary"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Customer access required"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/customers/{customer}/rewards": {
             "get": {
                 "tags": [
@@ -4350,6 +4383,132 @@
                 ]
             }
         },
+        "/push-subscriptions": {
+            "post": {
+                "tags": [
+                    "Push Notifications"
+                ],
+                "summary": "Register or refresh a push subscription",
+                "description": "Stores the authenticated device Firebase registration token for later push delivery.",
+                "operationId": "f166a083b162fab0bf528ef5036686de",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "token",
+                                    "platform",
+                                    "app_context"
+                                ],
+                                "properties": {
+                                    "token": {
+                                        "type": "string",
+                                        "example": "firebase-fcm-registration-token"
+                                    },
+                                    "platform": {
+                                        "type": "string",
+                                        "enum": [
+                                            "ios",
+                                            "android",
+                                            "web"
+                                        ],
+                                        "example": "ios"
+                                    },
+                                    "app_context": {
+                                        "type": "string",
+                                        "enum": [
+                                            "pos",
+                                            "admin",
+                                            "customer"
+                                        ],
+                                        "example": "pos"
+                                    },
+                                    "device_name": {
+                                        "type": "string",
+                                        "example": "Kitchen iPad",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Push subscription created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PushSubscription"
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "Push subscription refreshed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PushSubscription"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/push-subscriptions/{pushSubscription}": {
+            "delete": {
+                "tags": [
+                    "Push Notifications"
+                ],
+                "summary": "Revoke a push subscription",
+                "description": "Soft-revokes a push subscription. Users can revoke their own subscriptions; admins can revoke any subscription.",
+                "operationId": "76e7a356a6810c850e9b3f43a04e61e5",
+                "parameters": [
+                    {
+                        "name": "pushSubscription",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Push subscription revoked"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Push subscription not found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/rewards/programs": {
             "get": {
                 "tags": [
@@ -6419,6 +6578,69 @@
                 },
                 "type": "object"
             },
+            "PushSubscription": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "user_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "provider": {
+                        "type": "string",
+                        "example": "firebase"
+                    },
+                    "platform": {
+                        "type": "string",
+                        "enum": [
+                            "ios",
+                            "android",
+                            "web"
+                        ],
+                        "example": "ios"
+                    },
+                    "app_context": {
+                        "type": "string",
+                        "enum": [
+                            "pos",
+                            "admin",
+                            "customer"
+                        ],
+                        "example": "pos"
+                    },
+                    "device_name": {
+                        "type": "string",
+                        "example": "Kitchen iPad",
+                        "nullable": true
+                    },
+                    "personal_access_token_id": {
+                        "type": "integer",
+                        "example": 10,
+                        "nullable": true
+                    },
+                    "last_seen_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "revoked_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
             "Payment": {
                 "properties": {
                     "id": {
@@ -6699,6 +6921,10 @@
         {
             "name": "Order Items",
             "description": "Order Items"
+        },
+        {
+            "name": "Push Notifications",
+            "description": "Push Notifications"
         },
         {
             "name": "Statuses",

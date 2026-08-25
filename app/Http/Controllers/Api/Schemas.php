@@ -263,6 +263,22 @@ use OpenApi\Attributes as OA;
     ]
 )]
 #[OA\Schema(
+    schema: 'PushSubscription',
+    properties: [
+        new OA\Property(property: 'id', type: 'integer', example: 1),
+        new OA\Property(property: 'user_id', type: 'integer', example: 1),
+        new OA\Property(property: 'provider', type: 'string', example: 'firebase'),
+        new OA\Property(property: 'platform', type: 'string', enum: ['ios', 'android', 'web'], example: 'ios'),
+        new OA\Property(property: 'app_context', type: 'string', enum: ['pos', 'admin', 'customer'], example: 'pos'),
+        new OA\Property(property: 'device_name', type: 'string', nullable: true, example: 'Kitchen iPad'),
+        new OA\Property(property: 'personal_access_token_id', type: 'integer', nullable: true, example: 10),
+        new OA\Property(property: 'last_seen_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'revoked_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),
+        new OA\Property(property: 'updated_at', type: 'string', format: 'date-time'),
+    ]
+)]
+#[OA\Schema(
     schema: 'Payment',
     properties: [
         new OA\Property(property: 'id', type: 'integer', example: 1),

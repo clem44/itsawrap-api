@@ -2,14 +2,18 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\SendFirebasePushNotification;
 use App\Models\Category;
 use App\Models\Customer;
 use App\Models\Item;
 use App\Models\Option;
 use App\Models\OptionValue;
+use App\Models\PushSubscription;
 use App\Models\Status;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class GuestOrderingApiTest extends TestCase
@@ -51,12 +55,31 @@ class GuestOrderingApiTest extends TestCase
 
     public function test_guest_order_creation_uses_pending_status_without_session_mutation(): void
     {
+        Queue::fake();
+
         $status = Status::query()->create(['name' => 'pending']);
         $category = Category::query()->create(['name' => 'Wraps', 'sort_order' => 1]);
         $item = Item::query()->create(['name' => 'Chicken Wrap', 'category_id' => $category->id, 'cost' => 12.50, 'active' => true]);
         $option = Option::query()->create(['name' => 'Sauce']);
         $optionValue = OptionValue::query()->create(['option_id' => $option->id, 'name' => 'BBQ', 'price' => 1.00]);
         $customer = Customer::query()->create(['name' => 'Guest Customer', 'source' => 'guest-web']);
+        $staff = User::query()->create([
+            'firstname' => 'Staff',
+            'lastname' => 'User',
+            'username' => 'guest-order-staff',
+            'email' => 'guest-order-staff@example.com',
+            'password' => 'password',
+            'role_id' => 2,
+        ]);
+        PushSubscription::query()->create([
+            'user_id' => $staff->id,
+            'provider' => 'firebase',
+            'token' => 'guest-order-staff-token',
+            'token_hash' => hash('sha256', 'guest-order-staff-token'),
+            'platform' => 'ios',
+            'app_context' => 'pos',
+            'last_seen_at' => now(),
+        ]);
 
         $response = $this->postJson('/api/guest/orders', [
             'customer_id' => $customer->id,
@@ -97,6 +120,11 @@ class GuestOrderingApiTest extends TestCase
             'session_id' => null,
             'is_reward' => false,
         ]);
+
+        Queue::assertPushed(SendFirebasePushNotification::class, function (SendFirebasePushNotification $job): bool {
+            return $job->data['type'] === 'web_order_created'
+                && $job->data['source'] === 'guest-web';
+        });
     }
 
     public function test_guest_order_replays_existing_order_for_matching_idempotency_key(): void

@@ -2,11 +2,14 @@
 
 namespace App\Providers;
 
+use App\Services\Push\KreaitFirebasePushNotificationSender;
+use App\Services\Push\PushNotificationSender;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Kreait\Firebase\Factory;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -15,7 +18,18 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(PushNotificationSender::class, KreaitFirebasePushNotificationSender::class);
+        $this->app->singleton(Factory::class, function (): Factory {
+            $factory = new Factory;
+            $defaultProject = config('firebase.default', 'app');
+            $projectId = config("firebase.projects.{$defaultProject}.project_id");
+
+            if (is_string($projectId) && $projectId !== '') {
+                return $factory->withProjectId($projectId);
+            }
+
+            return $factory;
+        });
     }
 
     /**

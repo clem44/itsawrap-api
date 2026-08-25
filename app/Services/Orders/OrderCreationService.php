@@ -4,12 +4,15 @@ namespace App\Services\Orders;
 
 use App\Models\Order;
 use App\Models\Status;
+use App\Services\Push\PosPushNotifier;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class OrderCreationService
 {
+    public function __construct(private readonly PosPushNotifier $posPushNotifier) {}
+
     /**
      * @param  array<string, mixed>  $validated
      */
@@ -106,6 +109,8 @@ class OrderCreationService
             'ip' => $ip,
             'item_count' => count($validated['items']),
         ]);
+
+        $this->posPushNotifier->webOrderCreated($order);
 
         return $order->load(['customer', 'status', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option']);
     }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CashSession;
 use App\Models\Order;
 use App\Models\RewardProgram;
+use App\Services\Push\CustomerPushNotifier;
 use App\Services\Rewards\RewardService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -441,7 +442,7 @@ class OrderController extends Controller
             new OA\Response(response: 422, description: 'Validation error'),
         ]
     )]
-    public function update(Request $request, Order $order, RewardService $rewards): JsonResponse
+    public function update(Request $request, Order $order, RewardService $rewards, CustomerPushNotifier $customerPushNotifier): JsonResponse
     {
         $validated = $request->validate([
             'status_id' => 'integer|exists:statuses,id',
@@ -457,6 +458,7 @@ class OrderController extends Controller
         ]);
 
         $oldStatusName = $order->status?->name;
+        $oldStatusId = $order->status_id;
 
         $order->update($validated);
         $order->refresh()->load('status');
@@ -465,6 +467,10 @@ class OrderController extends Controller
 
         if ($oldStatusName !== 'cancelled' && $order->status?->name === 'cancelled') {
             $rewards->reverseOrder($order, 'order_cancelled', $request->user());
+        }
+
+        if (array_key_exists('status_id', $validated) && (int) $oldStatusId !== (int) $order->status_id) {
+            $customerPushNotifier->orderStatusUpdated($order);
         }
 
         return response()->json($order->load(['customer', 'status', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option']));
