@@ -433,3 +433,406 @@ Regression tests:
 - Should reward programs be versioned by creating a new row on every condition change, or edited in place until launch?
 - Should existing historical orders be backfilled into reward progress when the feature launches?
 - Should a customer be identified only by `customers.id`, or should phone/email matching merge guest-created customers?
+
+# Firebase Cloud Messaging Plan
+
+## Goal
+
+Send Firebase Cloud Messaging push notifications to logged-in POS devices when a new web order is created and needs staff confirmation.
+
+Notification recipients:
+
+- Admin users: `role_id = 1`
+- Staff users: `role_id = 2`
+
+Excluded recipients:
+
+- Customer users: `role_id = 3`
+- Admin CMS browser sessions, unless a future requirement explicitly includes them
+- Customer web app devices
+
+Initial trigger:
+
+- A new order created by the customer web app or guest web ordering flow.
+- Existing guest web orders use `source = guest-web`.
+
+Do not notify for:
+
+- POS-created staff orders
+- Admin-created orders
+- Internal updates to existing orders unless a separate notification type is added later
+
+## Important Distinction
+
+Sanctum does not generate Firebase Cloud Messaging tokens.
+
+Sanctum handles API authentication:
+
+- The POS app logs in with `POST /api/login`.
+- Laravel returns a Sanctum bearer token.
+- The bearer token tells the API which user/device is making a request.
+
+Firebase handles push device registration:
+
+- The iOS/Android POS app initializes Firebase Messaging.
+- The Firebase SDK returns an FCM registration token for that app install/device.
+- The POS app sends that token to Laravel using the Sanctum bearer token.
+
+Laravel handles storage and delivery:
+
+- Store FCM tokens against authenticated users.
+- Decide which users/devices should receive a notification.
+- Send pushes through Firebase.
+- Revoke invalid or expired tokens.
+
+This means the iOS/Android POS app must be updated to collect and submit FCM tokens. The API cannot generate device FCM tokens on its own.
+
+## POS App Token Flow
+
+1. POS app logs in normally:
+
+```text
+POST /api/login
+```
+
+2. API returns a Sanctum token.
+
+3. POS app requests push notification permission from the operating system.
+
+4. POS app initializes Firebase Messaging and gets an FCM registration token.
+
+5. POS app registers the FCM token with Laravel:
+
+```text
+POST /api/push-subscriptions
+Authorization: Bearer <sanctum-token>
+Content-Type: application/json
+```
+
+```json
+{
+  "token": "firebase-fcm-registration-token",
+  "platform": "ios",
+  "app_context": "pos",
+  "device_name": "Kitchen iPad"
+}
+```
+
+6. Laravel stores the token against the authenticated user.
+
+7. When Firebase rotates the token, the POS app sends the new token to the same endpoint.
+
+8. On logout, the POS app should call a revoke endpoint for the current token if possible.
+
+## Database Schema
+
+### `push_subscriptions`
+
+Stores FCM registration tokens for app installs/devices.
+
+```text
+id
+user_id foreign key users.id
+provider string default firebase
+token text
+token_hash string unique
+platform string              // ios, android, web
+app_context string           // pos, admin, customer
+device_name nullable string
+personal_access_token_id nullable unsigned bigint
+last_seen_at nullable timestamp
+revoked_at nullable timestamp
+timestamps
+```
+
+Suggested indexes:
+
+```text
+unique(token_hash)
+index(user_id)
+index(app_context, platform, revoked_at)
+index(last_seen_at)
+```
+
+Notes:
+
+- Store the raw token because Firebase needs it for delivery.
+- Store `token_hash` for lookup/upsert without indexing a long text token.
+- `personal_access_token_id` can link a push token to the current Sanctum device session when available, but the push token should not live inside Sanctum.
+- `revoked_at` preserves historical records while excluding stale tokens from delivery.
+
+### Optional `push_notification_deliveries`
+
+Add this table if delivery audit/history matters.
+
+```text
+id
+user_id nullable foreign key users.id
+push_subscription_id nullable foreign key push_subscriptions.id
+order_id nullable foreign key orders.id
+type string
+title string
+body text nullable
+data json nullable
+status string              // pending, sent, failed, invalid_token
+provider_message_id nullable string
+error nullable text
+sent_at nullable timestamp
+timestamps
+```
+
+Recommended first version:
+
+- Skip this table unless the business needs delivery history in the admin UI.
+- Use structured logs for send failures.
+
+## Configuration
+
+Use the Firebase Admin SDK for PHP/Laravel, preferably `kreait/laravel-firebase`.
+
+Required server-side configuration:
+
+```text
+FIREBASE_CREDENTIALS=
+FIREBASE_PROJECT_ID=
+```
+
+Notes:
+
+- `FIREBASE_CREDENTIALS` should point to a service account JSON file or equivalent secure credential configuration.
+- Do not commit Firebase service account JSON to the repository.
+- Server credentials are private and belong only on the Laravel API server.
+
+The POS app will also need its normal Firebase client configuration in iOS/Android project files.
+
+## Backend Module
+
+Create a POS push notification module with a small interface:
+
+```php
+PosPushNotifier::webOrderCreated(Order $order): void
+```
+
+Responsibilities hidden inside the implementation:
+
+- Determine if the order source should trigger a POS notification.
+- Find active POS push subscriptions.
+- Target users with `role_id` 1 or 2 only.
+- Exclude customer users with `role_id` 3.
+- Dispatch queued Firebase send jobs.
+- Mark invalid tokens as revoked.
+- Log Firebase failures without failing order creation.
+
+Keep controllers thin. Order creation should call one notification method after the order transaction succeeds.
+
+## API Surface
+
+Authenticated endpoints:
+
+```text
+POST /api/push-subscriptions
+DELETE /api/push-subscriptions/{pushSubscription}
+```
+
+Optional convenience endpoint:
+
+```text
+DELETE /api/push-subscriptions/current-token
+```
+
+### Register Or Refresh Subscription
+
+```text
+POST /api/push-subscriptions
+```
+
+Payload:
+
+```json
+{
+  "token": "firebase-fcm-registration-token",
+  "platform": "ios",
+  "app_context": "pos",
+  "device_name": "Kitchen iPad"
+}
+```
+
+Validation:
+
+- Authenticated via Sanctum.
+- `token` is required.
+- `platform` is one of `ios`, `android`, `web`.
+- `app_context` is one of `pos`, `admin`, `customer`.
+- For the first version, only `app_context = pos` with `platform in [ios, android]` should be used for order-confirmation notifications.
+
+Behavior:
+
+- Hash token with SHA-256.
+- Upsert by `token_hash`.
+- Set `user_id` to the authenticated user.
+- Set `last_seen_at = now()`.
+- Clear `revoked_at` if the token was previously revoked and has been seen again.
+
+### Revoke Subscription
+
+```text
+DELETE /api/push-subscriptions/{pushSubscription}
+```
+
+Behavior:
+
+- Only allow users to revoke their own subscriptions, unless the requester is admin.
+- Set `revoked_at = now()`.
+- Do not hard-delete by default.
+
+## Notification Payload
+
+When a web order is created:
+
+```json
+{
+  "notification": {
+    "title": "New web order",
+    "body": "Order #123 is waiting for confirmation"
+  },
+  "data": {
+    "type": "web_order_created",
+    "order_id": "123",
+    "order_number": "123",
+    "source": "guest-web"
+  }
+}
+```
+
+Notes:
+
+- FCM data values should be strings.
+- The POS app should use `data.order_id` to open the order confirmation screen.
+- The message should be sent asynchronously so Firebase latency or failure does not delay order creation.
+
+## Order Lifecycle Integration
+
+### Guest Web Orders
+
+Current code path:
+
+```text
+App\Http\Controllers\Api\GuestOrderController::store
+```
+
+After the order transaction succeeds and the order is available:
+
+```php
+$posPushNotifier->webOrderCreated($order);
+```
+
+This should happen after persistence succeeds. If push sending fails, the order should still be created.
+
+### Authenticated Customer Web Orders
+
+If the customer web app uses an authenticated customer order endpoint, add the same notifier call there.
+
+Rule:
+
+- Notify only when the order is from the customer web app, not when it is created by the POS app.
+
+### POS Orders
+
+Current code path:
+
+```text
+App\Http\Controllers\Api\OrderController::store
+```
+
+Do not trigger web-order POS notifications from normal POS order creation.
+
+## Queueing
+
+Use Laravel jobs for delivery:
+
+```php
+SendFirebasePushNotification::dispatch(...)
+```
+
+Queue behavior:
+
+- Order creation dispatches jobs quickly and returns.
+- Firebase send runs outside the request lifecycle.
+- Failed sends are retried according to queue configuration.
+- Invalid/unregistered tokens are marked revoked.
+
+## Testing Plan
+
+Backend tests:
+
+- Staff user can register an iOS POS push subscription.
+- Admin user can register an Android POS push subscription.
+- Customer user can register a token, but customer tokens are not targeted for POS order confirmation notifications.
+- Registering the same FCM token updates the existing subscription instead of creating duplicates.
+- Revoking a subscription sets `revoked_at`.
+- New guest web order dispatches POS push notification jobs.
+- POS-created order does not dispatch web-order notification jobs.
+- Notification targeting includes `role_id` 1 and 2.
+- Notification targeting excludes `role_id` 3.
+- Notification targeting excludes `app_context != pos`.
+- Notification targeting excludes revoked subscriptions.
+- Firebase sender revokes invalid tokens.
+- Firebase failure does not prevent order creation.
+
+Docs tests/checks:
+
+- Add OpenAPI annotations for push subscription endpoints.
+- Regenerate Swagger docs with `php artisan l5-swagger:generate`.
+- Verify `storage/api-docs/api-docs.json` includes the push subscription paths.
+
+## Implementation Phases
+
+### Phase 1: Firebase Package And Config
+
+- Install `kreait/laravel-firebase`.
+- Publish or add Firebase config.
+- Add env examples for Firebase credentials/project id.
+- Ensure service account credentials are excluded from git.
+
+### Phase 2: Push Subscription Data Model
+
+- Add `push_subscriptions` migration.
+- Add `PushSubscription` model.
+- Add `User::pushSubscriptions()` relationship.
+
+### Phase 3: Subscription API
+
+- Add controller and request validation.
+- Add authenticated routes.
+- Add OpenAPI annotations.
+- Add tests for register/update/revoke.
+
+### Phase 4: Notification Module And Job
+
+- Add `PosPushNotifier`.
+- Add Firebase sender job.
+- Add an adapter around Firebase messaging so tests can fake delivery.
+- Add token revocation handling for invalid Firebase responses.
+
+### Phase 5: Web Order Trigger
+
+- Trigger notifications after guest web order creation.
+- Trigger notifications after authenticated customer web order creation if that endpoint exists.
+- Confirm POS-created orders do not notify.
+
+### Phase 6: POS App Changes
+
+- Add Firebase Messaging setup in iOS and Android POS apps.
+- Request notification permission.
+- Get the FCM registration token.
+- Register the token with `POST /api/push-subscriptions` after login.
+- Re-register when Firebase rotates the token.
+- Handle notification taps using `data.order_id`.
+
+## Open Questions
+
+- Does the POS app already distinguish iOS and Android in its login payload or device metadata?
+- Should all logged-in staff/admin POS devices receive every web order, or should this later be branch-specific?
+- Should notifications be sent for guest web orders only, authenticated customer web orders only, or both?
+- Should admin CMS browser sessions receive these notifications later, or should this stay POS-only?
+- Should failed notification deliveries be persisted in `push_notification_deliveries` or only logged?
