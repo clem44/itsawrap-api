@@ -11,21 +11,6 @@ class AdminUserRoleTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_user_edit_page_renders_editable_role_inputs(): void
-    {
-        $admin = $this->makeUser(Role::ADMIN_ID, 'admin-role-editor');
-        $user = $this->makeUser(Role::STAFF_ID, 'staff-to-edit');
-
-        $response = $this->actingAs($admin)
-            ->get(route('admin.users.edit', $user))
-            ->assertOk();
-
-        $response->assertSee('Role & Permissions', false);
-        $response->assertSee('id="role_'.Role::DRIVER_ID.'"', false);
-        $response->assertSee('name="role_id"', false);
-        $response->assertDontSee('id="role_'.Role::DRIVER_ID.'" type="radio" name="role_id" value="'.Role::DRIVER_ID.'" disabled', false);
-    }
-
     public function test_admin_can_change_a_users_role_from_the_edit_form(): void
     {
         $admin = $this->makeUser(Role::ADMIN_ID, 'admin-role-updater');

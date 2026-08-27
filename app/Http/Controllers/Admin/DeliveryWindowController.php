@@ -72,7 +72,7 @@ class DeliveryWindowController extends Controller
     {
         $validated = $request->validate([
             'schedule_type' => ['required', Rule::in([DeliveryWindow::TYPE_WEEKLY, DeliveryWindow::TYPE_SPECIFIC_DATE])],
-            'day_of_week' => ['nullable', 'integer', 'between:1,7', 'required_if:schedule_type,'.DeliveryWindow::TYPE_WEEKLY],
+            'day_of_week' => ['nullable', 'integer', 'between:1,7'],
             'delivery_date' => ['nullable', 'date', 'required_if:schedule_type,'.DeliveryWindow::TYPE_SPECIFIC_DATE],
             'start_time' => ['required', 'date_format:H:i'],
             'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
@@ -99,7 +99,7 @@ class DeliveryWindowController extends Controller
     {
         return [
             'schedule_type' => $validated['schedule_type'],
-            'day_of_week' => $validated['schedule_type'] === DeliveryWindow::TYPE_WEEKLY ? $validated['day_of_week'] : null,
+            'day_of_week' => $validated['schedule_type'] === DeliveryWindow::TYPE_WEEKLY ? ($validated['day_of_week'] ?? null) : null,
             'delivery_date' => $validated['schedule_type'] === DeliveryWindow::TYPE_SPECIFIC_DATE ? $validated['delivery_date'] : null,
             'start_time' => $validated['start_time'],
             'end_time' => $validated['end_time'],

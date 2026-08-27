@@ -4,15 +4,7 @@
 @section('header', 'Delivery')
 
 @php
-    $weekdays = [
-        1 => 'Monday',
-        2 => 'Tuesday',
-        3 => 'Wednesday',
-        4 => 'Thursday',
-        5 => 'Friday',
-        6 => 'Saturday',
-        7 => 'Sunday',
-    ];
+    $weekdays = \App\Models\DeliveryWindow::WEEKDAYS;
 @endphp
 
 @push('scripts')
@@ -134,7 +126,7 @@
                         @php
                             $groupLabel = $deliveryWindow->schedule_type === 'specific_date'
                                 ? 'Specific Date: '.$deliveryWindow->delivery_date?->format('M d, Y')
-                                : 'Recurring: '.($weekdays[$deliveryWindow->day_of_week] ?? 'Weekly');
+                                : 'Recurring: '.$deliveryWindow->recurringDayLabel();
                         @endphp
                         @if($groupLabel !== $currentGroup)
                             @php
@@ -155,7 +147,7 @@
                             @if($deliveryWindow->schedule_type === 'specific_date')
                                 <span class="role-badge admin">{{ $deliveryWindow->delivery_date?->format('M d, Y') }}</span>
                             @else
-                                <span class="role-badge user">{{ $weekdays[$deliveryWindow->day_of_week] ?? 'Weekly' }}</span>
+                                <span class="role-badge user">{{ $deliveryWindow->recurringDayLabel() }}</span>
                             @endif
                         </td>
                         <td>
@@ -303,7 +295,7 @@
                                         v-model="modalWindow.day_of_week"
                                         :disabled="modalWindow.schedule_type !== 'weekly'"
                                     >
-                                        <option value="">Choose day</option>
+                                        <option value="">Everyday</option>
                                         @foreach($weekdays as $value => $label)
                                             <option value="{{ $value }}">{{ $label }}</option>
                                         @endforeach

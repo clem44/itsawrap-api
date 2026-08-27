@@ -6,6 +6,7 @@ use App\Models\Delivery;
 use App\Models\DeliveryWindow;
 use App\Models\Order;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
@@ -100,15 +101,53 @@ class DeliveryScheduler
             return $specificDateWindows;
         }
 
+        $weekdayWindows = $this->weekdayRecurringWindowsForDate($date);
+        $everydayWindows = $this->everydayRecurringWindowsForDate($date);
+
+        if ($weekdayWindows->isEmpty()) {
+            return $everydayWindows;
+        }
+
+        return $weekdayWindows
+            ->concat($everydayWindows->reject(fn (DeliveryWindow $everydayWindow): bool => $this->overlapsAny($everydayWindow, $weekdayWindows)))
+            ->sortBy('start_time')
+            ->values();
+    }
+
+    private function weekdayRecurringWindowsForDate(CarbonImmutable $date): Collection
+    {
+        return $this->recurringWindowsForDate($date)
+            ->where('day_of_week', (int) $date->dayOfWeekIso)
+            ->get();
+    }
+
+    private function everydayRecurringWindowsForDate(CarbonImmutable $date): Collection
+    {
+        return $this->recurringWindowsForDate($date)
+            ->whereNull('day_of_week')
+            ->get();
+    }
+
+    private function recurringWindowsForDate(CarbonImmutable $date): Builder
+    {
         return DeliveryWindow::query()
             ->withCount(['drivers', 'deliveries' => function ($query) use ($date) {
                 $query->whereDate('delivery_date', $date->toDateString());
             }])
             ->where('schedule_type', DeliveryWindow::TYPE_WEEKLY)
-            ->where('day_of_week', (int) $date->dayOfWeekIso)
             ->where('is_active', true)
-            ->orderBy('start_time')
-            ->get();
+            ->orderBy('start_time');
+    }
+
+    private function overlapsAny(DeliveryWindow $window, Collection $windows): bool
+    {
+        return $windows->contains(fn (DeliveryWindow $otherWindow): bool => $this->windowsOverlap($window, $otherWindow));
+    }
+
+    private function windowsOverlap(DeliveryWindow $window, DeliveryWindow $otherWindow): bool
+    {
+        return (string) $window->start_time < (string) $otherWindow->end_time
+            && (string) $window->end_time > (string) $otherWindow->start_time;
     }
 
     private function formatSlot(DeliveryWindow $window, CarbonImmutable $date): array

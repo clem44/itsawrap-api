@@ -112,6 +112,93 @@ class DeliveryFeatureTest extends TestCase
             ->assertJsonPath('delivery_windows.0.label', '2:00 PM - 3:00 PM');
     }
 
+    public function test_weekly_window_without_day_is_available_everyday(): void
+    {
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-09-01 09:00:00', 'America/Anguilla'));
+
+        $window = DeliveryWindow::query()->create([
+            'schedule_type' => DeliveryWindow::TYPE_WEEKLY,
+            'day_of_week' => null,
+            'start_time' => '10:00',
+            'end_time' => '11:30',
+            'capacity' => 8,
+            'is_active' => true,
+        ]);
+
+        $this->getJson('/api/guest/delivery-windows/today')
+            ->assertOk()
+            ->assertJsonCount(1, 'delivery_windows')
+            ->assertJsonPath('delivery_windows.0.delivery_window_id', $window->id)
+            ->assertJsonPath('delivery_windows.0.delivery_date', '2026-09-01')
+            ->assertJsonPath('delivery_windows.0.label', '10:00 AM - 11:30 AM');
+    }
+
+    public function test_specific_date_windows_replace_everyday_recurring_windows(): void
+    {
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-09-01 09:00:00', 'America/Anguilla'));
+
+        DeliveryWindow::query()->create([
+            'schedule_type' => DeliveryWindow::TYPE_WEEKLY,
+            'day_of_week' => null,
+            'start_time' => '10:00',
+            'end_time' => '11:30',
+            'capacity' => 8,
+            'is_active' => true,
+        ]);
+        $specificDateWindow = DeliveryWindow::query()->create([
+            'schedule_type' => DeliveryWindow::TYPE_SPECIFIC_DATE,
+            'delivery_date' => '2026-09-01',
+            'start_time' => '12:00',
+            'end_time' => '13:45',
+            'capacity' => 3,
+            'is_active' => true,
+        ]);
+
+        $this->getJson('/api/guest/delivery-windows/today')
+            ->assertOk()
+            ->assertJsonCount(1, 'delivery_windows')
+            ->assertJsonPath('delivery_windows.0.delivery_window_id', $specificDateWindow->id)
+            ->assertJsonPath('delivery_windows.0.label', '12:00 PM - 1:45 PM');
+    }
+
+    public function test_weekday_recurring_windows_replace_only_conflicting_everyday_recurring_windows(): void
+    {
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-09-01 09:00:00', 'America/Anguilla'));
+
+        $nonConflictingEverydayWindow = DeliveryWindow::query()->create([
+            'schedule_type' => DeliveryWindow::TYPE_WEEKLY,
+            'day_of_week' => null,
+            'start_time' => '10:00',
+            'end_time' => '11:30',
+            'capacity' => 8,
+            'is_active' => true,
+        ]);
+        DeliveryWindow::query()->create([
+            'schedule_type' => DeliveryWindow::TYPE_WEEKLY,
+            'day_of_week' => null,
+            'start_time' => '13:00',
+            'end_time' => '14:00',
+            'capacity' => 8,
+            'is_active' => true,
+        ]);
+        $tuesdayWindow = DeliveryWindow::query()->create([
+            'schedule_type' => DeliveryWindow::TYPE_WEEKLY,
+            'day_of_week' => 2,
+            'start_time' => '12:00',
+            'end_time' => '14:30',
+            'capacity' => 3,
+            'is_active' => true,
+        ]);
+
+        $this->getJson('/api/guest/delivery-windows/today')
+            ->assertOk()
+            ->assertJsonCount(2, 'delivery_windows')
+            ->assertJsonPath('delivery_windows.0.delivery_window_id', $nonConflictingEverydayWindow->id)
+            ->assertJsonPath('delivery_windows.0.label', '10:00 AM - 11:30 AM')
+            ->assertJsonPath('delivery_windows.1.delivery_window_id', $tuesdayWindow->id)
+            ->assertJsonPath('delivery_windows.1.label', '12:00 PM - 2:30 PM');
+    }
+
     public function test_passed_and_full_windows_are_returned_as_unavailable(): void
     {
         CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-08-31 10:30:00', 'America/Anguilla'));
@@ -314,6 +401,28 @@ class DeliveryFeatureTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_create_everyday_delivery_window(): void
+    {
+        $admin = $this->makeUser(Role::ADMIN_ID, 'delivery-everyday-admin');
+
+        $this->actingAs($admin)
+            ->post(route('admin.delivery-windows.store'), [
+                'schedule_type' => DeliveryWindow::TYPE_WEEKLY,
+                'start_time' => '10:00',
+                'end_time' => '11:30',
+                'capacity' => 8,
+                'is_active' => '1',
+            ])
+            ->assertRedirect(route('admin.delivery-windows.index'));
+
+        $this->assertDatabaseHas('delivery_windows', [
+            'schedule_type' => DeliveryWindow::TYPE_WEEKLY,
+            'day_of_week' => null,
+            'start_time' => '10:00',
+            'end_time' => '11:30',
+        ]);
+    }
+
     public function test_admin_can_update_delivery_window_and_driver_assignments(): void
     {
         $admin = $this->makeUser(Role::ADMIN_ID, 'delivery-update-admin');
@@ -375,6 +484,25 @@ class DeliveryFeatureTest extends TestCase
             ->assertSee('Delivery Windows')
             ->assertSee('Monday')
             ->assertSee('10:00 AM - 11:30 AM');
+    }
+
+    public function test_admin_delivery_window_index_labels_null_weekday_as_everyday(): void
+    {
+        $admin = $this->makeUser(Role::ADMIN_ID, 'delivery-everyday-page-admin');
+        DeliveryWindow::query()->create([
+            'schedule_type' => DeliveryWindow::TYPE_WEEKLY,
+            'day_of_week' => null,
+            'start_time' => '10:00',
+            'end_time' => '11:30',
+            'capacity' => 8,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.delivery-windows.index'))
+            ->assertOk()
+            ->assertSee('Recurring: Everyday')
+            ->assertSee('Everyday');
     }
 
     public function test_admin_can_create_driver_user(): void

@@ -13,6 +13,16 @@ class DeliveryWindow extends Model
 
     public const TYPE_SPECIFIC_DATE = 'specific_date';
 
+    public const WEEKDAYS = [
+        1 => 'Monday',
+        2 => 'Tuesday',
+        3 => 'Wednesday',
+        4 => 'Thursday',
+        5 => 'Friday',
+        6 => 'Saturday',
+        7 => 'Sunday',
+    ];
+
     protected $fillable = [
         'schedule_type',
         'day_of_week',
@@ -48,5 +58,14 @@ class DeliveryWindow extends Model
     public function deliveries(): HasMany
     {
         return $this->hasMany(Delivery::class);
+    }
+
+    public function recurringDayLabel(): string
+    {
+        if ($this->day_of_week === null) {
+            return 'Everyday';
+        }
+
+        return self::WEEKDAYS[$this->day_of_week] ?? 'Unknown';
     }
 }
