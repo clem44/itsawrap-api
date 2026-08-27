@@ -16,7 +16,7 @@ class OrderController extends Controller
     public function index(): View
     {
         $orders = Order::query()
-            ->with(['customer', 'status'])
+            ->with(['customer', 'status', 'delivery'])
             ->orderBy('created_at', 'desc')
             ->paginate(15)
             ->withQueryString();
@@ -26,7 +26,7 @@ class OrderController extends Controller
 
     public function show(Order $order): View
     {
-        $order->load(['customer', 'status', 'orderItems.item', 'payments']);
+        $order->load(['customer', 'status', 'delivery.deliveryWindow', 'delivery.assignedDriver', 'orderItems.item', 'payments']);
         $statuses = Status::query()->orderBy('id')->get();
 
         return view('admin.orders.show', compact('order', 'statuses'));

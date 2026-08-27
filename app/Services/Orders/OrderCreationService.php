@@ -4,6 +4,7 @@ namespace App\Services\Orders;
 
 use App\Models\Order;
 use App\Models\Status;
+use App\Services\Delivery\DeliveryScheduler;
 use App\Services\Push\PosPushNotifier;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -11,7 +12,10 @@ use Illuminate\Support\Facades\Log;
 
 class OrderCreationService
 {
-    public function __construct(private readonly PosPushNotifier $posPushNotifier) {}
+    public function __construct(
+        private readonly PosPushNotifier $posPushNotifier,
+        private readonly DeliveryScheduler $deliveryScheduler,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $validated
@@ -24,7 +28,7 @@ class OrderCreationService
             $existingOrder = Order::query()
                 ->where('source', $source)
                 ->where('idempotency_key', $idempotencyKey)
-                ->with(['customer', 'status', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option'])
+                ->with(['customer', 'status', 'delivery.deliveryWindow', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option'])
                 ->first();
 
             if ($existingOrder !== null) {
@@ -60,7 +64,7 @@ class OrderCreationService
                 ->where('name', 'pending')
                 ->value('id') ?? 1;
 
-            $order = DB::transaction(function () use ($validated, $customerId, $source, $pendingStatusId, $idempotencyKey) {
+            $createOrder = function () use ($validated, $customerId, $source, $pendingStatusId, $idempotencyKey): Order {
                 $order = Order::query()->create([
                     'number' => filled($validated['number'] ?? null) ? $validated['number'] : $this->generateOrderNumber(),
                     'customer_id' => $customerId,
@@ -97,8 +101,17 @@ class OrderCreationService
                     }
                 }
 
+                if ($order->is_delivery) {
+                    $this->deliveryScheduler->reserveForOrder($order, $validated);
+                }
+
                 return $order;
-            });
+            };
+
+            $order = $this->deliveryScheduler->withReservationLock(
+                $validated,
+                fn (): Order => DB::transaction($createOrder),
+            );
         } finally {
             $lock->release();
         }
@@ -112,7 +125,7 @@ class OrderCreationService
 
         $this->posPushNotifier->webOrderCreated($order);
 
-        return $order->load(['customer', 'status', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option']);
+        return $order->load(['customer', 'status', 'delivery.deliveryWindow', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option']);
     }
 
     /**

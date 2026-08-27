@@ -8,7 +8,8 @@
         'admin.items.*',
         'admin.options.*',
         'admin.branches.*',
-        'admin.customers.*'
+        'admin.customers.*',
+        'admin.delivery-windows.*'
     );
 @endphp
 <!DOCTYPE html>
@@ -84,6 +85,7 @@
                             <a href="{{ route('admin.options.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.options.*') ? 'active' : '' }}"><span class="sidebar-label">Options</span></a>
                             <a href="{{ route('admin.categories.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}"><span class="sidebar-label">Categories</span></a>
                             <a href="{{ route('admin.branches.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.branches.*') ? 'active' : '' }}"><span class="sidebar-label">Branches</span></a>
+                            <a href="{{ route('admin.delivery-windows.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.delivery-windows.*') ? 'active' : '' }}"><span class="sidebar-label">Delivery</span></a>
                         </div>
                     </div>
                     <a href="{{ route('admin.api-docs') }}" class="sidebar-nav-link {{ request()->routeIs('admin.api-docs') ? 'active' : '' }}">
@@ -177,6 +179,7 @@
                             <a href="{{ route('admin.options.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.options.*') ? 'active' : '' }}">Options</a>
                             <a href="{{ route('admin.categories.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">Categories</a>
                             <a href="{{ route('admin.branches.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.branches.*') ? 'active' : '' }}">Branches</a>
+                            <a href="{{ route('admin.delivery-windows.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.delivery-windows.*') ? 'active' : '' }}">Delivery</a>
                         </div>
                     </div>
                     <a href="{{ route('admin.api-docs') }}" class="sidebar-nav-link {{ request()->routeIs('admin.api-docs') ? 'active' : '' }}">

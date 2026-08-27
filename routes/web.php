@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\CashSessionController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DeliveryWindowController;
 use App\Http\Controllers\Admin\DownloadController;
 use App\Http\Controllers\Admin\ItemController;
 use App\Http\Controllers\Admin\OrderController;
@@ -51,6 +52,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Branches management
         Route::resource('branches', BranchController::class);
+
+        // Delivery windows management
+        Route::resource('delivery-windows', DeliveryWindowController::class, ['only' => ['index', 'store', 'update']]);
 
         // Orders management
         Route::resource('orders', OrderController::class, ['only' => ['index', 'show', 'update', 'destroy']]);

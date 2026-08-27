@@ -1424,6 +1424,47 @@
                 ]
             }
         },
+        "/guest/delivery-windows/today": {
+            "get": {
+                "tags": [
+                    "Delivery"
+                ],
+                "summary": "List today's delivery windows",
+                "description": "Get today's active delivery windows with availability flags.",
+                "operationId": "800b477a5ccc9a4318e71163e3ed1a91",
+                "responses": {
+                    "200": {
+                        "description": "Delivery windows for today"
+                    }
+                }
+            }
+        },
+        "/me/delivery-windows/today": {
+            "get": {
+                "tags": [
+                    "Delivery"
+                ],
+                "summary": "List today's customer delivery windows",
+                "description": "Get today's active delivery windows with availability flags for an authenticated customer.",
+                "operationId": "d74e2ed7622bc7854487946215bc492e",
+                "responses": {
+                    "200": {
+                        "description": "Delivery windows for today"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Customer access required"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/items": {
             "get": {
                 "tags": [
@@ -6901,6 +6942,10 @@
         {
             "name": "Cash Sessions",
             "description": "Cash Sessions"
+        },
+        {
+            "name": "Delivery",
+            "description": "Delivery"
         },
         {
             "name": "Item Options",

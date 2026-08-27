@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,7 +15,7 @@ class UserController extends Controller
 {
     public function index(Request $request): View
     {
-        $query = User::query();
+        $query = User::query()->with('role');
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -32,12 +33,16 @@ class UserController extends Controller
 
         $users = $query->latest()->paginate(15)->withQueryString();
 
-        return view('admin.users.index', compact('users'));
+        $roles = Role::query()->orderBy('id')->get();
+
+        return view('admin.users.index', compact('users', 'roles'));
     }
 
     public function create(): View
     {
-        return view('admin.users.create');
+        $roles = Role::query()->orderBy('id')->get();
+
+        return view('admin.users.create', compact('roles'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -48,7 +53,7 @@ class UserController extends Controller
             'username' => 'required|string|max:255|unique:users',
             'email' => 'nullable|email|max:255|unique:users',
             'password' => 'required|string|min:6|confirmed',
-            'role_id' => 'required|integer|in:1,2',
+            'role_id' => 'required|integer|exists:roles,id',
         ]);
 
         $validated['password'] = Hash::make($validated['password']);
@@ -61,7 +66,7 @@ class UserController extends Controller
 
     public function show(User $user): View
     {
-        $user->load(['sessions', 'withdrawals']);
+        $user->load(['sessions', 'withdrawals', 'role']);
         $tokens = $user->tokens()->latest()->take(10)->get();
 
         return view('admin.users.show', compact('user', 'tokens'));
@@ -69,7 +74,9 @@ class UserController extends Controller
 
     public function edit(User $user): View
     {
-        return view('admin.users.edit', compact('user'));
+        $roles = Role::query()->orderBy('id')->get();
+
+        return view('admin.users.edit', compact('user', 'roles'));
     }
 
     public function update(Request $request, User $user): RedirectResponse
@@ -80,7 +87,7 @@ class UserController extends Controller
             'username' => ['required', 'string', 'max:255', Rule::unique('users')->ignore($user->id)],
             'email' => ['nullable', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'password' => 'nullable|string|min:6|confirmed',
-            'role_id' => 'required|integer|in:1,2',
+            'role_id' => 'required|integer|exists:roles,id',
         ]);
 
         if (! empty($validated['password'])) {

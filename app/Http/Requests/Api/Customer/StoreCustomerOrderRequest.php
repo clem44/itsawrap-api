@@ -26,6 +26,11 @@ class StoreCustomerOrderRequest extends FormRequest
             'total' => ['required', 'numeric', 'min:0', 'max:99999.99'],
             'comments' => ['nullable', 'string', 'max:1000'],
             'is_delivery' => ['required', 'boolean'],
+            'delivery_window_id' => ['nullable', 'integer', 'exists:delivery_windows,id'],
+            'delivery_address' => ['nullable', 'string', 'max:1000'],
+            'delivery_latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'delivery_longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'delivery_instructions' => ['nullable', 'string', 'max:1000'],
             'idempotency_key' => ['nullable', 'string', 'max:100'],
             'items' => ['required', 'array', 'min:1', 'max:25'],
             'items.*.item_id' => ['required', 'integer', 'exists:items,id'],
@@ -57,6 +62,14 @@ class StoreCustomerOrderRequest extends FormRequest
             function (Validator $validator): void {
                 if (strlen((string) $this->getContent()) > 65535) {
                     $validator->errors()->add('payload', 'The order payload is too large.');
+                }
+
+                if ($this->boolean('is_delivery')) {
+                    foreach (['delivery_window_id', 'delivery_address', 'delivery_latitude', 'delivery_longitude'] as $field) {
+                        if (! $this->filled($field)) {
+                            $validator->errors()->add($field, 'This field is required for delivery orders.');
+                        }
+                    }
                 }
 
                 $totalQuantity = 0;

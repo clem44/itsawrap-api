@@ -28,6 +28,11 @@ class StoreGuestOrderRequest extends FormRequest
             'total' => ['required', 'numeric', 'min:0', 'max:99999.99'],
             'comments' => ['nullable', 'string', 'max:1000'],
             'is_delivery' => ['required', 'boolean'],
+            'delivery_window_id' => ['nullable', 'integer', 'exists:delivery_windows,id'],
+            'delivery_address' => ['nullable', 'string', 'max:1000'],
+            'delivery_latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'delivery_longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'delivery_instructions' => ['nullable', 'string', 'max:1000'],
             'idempotency_key' => ['nullable', 'string', 'max:100'],
             'items' => ['required', 'array', 'min:1', 'max:25'],
             'items.*.item_id' => ['required', 'integer', 'exists:items,id'],
@@ -64,6 +69,14 @@ class StoreGuestOrderRequest extends FormRequest
                 $customer = Customer::query()->find($this->integer('customer_id'));
                 if ($customer === null || $customer->source !== 'guest-web') {
                     $validator->errors()->add('customer_id', 'The selected customer is not eligible for guest checkout.');
+                }
+
+                if ($this->boolean('is_delivery')) {
+                    foreach (['delivery_window_id', 'delivery_address', 'delivery_latitude', 'delivery_longitude'] as $field) {
+                        if (! $this->filled($field)) {
+                            $validator->errors()->add($field, 'This field is required for delivery orders.');
+                        }
+                    }
                 }
 
                 $totalQuantity = 0;

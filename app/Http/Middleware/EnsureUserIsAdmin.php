@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Role;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -11,7 +12,7 @@ class EnsureUserIsAdmin
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (! Auth::check() || Auth::user()->role_id !== 1) {
+        if (! Auth::check() || Auth::user()->role_id !== Role::ADMIN_ID) {
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Unauthorized. Admin access required.'], 403);
             }

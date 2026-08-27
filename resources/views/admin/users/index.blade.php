@@ -39,8 +39,9 @@
             </div>
             <select name="role" class="filter-select sm:w-40">
                 <option value="">All Roles</option>
-                <option value="1" {{ request('role') == '1' ? 'selected' : '' }}>Admin</option>
-                <option value="2" {{ request('role') == '2' ? 'selected' : '' }}>User</option>
+                @foreach($roles as $role)
+                    <option value="{{ $role->id }}" {{ (int) request('role') === $role->id ? 'selected' : '' }}>{{ $role->name }}</option>
+                @endforeach
             </select>
             <button type="submit" class="btn-filter">
                 Apply Filters
@@ -81,8 +82,8 @@
                             <span class="user-meta">{{ $user->email ?? '—' }}</span>
                         </td>
                         <td>
-                            <span class="role-badge {{ $user->role_id === 1 ? 'admin' : 'user' }}">
-                                {{ $user->role_id === 1 ? 'Admin' : 'User' }}
+                            <span class="role-badge {{ $user->role?->code === 'admin' ? 'admin' : 'user' }}">
+                                {{ $user->role?->name ?? 'Unknown' }}
                             </span>
                         </td>
                         <td>

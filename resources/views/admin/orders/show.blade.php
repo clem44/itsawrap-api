@@ -61,6 +61,35 @@
                 </div>
             </div>
 
+            @if($order->delivery)
+                <div class="rounded-2xl p-6 bg-white border border-gray-200 shadow-sm">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Delivery</h2>
+                    <div class="space-y-3 text-sm text-gray-700">
+                        <div class="flex justify-between gap-4">
+                            <span class="text-gray-600">Window</span>
+                            <span class="font-semibold text-gray-900 text-right">
+                                {{ $order->delivery->window_start_at->format('M d, Y g:i A') }} - {{ $order->delivery->window_end_at->format('g:i A') }}
+                            </span>
+                        </div>
+                        <div class="flex justify-between gap-4">
+                            <span class="text-gray-600">Driver</span>
+                            <span class="font-semibold text-gray-900 text-right">{{ $order->delivery->assignedDriver?->full_name ?? 'Unassigned' }}</span>
+                        </div>
+                        <div>
+                            <span class="block text-gray-600 mb-1">Address</span>
+                            <p class="font-semibold text-gray-900">{{ $order->delivery->address }}</p>
+                            <p class="text-gray-500">{{ $order->delivery->latitude }}, {{ $order->delivery->longitude }}</p>
+                        </div>
+                        @if($order->delivery->delivery_instructions)
+                            <div>
+                                <span class="block text-gray-600 mb-1">Instructions</span>
+                                <p class="text-gray-900">{{ $order->delivery->delivery_instructions }}</p>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            @endif
+
             <!-- Order Items -->
             <div class="rounded-2xl p-6 bg-white border border-gray-200 shadow-sm">
                 <h2 class="text-lg font-semibold text-gray-900 mb-4">Order Items</h2>

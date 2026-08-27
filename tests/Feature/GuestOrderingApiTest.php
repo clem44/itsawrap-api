@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Jobs\SendFirebasePushNotification;
 use App\Models\Category;
 use App\Models\Customer;
+use App\Models\DeliveryWindow;
 use App\Models\Item;
 use App\Models\Option;
 use App\Models\OptionValue;
@@ -192,6 +193,38 @@ class GuestOrderingApiTest extends TestCase
             ->assertJsonValidationErrors(['customer_id']);
     }
 
+    public function test_guest_delivery_order_requires_delivery_window_and_address(): void
+    {
+        Status::query()->create(['name' => 'pending']);
+        $category = Category::query()->create(['name' => 'Wraps', 'sort_order' => 1]);
+        $item = Item::query()->create(['name' => 'Chicken Wrap', 'category_id' => $category->id, 'cost' => 12.50, 'active' => true]);
+        $customer = Customer::query()->create(['name' => 'Guest Customer', 'source' => 'guest-web']);
+
+        $response = $this->postJson('/api/guest/orders', [
+            'customer_id' => $customer->id,
+            'subtotal' => 12.50,
+            'service_charge' => 0,
+            'total' => 12.50,
+            'is_delivery' => true,
+            'items' => [
+                [
+                    'item_id' => $item->id,
+                    'price' => 12.50,
+                    'quantity' => 1,
+                ],
+            ],
+        ]);
+
+        $response
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors([
+                'delivery_window_id',
+                'delivery_address',
+                'delivery_latitude',
+                'delivery_longitude',
+            ]);
+    }
+
     public function test_guest_order_route_is_throttled(): void
     {
         Cache::flush();
@@ -224,5 +257,25 @@ class GuestOrderingApiTest extends TestCase
         $this->postJson('/api/guest/orders', $payload, [
             'Idempotency-Key' => 'throttle-11',
         ])->assertStatus(429);
+    }
+
+    public function test_guest_delivery_windows_route_is_throttled(): void
+    {
+        Cache::flush();
+
+        DeliveryWindow::query()->create([
+            'schedule_type' => DeliveryWindow::TYPE_WEEKLY,
+            'day_of_week' => now()->dayOfWeekIso,
+            'start_time' => '23:00',
+            'end_time' => '23:30',
+            'capacity' => 8,
+            'is_active' => true,
+        ]);
+
+        foreach (range(1, 120) as $index) {
+            $this->getJson('/api/guest/delivery-windows/today')->assertOk();
+        }
+
+        $this->getJson('/api/guest/delivery-windows/today')->assertStatus(429);
     }
 }

@@ -162,7 +162,7 @@ class OrderController extends Controller
             ->select('order_id', DB::raw('SUM(amount) as tip_amount'))
             ->groupBy('order_id');
 
-        $query = Order::with(['customer', 'status', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option'])
+        $query = Order::with(['customer', 'status', 'delivery.deliveryWindow', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option'])
             ->leftJoinSub($paymentSummarySub, 'payment_summary', function ($join) {
                 $join->on('orders.id', '=', 'payment_summary.order_id');
             })
@@ -388,7 +388,7 @@ class OrderController extends Controller
         });
 
         return response()->json(
-            $order->load(['customer', 'status', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option']),
+            $order->load(['customer', 'status', 'delivery.deliveryWindow', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option']),
             201
         );
     }
@@ -411,7 +411,7 @@ class OrderController extends Controller
     public function show(Order $order): JsonResponse
     {
         return response()->json(
-            $order->load(['customer', 'status', 'session', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option', 'payments', 'tips'])
+            $order->load(['customer', 'status', 'session', 'delivery.deliveryWindow', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option', 'payments', 'tips'])
         );
     }
 
@@ -473,7 +473,7 @@ class OrderController extends Controller
             $customerPushNotifier->orderStatusUpdated($order);
         }
 
-        return response()->json($order->load(['customer', 'status', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option']));
+        return response()->json($order->load(['customer', 'status', 'delivery.deliveryWindow', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option']));
     }
 
     #[OA\Delete(
