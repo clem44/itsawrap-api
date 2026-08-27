@@ -14,8 +14,8 @@ return new class extends Migration
             $table->foreignId('delivery_window_id')->constrained()->restrictOnDelete();
             $table->foreignId('assigned_driver_id')->nullable()->constrained('users')->nullOnDelete();
             $table->date('delivery_date');
-            $table->timestamp('window_start_at');
-            $table->timestamp('window_end_at');
+            $table->dateTime('window_start_at');
+            $table->dateTime('window_end_at');
             $table->text('address');
             $table->decimal('latitude', 10, 7);
             $table->decimal('longitude', 10, 7);
