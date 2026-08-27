@@ -54,7 +54,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('branches', BranchController::class);
 
         // Delivery windows management
-        Route::resource('delivery-windows', DeliveryWindowController::class, ['only' => ['index', 'store', 'update']]);
+        Route::post('/delivery-windows/{delivery_window}/duplicate', [DeliveryWindowController::class, 'duplicate'])->name('delivery-windows.duplicate');
+        Route::resource('delivery-windows', DeliveryWindowController::class, ['only' => ['index', 'store', 'update', 'destroy']]);
 
         // Orders management
         Route::resource('orders', OrderController::class, ['only' => ['index', 'show', 'update', 'destroy']]);

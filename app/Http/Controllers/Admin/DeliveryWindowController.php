@@ -65,6 +65,32 @@ class DeliveryWindowController extends Controller
             ->with('success', 'Delivery window updated successfully.');
     }
 
+    public function duplicate(DeliveryWindow $deliveryWindow): RedirectResponse
+    {
+        DB::transaction(function () use ($deliveryWindow): void {
+            $copy = $deliveryWindow->replicate();
+            $copy->save();
+
+            $copy->drivers()->sync($deliveryWindow->drivers()->pluck('users.id')->all());
+        });
+
+        return redirect()->route('admin.delivery-windows.index')
+            ->with('success', 'Delivery window duplicated successfully.');
+    }
+
+    public function destroy(DeliveryWindow $deliveryWindow): RedirectResponse
+    {
+        if ($deliveryWindow->deliveries()->exists()) {
+            return redirect()->route('admin.delivery-windows.index')
+                ->with('error', 'Cannot delete a delivery window with deliveries. Deactivate it instead.');
+        }
+
+        $deliveryWindow->delete();
+
+        return redirect()->route('admin.delivery-windows.index')
+            ->with('success', 'Delivery window deleted successfully.');
+    }
+
     /**
      * @return array<string, mixed>
      */

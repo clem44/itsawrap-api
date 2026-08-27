@@ -466,6 +466,82 @@ class DeliveryFeatureTest extends TestCase
         $this->assertFalse($window->drivers()->whereKey($previousDriver->id)->exists());
     }
 
+    public function test_admin_can_duplicate_delivery_window_with_driver_assignments(): void
+    {
+        $admin = $this->makeUser(Role::ADMIN_ID, 'delivery-duplicate-admin');
+        $driver = $this->makeUser(Role::DRIVER_ID, 'delivery-duplicate-driver');
+        $window = DeliveryWindow::query()->create([
+            'schedule_type' => DeliveryWindow::TYPE_WEEKLY,
+            'day_of_week' => null,
+            'start_time' => '10:00',
+            'end_time' => '11:30',
+            'capacity' => 8,
+            'is_active' => true,
+            'notes' => 'Morning deliveries',
+        ]);
+        $window->drivers()->attach($driver);
+
+        $this->actingAs($admin)
+            ->post(route('admin.delivery-windows.duplicate', $window))
+            ->assertRedirect(route('admin.delivery-windows.index'));
+
+        $copy = DeliveryWindow::query()->whereKeyNot($window->id)->firstOrFail();
+
+        $this->assertSame($window->schedule_type, $copy->schedule_type);
+        $this->assertSame($window->day_of_week, $copy->day_of_week);
+        $this->assertSame((string) $window->start_time, (string) $copy->start_time);
+        $this->assertSame((string) $window->end_time, (string) $copy->end_time);
+        $this->assertSame($window->capacity, $copy->capacity);
+        $this->assertTrue($copy->is_active);
+        $this->assertSame('Morning deliveries', $copy->notes);
+        $this->assertTrue($copy->drivers()->whereKey($driver->id)->exists());
+        $this->assertDatabaseCount('delivery_windows', 2);
+    }
+
+    public function test_admin_can_delete_unused_delivery_window(): void
+    {
+        $admin = $this->makeUser(Role::ADMIN_ID, 'delivery-delete-admin');
+        $window = DeliveryWindow::query()->create([
+            'schedule_type' => DeliveryWindow::TYPE_WEEKLY,
+            'day_of_week' => 1,
+            'start_time' => '10:00',
+            'end_time' => '11:30',
+            'capacity' => 8,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->delete(route('admin.delivery-windows.destroy', $window))
+            ->assertRedirect(route('admin.delivery-windows.index'));
+
+        $this->assertDatabaseMissing('delivery_windows', [
+            'id' => $window->id,
+        ]);
+    }
+
+    public function test_admin_cannot_delete_delivery_window_with_deliveries(): void
+    {
+        $admin = $this->makeUser(Role::ADMIN_ID, 'delivery-protected-delete-admin');
+        $window = DeliveryWindow::query()->create([
+            'schedule_type' => DeliveryWindow::TYPE_WEEKLY,
+            'day_of_week' => 1,
+            'start_time' => '10:00',
+            'end_time' => '11:30',
+            'capacity' => 8,
+            'is_active' => true,
+        ]);
+        $this->createExistingDelivery($window);
+
+        $this->actingAs($admin)
+            ->delete(route('admin.delivery-windows.destroy', $window))
+            ->assertRedirect(route('admin.delivery-windows.index'))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('delivery_windows', [
+            'id' => $window->id,
+        ]);
+    }
+
     public function test_admin_delivery_window_index_renders_existing_windows(): void
     {
         $admin = $this->makeUser(Role::ADMIN_ID, 'delivery-page-admin');
@@ -483,7 +559,9 @@ class DeliveryFeatureTest extends TestCase
             ->assertOk()
             ->assertSee('Delivery Windows')
             ->assertSee('Monday')
-            ->assertSee('10:00 AM - 11:30 AM');
+            ->assertSee('10:00 AM - 11:30 AM')
+            ->assertSee('Duplicate Delivery Window')
+            ->assertSee('Delete Delivery Window');
     }
 
     public function test_admin_delivery_window_index_labels_null_weekday_as_everyday(): void

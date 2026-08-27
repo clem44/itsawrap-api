@@ -580,6 +580,14 @@
     color: var(--color-terracotta);
 }
 
+.action-btn.copy {
+    color: var(--color-forest);
+}
+
+.action-btn.copy:hover {
+    background: rgba(44, 74, 58, 0.1);
+}
+
 .action-btn.delete {
     color: #b91c1c;
 }
