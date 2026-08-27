@@ -111,8 +111,8 @@
 
                 <div class="role-cards">
                     @foreach($roles as $role)
-                        <label class="role-card {{ $role->code === 'admin' ? 'admin' : 'user' }} {{ (int) old('role_id', 2) === $role->id ? 'selected' : '' }}" data-role="{{ $role->code }}">
-                            <input type="radio" name="role_id" value="{{ $role->id }}" {{ (int) old('role_id', 2) === $role->id ? 'checked' : '' }}>
+                        <label class="role-card {{ $role->code === 'admin' ? 'admin' : 'user' }} {{ (int) old('role_id', 2) === $role->id ? 'selected' : '' }}" for="role_{{ $role->id }}" data-role="{{ $role->code }}">
+                            <input id="role_{{ $role->id }}" type="radio" name="role_id" value="{{ $role->id }}" {{ (int) old('role_id', 2) === $role->id ? 'checked' : '' }}>
                             <div class="role-card-content">
                                 <div class="role-icon">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -228,6 +228,12 @@
     const roleCards = document.querySelectorAll('.role-card');
     roleCards.forEach(card => {
         card.addEventListener('click', () => {
+            const radio = card.querySelector('input[name="role_id"]');
+
+            if (radio) {
+                radio.checked = true;
+            }
+
             roleCards.forEach(c => c.classList.remove('selected'));
             card.classList.add('selected');
         });
