@@ -633,6 +633,117 @@
     margin-top: 2rem;
 }
 
+.pagination-wrapper nav.admin-pagination {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem;
+    background: white;
+    border: 1px solid var(--color-cream-dark);
+    border-radius: 1.25rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.pagination-wrapper .admin-pagination__summary {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0 0.5rem;
+    color: var(--color-ink-light);
+    font-size: 0.875rem;
+    white-space: nowrap;
+}
+
+.pagination-wrapper .admin-pagination__summary strong {
+    color: var(--color-ink);
+    font-weight: 600;
+}
+
+.pagination-wrapper .admin-pagination__summary > span,
+.pagination-wrapper .admin-pagination__button > span {
+    padding: 0;
+    border-radius: 0;
+}
+
+.admin-pagination__controls,
+.admin-pagination__pages {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.admin-pagination__controls {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    min-width: 0;
+}
+
+.admin-pagination__pages {
+    min-width: 0;
+}
+
+.pagination-wrapper .admin-pagination__button,
+.pagination-wrapper .admin-pagination__page,
+.pagination-wrapper .admin-pagination__ellipsis {
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.pagination-wrapper .admin-pagination__button {
+    gap: 0.35rem;
+    padding: 0 0.875rem;
+    color: var(--color-forest);
+    background: var(--color-cream);
+    border: 1px solid var(--color-cream-dark);
+}
+
+.pagination-wrapper .admin-pagination__page,
+.pagination-wrapper .admin-pagination__ellipsis {
+    padding: 0;
+    color: var(--color-ink-light);
+}
+
+.pagination-wrapper .admin-pagination__button:hover,
+.pagination-wrapper .admin-pagination__page:hover {
+    background: rgba(124, 154, 138, 0.14);
+    color: var(--color-forest);
+}
+
+.pagination-wrapper .admin-pagination__button:focus-visible,
+.pagination-wrapper .admin-pagination__page:focus-visible {
+    outline: 3px solid rgba(124, 154, 138, 0.25);
+    outline-offset: 2px;
+}
+
+.pagination-wrapper .admin-pagination__page.is-current {
+    background: linear-gradient(135deg, var(--color-forest), var(--color-forest-light));
+    color: white;
+    box-shadow: 0 4px 12px rgba(26, 58, 47, 0.2);
+}
+
+.pagination-wrapper .admin-pagination__button.is-disabled {
+    color: var(--color-ink-light);
+    background: transparent;
+    border-color: transparent;
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.admin-pagination__icon {
+    width: 1rem;
+    height: 1rem;
+    flex: 0 0 auto;
+}
+
 .pagination-wrapper nav {
     display: flex;
     gap: 0.25rem;
@@ -658,6 +769,31 @@
 .pagination-wrapper .active {
     background: var(--color-forest) !important;
     color: white !important;
+}
+
+@media (max-width: 640px) {
+    .pagination-wrapper nav.admin-pagination {
+        align-items: stretch;
+        flex-direction: column;
+        padding: 0.75rem;
+    }
+
+    .pagination-wrapper .admin-pagination__summary {
+        justify-content: center;
+        padding: 0.25rem 0;
+    }
+
+    .admin-pagination__controls {
+        justify-content: space-between;
+    }
+
+    .admin-pagination__pages {
+        display: none;
+    }
+
+    .pagination-wrapper .admin-pagination__button {
+        flex: 1 1 0;
+    }
 }
 
 /* Section Card */

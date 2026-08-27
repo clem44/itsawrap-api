@@ -662,7 +662,7 @@
 
     @if($items->hasPages())
         <div class="pagination-wrapper animate-in animate-delay-2">
-            {{ $items->links() }}
+            {{ $items->links('admin.partials.pagination') }}
         </div>
     @endif
 
