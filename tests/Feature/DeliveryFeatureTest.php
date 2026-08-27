@@ -314,6 +314,49 @@ class DeliveryFeatureTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_update_delivery_window_and_driver_assignments(): void
+    {
+        $admin = $this->makeUser(Role::ADMIN_ID, 'delivery-update-admin');
+        $driver = $this->makeUser(Role::DRIVER_ID, 'delivery-update-driver');
+        $previousDriver = $this->makeUser(Role::DRIVER_ID, 'delivery-previous-driver');
+        $window = DeliveryWindow::query()->create([
+            'schedule_type' => DeliveryWindow::TYPE_WEEKLY,
+            'day_of_week' => 1,
+            'start_time' => '10:00',
+            'end_time' => '11:30',
+            'capacity' => 8,
+            'is_active' => true,
+        ]);
+        $window->drivers()->attach($previousDriver);
+
+        $this->actingAs($admin)
+            ->put(route('admin.delivery-windows.update', $window), [
+                'form_action' => 'edit',
+                'edit_id' => $window->id,
+                'schedule_type' => DeliveryWindow::TYPE_SPECIFIC_DATE,
+                'delivery_date' => '2026-08-31',
+                'start_time' => '12:00',
+                'end_time' => '13:45',
+                'capacity' => 5,
+                'driver_ids' => [$driver->id],
+                'notes' => 'Lunch deliveries',
+            ])
+            ->assertRedirect(route('admin.delivery-windows.index'));
+
+        $window->refresh();
+
+        $this->assertSame(DeliveryWindow::TYPE_SPECIFIC_DATE, $window->schedule_type);
+        $this->assertNull($window->day_of_week);
+        $this->assertSame('2026-08-31', $window->delivery_date->format('Y-m-d'));
+        $this->assertSame('12:00', substr((string) $window->start_time, 0, 5));
+        $this->assertSame('13:45', substr((string) $window->end_time, 0, 5));
+        $this->assertSame(5, $window->capacity);
+        $this->assertFalse($window->is_active);
+        $this->assertSame('Lunch deliveries', $window->notes);
+        $this->assertTrue($window->drivers()->whereKey($driver->id)->exists());
+        $this->assertFalse($window->drivers()->whereKey($previousDriver->id)->exists());
+    }
+
     public function test_admin_delivery_window_index_renders_existing_windows(): void
     {
         $admin = $this->makeUser(Role::ADMIN_ID, 'delivery-page-admin');
