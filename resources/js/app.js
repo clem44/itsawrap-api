@@ -2,6 +2,7 @@ import './bootstrap';
 import { createApp } from 'vue';
 import EditItemModal from './components/admin/EditItemModal.vue';
 import EditOptionValueModal from './components/admin/EditOptionValueModal.vue';
+import UserForm from './components/admin/users/UserForm.vue';
 
 function splitPageManager(manager) {
     const data = {};
@@ -73,6 +74,7 @@ function mountAdminApp() {
     })
         .component('edit-item-modal', EditItemModal)
         .component('edit-option-value-modal', EditOptionValueModal)
+        .component('user-form', UserForm)
         .mount(root);
 }
 
