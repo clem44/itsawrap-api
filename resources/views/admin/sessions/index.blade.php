@@ -117,7 +117,7 @@
 
     @if($sessions->hasPages())
         <div class="pagination-wrapper animate-in animate-delay-2">
-            {{ $sessions->links() }}
+            {{ $sessions->links('admin.partials.pagination') }}
         </div>
     @endif
 </div>

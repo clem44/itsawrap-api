@@ -197,7 +197,7 @@
 
     @if($customers->hasPages())
         <div class="pagination-wrapper animate-in animate-delay-2">
-            {{ $customers->links() }}
+            {{ $customers->links('admin.partials.pagination') }}
         </div>
     @endif
 

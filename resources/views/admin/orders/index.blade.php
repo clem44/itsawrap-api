@@ -134,7 +134,7 @@
 
     @if($orders->hasPages())
         <div class="pagination-wrapper animate-in animate-delay-2">
-            {{ $orders->links() }}
+            {{ $orders->links('admin.partials.pagination') }}
         </div>
     @endif
 </div>
