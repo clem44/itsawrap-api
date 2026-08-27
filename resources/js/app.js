@@ -19,12 +19,22 @@ function splitPageManager(manager) {
     return { data, methods };
 }
 
+function prepareRuntimeDomTemplate(root) {
+    root.querySelectorAll('[v-text]').forEach((element) => {
+        if (element.childNodes.length > 0) {
+            element.textContent = '';
+        }
+    });
+}
+
 function mountAdminApp() {
     const root = document.getElementById('admin-vue-app');
 
     if (!root) {
         return;
     }
+
+    prepareRuntimeDomTemplate(root);
 
     const pageManager = splitPageManager(window.AdminVuePage?.());
 

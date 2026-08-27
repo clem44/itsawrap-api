@@ -336,8 +336,8 @@
                             <button type="button" class="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors" @click="closeCreate()">
                                 Cancel
                             </button>
-                            <button type="submit" class="rounded-lg bg-[var(--color-forest)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--color-forest-dark)] transition-colors" v-text="modalMode === 'edit' ? 'Save Changes' : 'Create Program'">
-                                Create Program
+                            <button type="submit" class="rounded-lg bg-[var(--color-forest)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--color-forest-dark)] transition-colors">
+                                <span v-text="modalMode === 'edit' ? 'Save Changes' : 'Create Program'"></span>
                             </button>
                         </div>
                     </form>

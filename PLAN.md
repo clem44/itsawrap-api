@@ -836,3 +836,405 @@ Docs tests/checks:
 - Should notifications be sent for guest web orders only, authenticated customer web orders only, or both?
 - Should admin CMS browser sessions receive these notifications later, or should this stay POS-only?
 - Should failed notification deliveries be persisted in `push_notification_deliveries` or only logged?
+
+# Delivery Feature Plan
+
+## Goal
+
+Implement a proper delivery scheduling feature for the restaurant ordering app.
+
+Customer-facing behavior:
+
+- When the customer chooses delivery, the client app shows today's delivery windows.
+- Delivery windows that have passed their start time are still returned, but with `is_available = false` so the client can grey them out.
+- Full windows are also returned with `is_available = false`.
+- Customers select one available delivery window before placing a delivery order.
+- Delivery orders include address, latitude, longitude, and optional delivery instructions.
+
+Administrator behavior:
+
+- Administrators can create and update delivery windows in the admin dashboard.
+- Administrators can create weekly recurring windows by day of week.
+- Administrators can create specific-date windows for one calendar date.
+- If specific-date windows exist for today, they replace the recurring windows for that weekday.
+- Delivery windows should not be hidden from the customer just because no driver is assigned.
+- Administrators can assign one or more drivers to delivery windows.
+
+## Design Direction
+
+Build delivery as its own module with a small interface around resolving availability and reserving a selected window.
+
+The existing `orders.is_delivery` flag should remain for backwards compatibility, reporting, and existing app behavior. Delivery-specific data should live in a new `deliveries` table instead of expanding `orders` with every fulfillment detail.
+
+The customer should always reserve a concrete delivery occurrence for today's date, even when that occurrence came from a weekly recurring window. Existing delivery orders must keep a snapshot of the chosen window time so later admin edits do not rewrite what the customer selected.
+
+## Role Model
+
+Add a `roles` table to make the existing `users.role_id` column explicit.
+
+Seed fixed roles:
+
+```text
+1 admin
+2 staff
+3 customer
+4 driver
+```
+
+Keep the existing numeric IDs because the current middleware, tests, and seeded users already depend on them.
+
+Recommended schema:
+
+```text
+id unsigned tiny integer primary key
+code string unique
+name string
+description nullable string
+timestamps
+```
+
+Update `users.role_id` to reference `roles.id`.
+
+Driver rule:
+
+- A driver is a `User` with `role_id = 4`.
+- Do not add a separate `drivers` table in the first version.
+- Add a driver profile later only if drivers need extra data such as vehicle, license, availability, or max delivery count.
+
+## Database Schema
+
+### `delivery_windows`
+
+Stores both recurring weekly windows and specific-date windows.
+
+```text
+id
+schedule_type string              // weekly, specific_date
+day_of_week unsigned tiny integer nullable
+delivery_date date nullable
+start_time time
+end_time time
+capacity unsigned integer
+is_active boolean default true
+branch_id nullable foreign key branches.id
+notes nullable text
+timestamps
+```
+
+Validation rules:
+
+- `schedule_type = weekly` requires `day_of_week` and no `delivery_date`.
+- `schedule_type = specific_date` requires `delivery_date` and no `day_of_week`.
+- `start_time` must be before `end_time`.
+- `capacity` must be at least 1.
+
+Suggested indexes:
+
+```text
+index(schedule_type, day_of_week, is_active)
+index(schedule_type, delivery_date, is_active)
+index(branch_id)
+```
+
+### `delivery_window_driver`
+
+Assigns drivers to delivery windows.
+
+```text
+id
+delivery_window_id foreign key delivery_windows.id
+user_id foreign key users.id
+timestamps
+
+unique(delivery_window_id, user_id)
+```
+
+Rules:
+
+- Assigned users must have `role_id = 4`.
+- A window can have zero, one, or many assigned drivers.
+- Driver assignment does not control whether the customer sees the window.
+
+### `deliveries`
+
+Stores the delivery fulfillment record for a delivery order.
+
+```text
+id
+order_id foreign key orders.id unique
+delivery_window_id foreign key delivery_windows.id
+assigned_driver_id nullable foreign key users.id
+delivery_date date
+window_start_at timestamp
+window_end_at timestamp
+address text
+latitude decimal(10, 7)
+longitude decimal(10, 7)
+delivery_instructions nullable text
+status string default pending
+timestamps
+```
+
+Notes:
+
+- `delivery_date`, `window_start_at`, and `window_end_at` are snapshots of what the customer selected.
+- `assigned_driver_id` is optional in the first version.
+- Window-level drivers say who covers the window; delivery-level driver assignment says who owns a specific order.
+
+Suggested indexes:
+
+```text
+index(delivery_window_id, delivery_date)
+index(assigned_driver_id)
+index(status)
+```
+
+## Availability Rules
+
+The client app only needs today's delivery windows.
+
+Resolution order:
+
+1. Resolve today using the application or restaurant timezone.
+2. Look for active specific-date windows where `delivery_date = today`.
+3. If any specific-date windows exist for today, return only those windows.
+4. If no specific-date windows exist for today, return active weekly windows matching today's weekday.
+5. For each returned window, calculate remaining capacity from delivery orders already attached to that window/date.
+6. Set `is_available = false` when the current time is after the window start time.
+7. Set `is_available = false` when remaining capacity is 0.
+8. Driver assignment does not affect `is_available`.
+
+Inactive windows should not be returned. Active but unavailable windows should be returned.
+
+Example response:
+
+```json
+[
+  {
+    "delivery_window_id": 12,
+    "label": "10:00 AM - 11:30 AM",
+    "delivery_date": "2026-08-26",
+    "starts_at": "2026-08-26T10:00:00-04:00",
+    "ends_at": "2026-08-26T11:30:00-04:00",
+    "capacity": 8,
+    "remaining_capacity": 3,
+    "driver_count": 0,
+    "is_available": false,
+    "unavailable_reason": "time_passed"
+  }
+]
+```
+
+## Backend Module
+
+Create a delivery module under `app/Services/Delivery`.
+
+Suggested public interface:
+
+```php
+DeliveryScheduler::today(): Collection
+DeliveryScheduler::reserveForOrder(Order $order, array $deliveryData): Delivery
+```
+
+Responsibilities hidden inside the implementation:
+
+- Resolving specific-date windows versus recurring weekly windows.
+- Formatting today's customer-facing window list.
+- Calculating remaining capacity.
+- Marking passed and full windows unavailable.
+- Validating that an order-selected window is available.
+- Locking the selected window/date to prevent overbooking.
+- Creating the `deliveries` row.
+- Snapshotting the selected window start/end timestamps.
+
+Keep guest and customer order controllers thin. They should validate request shape and let the delivery module enforce delivery availability.
+
+## Order Creation Integration
+
+Guest checkout and authenticated customer checkout should share the same delivery reservation behavior.
+
+When `is_delivery = true`, require:
+
+```text
+delivery_window_id
+delivery_address
+delivery_latitude
+delivery_longitude
+```
+
+Optional:
+
+```text
+delivery_instructions
+```
+
+When `is_delivery = false`:
+
+- Do not require delivery fields.
+- Reject `delivery_window_id` or ignore delivery fields consistently.
+- Do not create a `deliveries` row.
+
+Order creation should remain transactional:
+
+- Create the order and order items.
+- If the order is delivery, reserve the selected window and create the delivery record.
+- Preserve existing guest checkout rules:
+  - `source = guest-web`
+  - `session_id = null`
+  - no cash session total mutation
+  - idempotency behavior remains unchanged
+
+Idempotency behavior should return the existing order with its delivery relationship loaded.
+
+## Admin CMS
+
+Add a Delivery section under `/admin/delivery-windows`.
+
+Capabilities:
+
+- List delivery windows grouped by recurring weekday and specific date.
+- Create weekly recurring windows.
+- Create specific-date windows.
+- Edit start time, end time, capacity, active state, branch, and notes.
+- Assign and remove driver users.
+- Show current driver count per window.
+- Show today's order count or recent delivery count for each window.
+
+Navigation:
+
+- Add Delivery to desktop admin navigation.
+- Add Delivery to mobile admin navigation.
+
+User management:
+
+- Update admin user create/edit pages to use roles from the `roles` table.
+- Include Driver as an assignable role.
+- Replace hard-coded Admin/User labels where practical.
+
+## API Surface
+
+Customer-facing endpoints:
+
+```text
+GET /api/guest/delivery-windows/today
+GET /api/me/delivery-windows/today
+```
+
+The authenticated customer endpoint can reuse the same response as the guest endpoint.
+
+Order payload additions for delivery orders:
+
+```json
+{
+  "is_delivery": true,
+  "delivery_window_id": 12,
+  "delivery_address": "123 Main Road, The Valley",
+  "delivery_latitude": 18.2208000,
+  "delivery_longitude": -63.0686000,
+  "delivery_instructions": "Call on arrival"
+}
+```
+
+Potential staff API endpoints:
+
+```text
+GET /api/delivery-windows
+POST /api/delivery-windows
+GET /api/delivery-windows/{deliveryWindow}
+PUT /api/delivery-windows/{deliveryWindow}
+DELETE /api/delivery-windows/{deliveryWindow}
+POST /api/delivery-windows/{deliveryWindow}/drivers
+DELETE /api/delivery-windows/{deliveryWindow}/drivers/{user}
+```
+
+Keep OpenAPI annotations in sync if API endpoints are added.
+
+## Testing Plan
+
+Backend tests:
+
+- Guest can fetch today's recurring delivery windows.
+- Authenticated customer can fetch today's recurring delivery windows.
+- Specific-date windows for today replace recurring weekday windows.
+- Specific-date windows for another date do not affect today's recurring windows.
+- Passed windows are returned with `is_available = false`.
+- Full windows are returned with `is_available = false`.
+- Windows with no assigned driver are still returned.
+- Delivery order requires a valid available delivery window.
+- Delivery order requires address, latitude, and longitude.
+- Pickup order does not create a delivery record.
+- Delivery order creates a delivery record with window timestamp snapshots.
+- Delivery order cannot reserve a full delivery window.
+- Concurrent or repeated delivery reservation cannot overbook capacity.
+- Idempotent guest order replay returns the existing delivery order.
+- Driver assignment only accepts users with `role_id = 4`.
+
+Admin tests:
+
+- Admin can create a weekly recurring delivery window.
+- Admin can create a specific-date delivery window.
+- Admin can update capacity and active state.
+- Admin can assign a driver to a delivery window.
+- Admin can remove a driver from a delivery window.
+- Admin user management can assign the Driver role.
+
+Regression tests:
+
+- Existing guest ordering tests still pass.
+- Existing POS order cash session behavior remains unchanged.
+- Existing admin-only access remains restricted to role `admin`.
+- Existing customer-only `/api/me/*` access remains restricted to role `customer`.
+
+## Implementation Phases
+
+### Phase 1: Roles
+
+- Add the `roles` table migration and seed fixed role IDs.
+- Add a `Role` model.
+- Add `User::role()` relationship.
+- Add `Role::users()` relationship.
+- Update middleware and admin/user display code gradually to use role codes where practical.
+- Keep numeric IDs stable for backwards compatibility.
+
+### Phase 2: Delivery Data Model
+
+- Add `delivery_windows` migration and model.
+- Add `delivery_window_driver` pivot migration and relationships.
+- Add `deliveries` migration and model.
+- Add `Order::delivery()` relationship.
+- Add `User::deliveryWindows()` and `User::assignedDeliveries()` relationships.
+
+### Phase 3: Delivery Scheduler Module
+
+- Implement today's window resolver.
+- Implement specific-date-over-recurring precedence.
+- Implement capacity calculation.
+- Implement availability flags for time-passed and full windows.
+- Implement transactional reservation with a lock.
+
+### Phase 4: Customer-Facing API
+
+- Add guest and authenticated customer endpoints for today's delivery windows.
+- Add delivery fields to guest and authenticated customer order request validation.
+- Integrate delivery reservation into `OrderCreationService`.
+- Load delivery data in order responses where relevant.
+
+### Phase 5: Admin CMS
+
+- Add delivery window admin controller.
+- Add Blade views for listing, creating, editing, and assigning drivers.
+- Update desktop and mobile admin navigation.
+- Update user create/edit role selection to include Driver.
+
+### Phase 6: API Docs
+
+- Add OpenAPI annotations for delivery endpoints.
+- Regenerate Swagger docs with `php artisan l5-swagger:generate`.
+
+## Open Questions
+
+- Which timezone should define "today" for delivery availability if the server timezone changes?
+- Should `branch_id` be required immediately, or nullable until branch-specific delivery is needed?
+- Should specific-date windows replace recurring windows only when at least one active specific-date window exists, or when any specific-date window exists even if all are inactive?
+- Should deleting a delivery window be blocked when existing delivery orders reference it?
+- Should admins be able to manually reassign an existing delivery order to another window after it is placed?
