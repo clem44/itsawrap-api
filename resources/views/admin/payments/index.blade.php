@@ -99,7 +99,7 @@
 
     @if($payments->hasPages())
         <div class="pagination-wrapper animate-in animate-delay-2">
-            {{ $payments->links() }}
+            {{ $payments->links('admin.partials.pagination') }}
         </div>
     @endif
 </div>

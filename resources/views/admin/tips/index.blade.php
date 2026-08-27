@@ -81,7 +81,7 @@
 
     @if($tips->hasPages())
         <div class="pagination-wrapper animate-in animate-delay-2">
-            {{ $tips->links() }}
+            {{ $tips->links('admin.partials.pagination') }}
         </div>
     @endif
 </div>

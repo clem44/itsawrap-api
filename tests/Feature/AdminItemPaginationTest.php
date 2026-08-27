@@ -7,7 +7,9 @@ use App\Models\Category;
 use App\Models\Customer;
 use App\Models\Item;
 use App\Models\Order;
+use App\Models\Payment;
 use App\Models\Status;
+use App\Models\Tip;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -123,6 +125,58 @@ class AdminItemPaginationTest extends TestCase
             ->assertSee('aria-current="page"', false);
     }
 
+    public function test_admin_tips_index_uses_admin_pagination_template(): void
+    {
+        $admin = $this->makeAdmin('tips-admin');
+        $order = $this->makeOrder();
+
+        foreach (range(1, 16) as $index) {
+            Tip::query()->create([
+                'order_id' => $order->id,
+                'amount' => $index,
+            ]);
+        }
+
+        $this->actingAs($admin)
+            ->get(route('admin.tips.index'))
+            ->assertOk()
+            ->assertSee('class="admin-pagination"', false)
+            ->assertSee('Showing', false)
+            ->assertSee('1-15', false)
+            ->assertSee('of', false)
+            ->assertSee('16', false)
+            ->assertSee('Previous', false)
+            ->assertSee('Next', false)
+            ->assertSee('aria-current="page"', false);
+    }
+
+    public function test_admin_payments_index_uses_admin_pagination_template(): void
+    {
+        $admin = $this->makeAdmin('payments-admin');
+        $order = $this->makeOrder();
+
+        foreach (range(1, 16) as $index) {
+            Payment::query()->create([
+                'order_id' => $order->id,
+                'amount' => $index,
+                'method' => 'cash',
+                'status' => 'paid',
+            ]);
+        }
+
+        $this->actingAs($admin)
+            ->get(route('admin.payments.index'))
+            ->assertOk()
+            ->assertSee('class="admin-pagination"', false)
+            ->assertSee('Showing', false)
+            ->assertSee('1-15', false)
+            ->assertSee('of', false)
+            ->assertSee('16', false)
+            ->assertSee('Previous', false)
+            ->assertSee('Next', false)
+            ->assertSee('aria-current="page"', false);
+    }
+
     private function makeAdmin(string $username): User
     {
         return User::query()->create([
@@ -132,6 +186,20 @@ class AdminItemPaginationTest extends TestCase
             'email' => "{$username}@example.com",
             'password' => Hash::make('password'),
             'role_id' => 1,
+        ]);
+    }
+
+    private function makeOrder(): Order
+    {
+        $status = Status::query()->firstOrCreate(['name' => 'pending']);
+        $customer = Customer::query()->create(['name' => 'Pagination Customer']);
+
+        return Order::query()->create([
+            'number' => 'ORD-PAGINATION',
+            'customer_id' => $customer->id,
+            'status_id' => $status->id,
+            'subtotal' => 12.50,
+            'total' => 12.50,
         ]);
     }
 }
