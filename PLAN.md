@@ -434,6 +434,476 @@ Regression tests:
 - Should existing historical orders be backfilled into reward progress when the feature launches?
 - Should a customer be identified only by `customers.id`, or should phone/email matching merge guest-created customers?
 
+# Referral Loyalty Feature Plan
+
+## Goal
+
+Add a second reward system based on customer referrals.
+
+Business rule:
+
+- Referral Loyalty: successfully refer 5 new registered customers and get 1 free wrap.
+- The referral point is awarded when the referred customer registers with a valid referral code.
+- The referred customer does not need to place a first order in the first version.
+- Referral loyalty and purchase loyalty must operate independently.
+- Both systems should appear together in the customer's Rewards / Loyalty account area.
+- Customers should be able to share referral links such as:
+
+```text
+https://itsawrap.ai/ref/SUNRA482
+```
+
+The client app owns the `/ref/{code}` user experience. It should route the new customer to registration and prefill the referral code field. The Laravel API owns validation, attribution, ledger/account updates, and reward redemption eligibility.
+
+## Design Direction
+
+Build referral loyalty as a parallel module, not as a special case inside the current category-purchase `RewardProgram` model.
+
+Reason:
+
+- Purchase loyalty earns progress from completed order items.
+- Referral loyalty earns progress from user registration attribution.
+- The systems have different sources of truth and reversal rules.
+- Keeping separate ledgers/accounts avoids corrupting the current assumption that `reward_programs` are category-purchase programs.
+
+The API should combine both systems in reward summary responses so the client can render them in one Rewards / Loyalty area.
+
+## Identity Model
+
+Use `user_id` for referral attribution because each customer registration creates a `User` model.
+
+Referral ownership and referral relationships should not use `customer_id` as the primary link.
+
+Rules:
+
+- A referral code belongs to a `User`.
+- A referral relationship links the referring `User` to the newly registered `User`.
+- Redemption still needs a linked `Customer` record because orders belong to customers.
+- The service should validate that the reward-earning user has a linked customer before referral rewards are redeemed.
+
+## Database Schema
+
+### `referral_programs`
+
+Stores administrator-configurable referral reward rules.
+
+```text
+id
+name
+is_active boolean default true
+required_referrals unsigned integer default 5
+reward_category_id foreign key categories.id
+reward_quantity unsigned integer default 1
+starts_at nullable timestamp
+ends_at nullable timestamp
+created_by_user_id nullable foreign key users.id
+timestamps
+```
+
+Notes:
+
+- The first program should be: refer 5 registered customers, get 1 free wrap.
+- `reward_category_id` should point to the Wraps category.
+- Keep `required_referrals` explicit so the threshold can be changed later without code changes.
+
+### `user_referral_codes`
+
+Stores shareable referral codes for registered users.
+
+```text
+id
+user_id foreign key users.id unique
+code string unique
+is_active boolean default true
+timestamps
+```
+
+Rules:
+
+- Codes should be generated server-side.
+- Codes should be stored uppercase.
+- Incoming codes should be trimmed and normalized to uppercase before lookup.
+- A user should have one active referral code in the first version.
+
+### `user_referrals`
+
+Stores referral attribution from one registered user to another.
+
+```text
+id
+referral_program_id foreign key referral_programs.id
+referrer_user_id foreign key users.id
+referred_user_id foreign key users.id
+status string default qualified
+qualified_at timestamp
+reversed_at nullable timestamp
+reversal_reason nullable string
+created_by_user_id nullable foreign key users.id
+timestamps
+
+unique(referred_user_id, referral_program_id)
+```
+
+Expected `status` values:
+
+- `qualified`
+- `reversed`
+
+Notes:
+
+- Keep `status` even though the first version qualifies immediately. This leaves room for a future `pending` status if referrals later require a first paid order.
+- A referred user can only count once per referral program.
+- Self-referrals must be rejected.
+
+### `user_referral_reward_accounts`
+
+Stores current referral loyalty balances per user and referral program.
+
+```text
+id
+user_id foreign key users.id
+referral_program_id foreign key referral_programs.id
+progress_quantity unsigned integer default 0
+rewards_available unsigned integer default 0
+lifetime_qualified_referrals unsigned integer default 0
+lifetime_rewards_earned unsigned integer default 0
+lifetime_rewards_redeemed unsigned integer default 0
+timestamps
+
+unique(user_id, referral_program_id)
+```
+
+### `user_referral_ledger_entries`
+
+Stores the referral loyalty audit trail.
+
+```text
+id
+user_id foreign key users.id
+referral_program_id foreign key referral_programs.id
+user_referral_id nullable foreign key user_referrals.id
+order_id nullable foreign key orders.id
+order_item_id nullable foreign key order_items.id
+reverses_ledger_entry_id nullable foreign key user_referral_ledger_entries.id
+type string
+progress_delta integer default 0
+rewards_delta integer default 0
+reason nullable string
+metadata nullable json
+created_by_user_id nullable foreign key users.id
+timestamps
+```
+
+Expected `type` values:
+
+- `qualified_referral`
+- `redeemed`
+- `reversed`
+- `adjusted`
+- `expired`
+
+Expected `reason` values:
+
+- `referred_user_registered`
+- `reward_redemption`
+- `admin_adjustment`
+- `referral_reversed`
+
+Suggested indexes:
+
+```text
+index(user_id, referral_program_id)
+index(user_referral_id)
+index(order_id)
+index(order_item_id)
+index(type)
+unique(reverses_ledger_entry_id)
+```
+
+## Registration API Behavior
+
+The customer registration endpoint should accept an optional `referral_code`.
+
+Example request:
+
+```json
+{
+  "firstname": "Maya",
+  "lastname": "Joseph",
+  "email": "maya@example.com",
+  "phone": "2645550000",
+  "password": "secret",
+  "referral_code": "SUNRA482"
+}
+```
+
+Rules:
+
+- If `referral_code` is omitted or blank, register normally and record no referral.
+- If `referral_code` is present, validation is strict.
+- The code must match an active `user_referral_codes.code`.
+- The code must not belong to the registering user.
+- The registering user must not already have a referral for the active program.
+- If any referral validation fails, return `422` and do not complete registration.
+- If valid, create the user/customer and immediately create a qualified referral for the referrer.
+
+Validation error shape should follow Laravel's normal validation response:
+
+```json
+{
+  "message": "The selected referral code is invalid.",
+  "errors": {
+    "referral_code": [
+      "The selected referral code is invalid."
+    ]
+  }
+}
+```
+
+Registration should be transactional:
+
+1. Validate normal registration fields.
+2. Normalize and validate `referral_code` when present.
+3. Create `users` row.
+4. Create linked `customers` row.
+5. Ensure the new user has a referral code.
+6. If a referral code was supplied, create the qualified `user_referrals` row.
+7. Write a referral ledger entry for the referrer.
+8. Rebuild the referrer's referral reward account.
+9. Return the registration response with token, user, customer, and referral acceptance metadata.
+
+Example success response addition:
+
+```json
+{
+  "referral": {
+    "accepted": true,
+    "code": "SUNRA482"
+  }
+}
+```
+
+## Referral Reward Rules
+
+### Earning
+
+When a new user registers with a valid referral code:
+
+1. Resolve the active referral program.
+2. Resolve the referrer from `user_referral_codes.code`.
+3. Reject invalid, inactive, duplicate, or self-referrals.
+4. Create a `user_referrals` row with `status = qualified`.
+5. Set `qualified_at = now()`.
+6. Create a `user_referral_ledger_entries` row:
+   - `user_id = referrer_user_id`
+   - `type = qualified_referral`
+   - `progress_delta = 1`
+   - `rewards_delta = 0`
+   - `reason = referred_user_registered`
+7. Rebuild the referrer's referral reward account:
+   - every 5 net qualified referrals earns 1 reward;
+   - carry forward remaining progress below the threshold.
+
+### Redemption
+
+Referral rewards should be redeemed independently from purchase-loyalty rewards, but they should feel the same to the customer: a free wrap from the configured reward category.
+
+Recommended first version:
+
+- Add a dedicated referral reward redemption path internally.
+- Mark the free order item with referral-specific metadata instead of pretending it came from `reward_programs`.
+- Validate that the selected item belongs to `referral_programs.reward_category_id`.
+- Decrement `user_referral_reward_accounts.rewards_available`.
+- Write a `redeemed` referral ledger entry linked to the order/order item.
+
+Potential `order_items` additions:
+
+```text
+referral_program_id nullable foreign key referral_programs.id
+referral_ledger_entry_id nullable foreign key user_referral_ledger_entries.id
+```
+
+### Reversal
+
+Admin reversal should be supported for abuse, mistakes, or duplicate accounts.
+
+When a referral is reversed:
+
+1. Mark `user_referrals.status = reversed`.
+2. Set `reversed_at` and `reversal_reason`.
+3. Write a reversal ledger entry rather than deleting the original.
+4. Rebuild the referrer's referral reward account.
+5. Prevent negative `rewards_available` in the first version; show/admin-log when a reversal cannot fully claw back an already-redeemed reward.
+
+## Backend Module
+
+Create a referral loyalty module under `app/Services/Referrals` or `app/Services/Rewards`.
+
+Suggested public interface:
+
+```php
+ReferralService::ensureCodeForUser(User $user): UserReferralCode
+ReferralService::recordRegistrationReferral(User $referredUser, string $referralCode): ?UserReferral
+ReferralService::redeemReferralReward(Order $order, OrderItem $orderItem, ReferralProgram $program, ?User $actor = null): UserReferralLedgerEntry
+ReferralService::reverseReferral(UserReferral $referral, string $reason, ?User $actor = null): void
+ReferralService::summaryForUser(User $user): array
+```
+
+Responsibilities hidden inside the implementation:
+
+- Generating unique referral codes.
+- Normalizing referral codes.
+- Resolving the active referral program.
+- Enforcing duplicate/self-referral rules.
+- Writing referral ledger entries.
+- Rebuilding referral reward accounts.
+- Returning referral summary data for the Rewards / Loyalty UI.
+
+## API Surface
+
+Customer-facing endpoints:
+
+```text
+GET /api/me/rewards
+POST /api/register or existing customer registration endpoint with referral_code
+```
+
+Potential referral-specific endpoints:
+
+```text
+GET /api/me/referral-code
+POST /api/orders/{order}/referral-rewards/redeem
+```
+
+The existing reward summary endpoints should be extended to return both systems together:
+
+```json
+{
+  "rewards_enabled": true,
+  "purchase_loyalty": {
+    "programs": []
+  },
+  "referral_loyalty": {
+    "code": "SUNRA482",
+    "share_url": "https://itsawrap.ai/ref/SUNRA482",
+    "required_referrals": 5,
+    "qualified_referrals": 3,
+    "progress_quantity": 3,
+    "rewards_available": 0,
+    "lifetime_qualified_referrals": 3,
+    "lifetime_rewards_earned": 0,
+    "lifetime_rewards_redeemed": 0
+  },
+  "total_rewards_available": 0
+}
+```
+
+Keep OpenAPI annotations in sync when adding or changing endpoints.
+
+## Admin CMS
+
+Add referral loyalty visibility under Rewards and customer detail pages.
+
+Capabilities:
+
+- Configure the referral loyalty program.
+- View a customer's referral code.
+- View referrals made by a user.
+- View referral rewards available.
+- Manually adjust referral progress/reward balance with an admin note.
+- Reverse a referral with a required reason.
+
+Keep referral reward activity visually separate from purchase-loyalty activity, but place both in the same customer Rewards / Loyalty area.
+
+## Testing Plan
+
+Backend tests:
+
+- Customer registration without `referral_code` succeeds and records no referral.
+- Customer registration with a valid referral code succeeds.
+- Valid referral code creates a qualified `user_referrals` row.
+- Referral code lookup is case-insensitive after normalization.
+- Referrer earns 1 referral progress point immediately on referred user registration.
+- 5 qualified referrals earns 1 referral reward and leaves 0 progress.
+- 6 qualified referrals earns 1 referral reward and carries 1 progress.
+- Invalid referral code returns `422` and does not create the user/customer.
+- Inactive referral code returns `422`.
+- Duplicate referred user attribution is rejected.
+- Self-referral is rejected.
+- Referral rewards do not affect purchase-loyalty progress or balances.
+- Purchase-loyalty rewards do not affect referral-loyalty progress or balances.
+- Referral reward redemption decrements only referral reward availability.
+- Referral reversal subtracts referral progress and rebuilds the referral account.
+
+Admin tests:
+
+- Admin can configure referral program threshold and reward category.
+- Admin can view a user's referral code.
+- Admin can view a customer's referral loyalty summary beside purchase loyalty.
+- Admin can manually adjust referral loyalty with a note.
+- Admin can reverse a referral with a reason.
+
+Regression tests:
+
+- Existing purchase loyalty tests still pass.
+- Existing customer registration and login tests still pass.
+- Existing guest order tests still pass.
+- Existing reward redemption tests still pass.
+
+## Implementation Phases
+
+### Phase 1: Referral Data Model
+
+- Add referral program, referral code, referral relationship, referral reward account, and referral ledger migrations.
+- Add Eloquent models and relationships.
+- Seed the initial Referral Loyalty program if the Wraps category exists.
+
+### Phase 2: Referral Service
+
+- Implement referral code generation and normalization.
+- Implement registration referral validation.
+- Implement qualified referral ledger entries.
+- Implement referral account rebuild logic.
+
+### Phase 3: Registration Integration
+
+- Add optional `referral_code` validation to customer registration.
+- Wrap registration and referral recording in one transaction.
+- Return referral acceptance metadata in the registration response.
+- Ensure every registered customer user has a referral code.
+
+### Phase 4: Rewards Summary Integration
+
+- Extend customer Rewards / Loyalty summary responses to include both purchase loyalty and referral loyalty.
+- Include the user's referral code and share URL.
+- Keep purchase and referral account balances independent.
+
+### Phase 5: Referral Redemption
+
+- Add referral reward redemption support for free wraps.
+- Add referral-specific order item metadata.
+- Ensure redemption draws from the correct loyalty balance.
+
+### Phase 6: Admin CMS
+
+- Add referral program management.
+- Add referral summary/history to customer detail pages.
+- Add admin adjustment and reversal flows.
+
+### Phase 7: API Docs
+
+- Add or update OpenAPI annotations for registration referral code support, rewards summary output, referral code endpoint, and referral redemption.
+- Regenerate Swagger docs with `php artisan l5-swagger:generate`.
+
+## Open Questions
+
+- Which existing registration endpoint should accept `referral_code`: `/api/register`, `/api/guest/customers`, or both?
+- Should referral codes be generated for staff/admin users, or only users with `role_id = 3` customer accounts?
+- Should `https://itsawrap.ai/ref/{code}` be stored as a setting-based base URL or hard-coded from app config?
+- Should an admin be able to rotate or deactivate an individual user's referral code?
+- Should referral rewards expire?
+- Should reversing an already-redeemed referral reward create debt, block the reversal, or require an admin adjustment?
+
 # Firebase Cloud Messaging Plan
 
 ## Goal
