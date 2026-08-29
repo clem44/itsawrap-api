@@ -20,6 +20,8 @@ class OrderItem extends Model
         'reward_program_id',
         'reward_ledger_entry_id',
         'reward_discount_amount',
+        'referral_program_id',
+        'referral_ledger_entry_id',
         'comment',
     ];
 
@@ -56,5 +58,15 @@ class OrderItem extends Model
     public function rewardLedgerEntry(): BelongsTo
     {
         return $this->belongsTo(RewardLedgerEntry::class);
+    }
+
+    public function referralProgram(): BelongsTo
+    {
+        return $this->belongsTo(ReferralProgram::class);
+    }
+
+    public function referralLedgerEntry(): BelongsTo
+    {
+        return $this->belongsTo(UserReferralLedgerEntry::class);
     }
 }

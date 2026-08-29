@@ -40,4 +40,11 @@ class Customer extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function getDisplayNameAttribute(): string
+    {
+        $name = $this->name ?: trim(($this->firstname ?? '').' '.($this->lastname ?? ''));
+
+        return $name ?: 'Customer';
+    }
 }

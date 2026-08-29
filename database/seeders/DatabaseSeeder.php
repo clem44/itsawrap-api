@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,
             SettingSeeder::class,
             RewardProgramSeeder::class,
+            ReferralProgramSeeder::class,
             OptionSeeder::class,
             ItemsSeeder::class,
             BranchSeeder::class,

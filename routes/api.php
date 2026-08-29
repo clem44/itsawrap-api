@@ -20,9 +20,11 @@ use App\Http\Controllers\Api\OptionDependencyController;
 use App\Http\Controllers\Api\OptionValueController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\OrderItemController;
+use App\Http\Controllers\Api\OrderReferralRewardController;
 use App\Http\Controllers\Api\OrderRewardController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PushSubscriptionController;
+use App\Http\Controllers\Api\ReferralCodeController;
 use App\Http\Controllers\Api\RewardProgramController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\StatusController;
@@ -54,6 +56,7 @@ Route::middleware('auth:sanctum')->group(function () {
 // Customer self-service routes — identity resolved from the token, never from a route parameter
 Route::middleware(['auth:sanctum', 'customer'])->prefix('me')->group(function () {
     Route::get('/rewards', [CustomerRewardController::class, 'me']);
+    Route::get('/referral-code', [ReferralCodeController::class, 'show']);
     Route::get('/delivery-windows/today', DeliveryWindowTodayController::class);
     Route::post('/orders', [CustomerOrderController::class, 'store']);
 });
@@ -83,6 +86,7 @@ Route::middleware(['auth:sanctum', 'staff'])->group(function () {
     Route::apiResource('sessions', CashSessionController::class)->only(['index', 'store', 'show']);
     Route::get('/orders/history', [OrderController::class, 'history']);
     Route::post('/orders/{order}/rewards/redeem', [OrderRewardController::class, 'store']);
+    Route::post('/orders/{order}/referral-rewards/redeem', [OrderReferralRewardController::class, 'store']);
     Route::apiResource('orders', OrderController::class);
     Route::apiResource('order-items', OrderItemController::class);
     Route::apiResource('payments', PaymentController::class);

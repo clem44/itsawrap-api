@@ -11,8 +11,7 @@
 
 @section('content')
 @php
-    $displayName = $customer->name ?: trim($customer->firstname . ' ' . $customer->lastname);
-    $displayName = $displayName ?: 'Customer';
+    $displayName = $customer->display_name;
 @endphp
 <div class="profile-container">
     <a href="{{ route('admin.customers.index') }}" class="back-link">
@@ -142,6 +141,68 @@
 
     <div class="section-card animate-in animate-delay-2">
         <div class="section-header">
+            <h2 class="section-title">Referral Loyalty</h2>
+            <a href="{{ route('admin.rewards.index') }}" class="view-all-link">Manage Programs</a>
+        </div>
+
+        <div class="section-content">
+            @if($customer->user && $referralSummary)
+                <div class="profile-stats" style="margin-bottom: 1.5rem;">
+                    <div class="stat-card" style="background: var(--color-cream); border-color: var(--color-cream-dark);">
+                        <div class="stat-label" style="color: var(--color-ink-light);">Referral Code</div>
+                        <div class="stat-value" style="color: var(--color-ink);">{{ $referralSummary['code'] }}</div>
+                        <div class="user-meta">{{ $referralSummary['share_url'] }}</div>
+                    </div>
+                    <div class="stat-card" style="background: var(--color-cream); border-color: var(--color-cream-dark);">
+                        <div class="stat-label" style="color: var(--color-ink-light);">{{ $referralSummary['name'] }}</div>
+                        <div class="stat-value" style="color: var(--color-ink);">{{ $referralSummary['progress_quantity'] }} / {{ $referralSummary['required_referrals'] }}</div>
+                        <div class="user-meta">{{ $referralSummary['rewards_available'] }} available rewards</div>
+                    </div>
+                    <div class="stat-card" style="background: var(--color-cream); border-color: var(--color-cream-dark);">
+                        <div class="stat-label" style="color: var(--color-ink-light);">Lifetime Referrals</div>
+                        <div class="stat-value" style="color: var(--color-ink);">{{ $referralSummary['lifetime_qualified_referrals'] }}</div>
+                        <div class="user-meta">{{ $referralSummary['lifetime_rewards_earned'] }} earned, {{ $referralSummary['lifetime_rewards_redeemed'] }} redeemed</div>
+                    </div>
+                </div>
+
+                @if($referralPrograms->isNotEmpty())
+                    <form method="POST" action="{{ route('admin.customers.referral-adjustments.store', $customer) }}" class="form-grid">
+                        @csrf
+                        <div class="form-group">
+                            <label class="form-label" for="referral_program_id">Referral Program</label>
+                            <select id="referral_program_id" name="referral_program_id" class="form-select" required>
+                                @foreach($referralPrograms as $program)
+                                    <option value="{{ $program->id }}">{{ $program->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="referral_progress_delta">Referral Progress</label>
+                            <input id="referral_progress_delta" name="progress_delta" type="number" class="form-input" value="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="referral_rewards_delta">Referral Rewards</label>
+                            <input id="referral_rewards_delta" name="rewards_delta" type="number" class="form-input" value="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="referral_note">Note</label>
+                            <input id="referral_note" name="note" type="text" class="form-input" placeholder="Reason for adjustment" required>
+                        </div>
+                        <div class="form-actions full-width">
+                            <button type="submit" class="btn btn-primary btn-forest">Record Referral Adjustment</button>
+                        </div>
+                    </form>
+                @endif
+            @elseif($customer->user)
+                <div class="empty-state-small">No active referral loyalty program is configured.</div>
+            @else
+                <div class="empty-state-small">Referral loyalty requires a linked user account.</div>
+            @endif
+        </div>
+    </div>
+
+    <div class="section-card animate-in animate-delay-2">
+        <div class="section-header">
             <h2 class="section-title">Reward Ledger</h2>
         </div>
 
@@ -174,6 +235,91 @@
             </div>
         @else
             <div class="empty-state-small">No reward activity yet.</div>
+        @endif
+    </div>
+
+    <div class="section-card animate-in animate-delay-2">
+        <div class="section-header">
+            <h2 class="section-title">Referral Activity</h2>
+        </div>
+
+        @if($referralsMade->isNotEmpty())
+            <div class="overflow-x-auto" style="margin-bottom: 1.5rem;">
+                <table class="tokens-table">
+                    <thead>
+                        <tr>
+                            <th>Referred Customer</th>
+                            <th>Program</th>
+                            <th>Status</th>
+                            <th>Qualified</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($referralsMade as $referral)
+                            @php
+                                $referredName = $referral->referred?->customer?->display_name
+                                    ?? $referral->referred?->full_name
+                                    ?? $referral->referred?->email
+                                    ?? 'Customer removed';
+                            @endphp
+                            <tr>
+                                <td><span class="token-name">{{ $referredName }}</span></td>
+                                <td><span class="token-meta">{{ $referral->referralProgram?->name ?? 'Program removed' }}</span></td>
+                                <td><span class="role-badge {{ $referral->status === 'qualified' ? 'admin' : 'user' }}">{{ ucfirst($referral->status) }}</span></td>
+                                <td><span class="token-meta">{{ $referral->qualified_at?->format('M d, Y H:i') ?? 'n/a' }}</span></td>
+                                <td>
+                                    @if($referral->status === 'qualified')
+                                        <form method="POST" action="{{ route('admin.customers.referrals.reverse', [$customer, $referral]) }}" class="flex flex-col gap-2" onsubmit="return confirm('Reverse this referral?')">
+                                            @csrf
+                                            <input name="reason" type="text" class="form-input" placeholder="Reason" required>
+                                            <button type="submit" class="btn-revoke">Reverse</button>
+                                        </form>
+                                    @else
+                                        <span class="token-meta">{{ $referral->reversal_reason ?? 'Reversed' }}</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+
+        @if($referralLedgerEntries->isNotEmpty())
+            <div class="overflow-x-auto">
+                <table class="tokens-table">
+                    <thead>
+                        <tr>
+                            <th>Program</th>
+                            <th>Type</th>
+                            <th>Progress</th>
+                            <th>Rewards</th>
+                            <th>Reason</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($referralLedgerEntries as $entry)
+                            <tr>
+                                <td><span class="token-name">{{ $entry->referralProgram?->name ?? 'Program removed' }}</span></td>
+                                <td><span class="token-meta">{{ str_replace('_', ' ', ucfirst($entry->type)) }}</span></td>
+                                <td><span class="token-meta">{{ $entry->progress_delta > 0 ? '+' : '' }}{{ $entry->progress_delta }}</span></td>
+                                <td><span class="token-meta">{{ $entry->rewards_delta > 0 ? '+' : '' }}{{ $entry->rewards_delta }}</span></td>
+                                <td>
+                                    <span class="token-meta">{{ str_replace('_', ' ', $entry->reason ?? 'n/a') }}</span>
+                                    @if(($entry->metadata['reward_clawback_shortfall'] ?? 0) > 0)
+                                        <div class="user-meta">Redeemed reward already used; {{ $entry->metadata['reward_clawback_shortfall'] }} reward not clawed back.</div>
+                                    @endif
+                                </td>
+                                <td><span class="token-meta">{{ $entry->created_at->format('M d, Y H:i') }}</span></td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @elseif($referralsMade->isEmpty())
+            <div class="empty-state-small">No referral activity yet.</div>
         @endif
     </div>
 

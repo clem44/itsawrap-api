@@ -25,6 +25,7 @@ class StoreGuestRegistrationRequest extends FormRequest
             'phone' => ['nullable', 'string', 'max:40'],
             'password' => ['required', 'confirmed', Password::min(8)],
             'device_name' => ['required', 'string', 'max:255'],
+            'referral_code' => ['nullable', 'string', 'max:255'],
         ];
     }
 }

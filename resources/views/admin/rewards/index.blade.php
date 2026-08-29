@@ -171,6 +171,155 @@
         </div>
     @endif
 
+    <div class="page-header animate-in animate-delay-2" style="margin-top: 2rem;">
+        <div class="page-header-content">
+            <h2 class="heading-serif text-2xl font-semibold text-white mb-1">Referral Loyalty</h2>
+            <p style="color: var(--color-sage-light); opacity: 0.9;">Configure referral-based rewards independently from purchase rewards.</p>
+        </div>
+    </div>
+
+    <div class="users-table-container animate-in animate-delay-2">
+        <form method="POST" action="{{ route('admin.referral-rewards.store') }}" class="form-grid" style="padding: 1.5rem;">
+            @csrf
+            <div class="form-group">
+                <label class="form-label" for="referral_name">Name</label>
+                <input id="referral_name" name="name" type="text" class="form-input" value="{{ old('name', 'Referral Loyalty') }}" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="required_referrals">Required Referrals</label>
+                <input id="required_referrals" name="required_referrals" type="number" min="1" class="form-input" value="{{ old('required_referrals', 5) }}" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="referral_reward_category_id">Reward Category</label>
+                <select id="referral_reward_category_id" name="reward_category_id" class="form-select" required>
+                    <option value="">Select category</option>
+                    @foreach($categories as $category)
+                        <option value="{{ $category->id }}" @selected(old('reward_category_id') == $category->id)>{{ $category->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="referral_reward_quantity">Reward Quantity</label>
+                <input id="referral_reward_quantity" name="reward_quantity" type="number" min="1" class="form-input" value="{{ old('reward_quantity', 1) }}" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="referral_starts_at">Starts At</label>
+                <input id="referral_starts_at" name="starts_at" type="datetime-local" class="form-input" value="{{ old('starts_at') }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="referral_ends_at">Ends At</label>
+                <input id="referral_ends_at" name="ends_at" type="datetime-local" class="form-input" value="{{ old('ends_at') }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="referral_is_active">Status</label>
+                <label class="inline-flex items-center gap-2">
+                    <input id="referral_is_active" name="is_active" type="checkbox" value="1" class="h-4 w-4 rounded border-gray-300 text-[var(--color-sage)] focus:ring-[var(--color-sage)]" checked>
+                    <span class="text-sm font-medium text-gray-900">Active Program</span>
+                </label>
+            </div>
+            <div class="form-actions full-width">
+                <button type="submit" class="btn btn-primary btn-forest">Create Referral Program</button>
+            </div>
+        </form>
+
+        <table class="users-table">
+            <thead>
+                <tr>
+                    <th>Program</th>
+                    <th>Threshold</th>
+                    <th>Reward</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($referralPrograms as $program)
+                    <tr>
+                        <td>
+                            <input form="referral-program-{{ $program->id }}" name="name" type="text" class="form-input" value="{{ $program->name }}" required>
+                            <div class="grid grid-cols-1 gap-2" style="margin-top: 0.75rem;">
+                                <input form="referral-program-{{ $program->id }}" name="starts_at" type="datetime-local" class="form-input" value="{{ $program->starts_at?->format('Y-m-d\TH:i') }}">
+                                <input form="referral-program-{{ $program->id }}" name="ends_at" type="datetime-local" class="form-input" value="{{ $program->ends_at?->format('Y-m-d\TH:i') }}">
+                            </div>
+                        </td>
+                        <td>
+                            <input form="referral-program-{{ $program->id }}" name="required_referrals" type="number" min="1" class="form-input" value="{{ $program->required_referrals }}" required>
+                        </td>
+                        <td>
+                            <select form="referral-program-{{ $program->id }}" name="reward_category_id" class="form-select" required>
+                                @foreach($categories as $category)
+                                    <option value="{{ $category->id }}" @selected($program->reward_category_id === $category->id)>{{ $category->name }}</option>
+                                @endforeach
+                            </select>
+                            <input form="referral-program-{{ $program->id }}" name="reward_quantity" type="number" min="1" class="form-input" value="{{ $program->reward_quantity }}" required style="margin-top: 0.5rem;">
+                            <input form="referral-program-{{ $program->id }}" type="hidden" name="is_active" value="{{ $program->is_active ? 1 : 0 }}">
+                        </td>
+                        <td>
+                            <span class="role-badge {{ $program->is_active ? 'admin' : 'user' }}">{{ $program->is_active ? 'Active' : 'Inactive' }}</span>
+                        </td>
+                        <td>
+                            <div class="flex justify-end gap-1">
+                                <form id="referral-program-{{ $program->id }}" method="POST" action="{{ route('admin.referral-rewards.update', $program) }}">
+                                    @csrf
+                                    @method('PUT')
+                                </form>
+                                <button type="submit" form="referral-program-{{ $program->id }}" class="action-btn edit" title="Save Referral Program">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                </button>
+                                @if($program->is_active)
+                                    <form method="POST" action="{{ route('admin.referral-rewards.deactivate', $program) }}" class="inline">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="action-btn" title="Deactivate Referral Program">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728"></path>
+                                            </svg>
+                                        </button>
+                                    </form>
+                                @else
+                                    <form method="POST" action="{{ route('admin.referral-rewards.activate', $program) }}" class="inline">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="action-btn edit" title="Activate Referral Program">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                            </svg>
+                                        </button>
+                                    </form>
+                                @endif
+                                <form method="POST" action="{{ route('admin.referral-rewards.destroy', $program) }}" class="inline" onsubmit="return confirm('Delete this referral program? Programs with customer activity cannot be deleted.')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="action-btn delete" title="Delete Referral Program">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="5">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">
+                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v8m-4-4h8m-9 8h10a2 2 0 002-2V6a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                    </svg>
+                                </div>
+                                <h3 class="empty-state-title">No referral programs yet</h3>
+                                <p class="empty-state-text">Create a referral program to start rewarding customer invites.</p>
+                            </div>
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
     <teleport to="body">
         <div
             v-show="createOpen"

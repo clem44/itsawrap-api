@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\ReferralProgram;
 use App\Models\RewardProgram;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,13 +22,18 @@ class RewardController extends Controller
             ->orderBy('name')
             ->paginate(15)
             ->withQueryString();
+        $referralPrograms = ReferralProgram::query()
+            ->with('rewardCategory')
+            ->orderByDesc('is_active')
+            ->orderBy('name')
+            ->get();
 
         $categories = Category::query()
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
 
-        return view('admin.rewards.index', compact('programs', 'categories'));
+        return view('admin.rewards.index', compact('programs', 'referralPrograms', 'categories'));
     }
 
     public function store(Request $request): RedirectResponse

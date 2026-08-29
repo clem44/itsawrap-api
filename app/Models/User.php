@@ -74,6 +74,31 @@ class User extends Authenticatable
         return $this->hasOne(Customer::class);
     }
 
+    public function referralCode(): HasOne
+    {
+        return $this->hasOne(UserReferralCode::class);
+    }
+
+    public function referralsMade(): HasMany
+    {
+        return $this->hasMany(UserReferral::class, 'referrer_user_id');
+    }
+
+    public function referredBy(): HasOne
+    {
+        return $this->hasOne(UserReferral::class, 'referred_user_id');
+    }
+
+    public function referralRewardAccounts(): HasMany
+    {
+        return $this->hasMany(UserReferralRewardAccount::class);
+    }
+
+    public function referralLedgerEntries(): HasMany
+    {
+        return $this->hasMany(UserReferralLedgerEntry::class);
+    }
+
     public function getFullNameAttribute(): string
     {
         return "{$this->firstname} {$this->lastname}";

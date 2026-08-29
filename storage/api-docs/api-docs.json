@@ -1465,6 +1465,81 @@
                 ]
             }
         },
+        "/guest/register": {
+            "post": {
+                "tags": [
+                    "Guest"
+                ],
+                "summary": "Register a customer account",
+                "description": "Create a customer user account and optionally apply a strict referral code during registration.",
+                "operationId": "812b797f0f26aa968995696052bbe314",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "firstname",
+                                    "lastname",
+                                    "email",
+                                    "password",
+                                    "password_confirmation",
+                                    "device_name"
+                                ],
+                                "properties": {
+                                    "firstname": {
+                                        "type": "string",
+                                        "example": "Maya"
+                                    },
+                                    "lastname": {
+                                        "type": "string",
+                                        "example": "Joseph"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "maya@example.com"
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "example": "2645550000",
+                                        "nullable": true
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "secret123"
+                                    },
+                                    "password_confirmation": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "secret123"
+                                    },
+                                    "device_name": {
+                                        "type": "string",
+                                        "example": "itsawrapweb"
+                                    },
+                                    "referral_code": {
+                                        "type": "string",
+                                        "example": "SUNRA482",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Customer account created"
+                    },
+                    "422": {
+                        "description": "Validation error or invalid referral code"
+                    }
+                }
+            }
+        },
         "/items": {
             "get": {
                 "tags": [
@@ -4019,6 +4094,82 @@
                 ]
             }
         },
+        "/orders/{order}/referral-rewards/redeem": {
+            "post": {
+                "tags": [
+                    "Rewards"
+                ],
+                "summary": "Redeem a customer referral reward on an order",
+                "description": "Add a free referral reward item to an order and decrement the customer referral reward balance.",
+                "operationId": "9e395b374de34bbd4a84519595b582fa",
+                "parameters": [
+                    {
+                        "name": "order",
+                        "in": "path",
+                        "description": "Order ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "referral_program_id",
+                                    "item_id"
+                                ],
+                                "properties": {
+                                    "referral_program_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "item_id": {
+                                        "type": "integer",
+                                        "example": 10
+                                    },
+                                    "quantity": {
+                                        "type": "integer",
+                                        "example": 1,
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Referral reward item added to order",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OrderItem"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Order, referral program, or item not found"
+                    },
+                    "422": {
+                        "description": "Validation error or unavailable referral reward"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/orders/{order}/rewards/redeem": {
             "post": {
                 "tags": [
@@ -4541,6 +4692,49 @@
                     },
                     "404": {
                         "description": "Push subscription not found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/me/referral-code": {
+            "get": {
+                "tags": [
+                    "Rewards"
+                ],
+                "summary": "Get the authenticated customer's referral code",
+                "description": "Return the customer referral code and share URL for the logged-in customer.",
+                "operationId": "c9beb3efb9e49642aef4702fd0e9ebdc",
+                "responses": {
+                    "200": {
+                        "description": "Customer referral code",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string",
+                                            "example": "SUNRA482"
+                                        },
+                                        "share_url": {
+                                            "type": "string",
+                                            "example": "https://itsawrap.ai/ref/SUNRA482"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Customer access required"
                     }
                 },
                 "security": [
@@ -6375,6 +6569,16 @@
                         "example": 12.5,
                         "nullable": true
                     },
+                    "referral_program_id": {
+                        "type": "integer",
+                        "example": 1,
+                        "nullable": true
+                    },
+                    "referral_ledger_entry_id": {
+                        "type": "integer",
+                        "example": 10,
+                        "nullable": true
+                    },
                     "unit_price": {
                         "type": "number",
                         "format": "float",
@@ -6542,6 +6746,71 @@
                         "items": {
                             "$ref": "#/components/schemas/CustomerRewardProgramSummary"
                         }
+                    },
+                    "purchase_loyalty": {
+                        "properties": {
+                            "programs": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/CustomerRewardProgramSummary"
+                                }
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "referral_loyalty": {
+                        "properties": {
+                            "program_id": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "name": {
+                                "type": "string",
+                                "example": "Referral Loyalty"
+                            },
+                            "code": {
+                                "type": "string",
+                                "example": "SUNRA482"
+                            },
+                            "share_url": {
+                                "type": "string",
+                                "example": "https://itsawrap.ai/ref/SUNRA482"
+                            },
+                            "required_referrals": {
+                                "type": "integer",
+                                "example": 5
+                            },
+                            "qualified_referrals": {
+                                "type": "integer",
+                                "example": 3
+                            },
+                            "progress_quantity": {
+                                "type": "integer",
+                                "example": 3
+                            },
+                            "rewards_available": {
+                                "type": "integer",
+                                "example": 0
+                            },
+                            "lifetime_qualified_referrals": {
+                                "type": "integer",
+                                "example": 3
+                            },
+                            "lifetime_rewards_earned": {
+                                "type": "integer",
+                                "example": 0
+                            },
+                            "lifetime_rewards_redeemed": {
+                                "type": "integer",
+                                "example": 0
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "total_rewards_available": {
+                        "type": "integer",
+                        "example": 1
                     }
                 },
                 "type": "object"
@@ -6946,6 +7215,10 @@
         {
             "name": "Delivery",
             "description": "Delivery"
+        },
+        {
+            "name": "Guest",
+            "description": "Guest"
         },
         {
             "name": "Item Options",

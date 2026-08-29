@@ -6,12 +6,14 @@ use App\Http\Controllers\Admin\BranchController;
 use App\Http\Controllers\Admin\CashSessionController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CustomerController;
+use App\Http\Controllers\Admin\CustomerReferralController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DeliveryWindowController;
 use App\Http\Controllers\Admin\DownloadController;
 use App\Http\Controllers\Admin\ItemController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\PaymentController;
+use App\Http\Controllers\Admin\ReferralProgramController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RewardController;
 use App\Http\Controllers\Admin\TipController;
@@ -66,6 +68,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Customers management
         Route::resource('customers', CustomerController::class, ['only' => ['index', 'store', 'show', 'update', 'destroy']]);
         Route::post('/customers/{customer}/reward-adjustments', [\App\Http\Controllers\Admin\CustomerRewardController::class, 'storeAdjustment'])->name('customers.reward-adjustments.store');
+        Route::post('/customers/{customer}/referral-adjustments', [CustomerReferralController::class, 'storeAdjustment'])->name('customers.referral-adjustments.store');
+        Route::post('/customers/{customer}/referrals/{referral}/reverse', [CustomerReferralController::class, 'reverse'])->name('customers.referrals.reverse');
 
         // Tips management
         Route::resource('tips', TipController::class, ['only' => ['index', 'show']]);
@@ -83,6 +87,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::patch('/rewards/{reward}/activate', [RewardController::class, 'activate'])->name('rewards.activate');
         Route::patch('/rewards/{reward}/deactivate', [RewardController::class, 'deactivate'])->name('rewards.deactivate');
         Route::delete('/rewards/{reward}', [RewardController::class, 'destroy'])->name('rewards.destroy');
+        Route::post('/referral-rewards', [ReferralProgramController::class, 'store'])->name('referral-rewards.store');
+        Route::put('/referral-rewards/{referralReward}', [ReferralProgramController::class, 'update'])->name('referral-rewards.update');
+        Route::patch('/referral-rewards/{referralReward}/activate', [ReferralProgramController::class, 'activate'])->name('referral-rewards.activate');
+        Route::patch('/referral-rewards/{referralReward}/deactivate', [ReferralProgramController::class, 'deactivate'])->name('referral-rewards.deactivate');
+        Route::delete('/referral-rewards/{referralReward}', [ReferralProgramController::class, 'destroy'])->name('referral-rewards.destroy');
 
         // Downloads
         Route::resource('downloads', DownloadController::class, ['only' => ['index', 'create', 'store', 'edit', 'update']]);

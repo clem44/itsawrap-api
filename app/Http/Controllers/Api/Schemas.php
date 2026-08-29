@@ -184,6 +184,8 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'reward_program_id', type: 'integer', nullable: true, example: 1),
         new OA\Property(property: 'reward_ledger_entry_id', type: 'integer', nullable: true, example: 10),
         new OA\Property(property: 'reward_discount_amount', type: 'number', format: 'float', nullable: true, example: 12.50),
+        new OA\Property(property: 'referral_program_id', type: 'integer', nullable: true, example: 1),
+        new OA\Property(property: 'referral_ledger_entry_id', type: 'integer', nullable: true, example: 10),
         new OA\Property(property: 'unit_price', type: 'number', format: 'float', example: 9.99),
         new OA\Property(property: 'total_price', type: 'number', format: 'float', example: 19.98),
         new OA\Property(property: 'notes', type: 'string', nullable: true),
@@ -241,6 +243,27 @@ use OpenApi\Attributes as OA;
             type: 'array',
             items: new OA\Items(ref: '#/components/schemas/CustomerRewardProgramSummary')
         ),
+        new OA\Property(property: 'purchase_loyalty', type: 'object', properties: [
+            new OA\Property(
+                property: 'programs',
+                type: 'array',
+                items: new OA\Items(ref: '#/components/schemas/CustomerRewardProgramSummary')
+            ),
+        ]),
+        new OA\Property(property: 'referral_loyalty', type: 'object', nullable: true, properties: [
+            new OA\Property(property: 'program_id', type: 'integer', example: 1),
+            new OA\Property(property: 'name', type: 'string', example: 'Referral Loyalty'),
+            new OA\Property(property: 'code', type: 'string', example: 'SUNRA482'),
+            new OA\Property(property: 'share_url', type: 'string', example: 'https://itsawrap.ai/ref/SUNRA482'),
+            new OA\Property(property: 'required_referrals', type: 'integer', example: 5),
+            new OA\Property(property: 'qualified_referrals', type: 'integer', example: 3),
+            new OA\Property(property: 'progress_quantity', type: 'integer', example: 3),
+            new OA\Property(property: 'rewards_available', type: 'integer', example: 0),
+            new OA\Property(property: 'lifetime_qualified_referrals', type: 'integer', example: 3),
+            new OA\Property(property: 'lifetime_rewards_earned', type: 'integer', example: 0),
+            new OA\Property(property: 'lifetime_rewards_redeemed', type: 'integer', example: 0),
+        ]),
+        new OA\Property(property: 'total_rewards_available', type: 'integer', example: 1),
     ]
 )]
 #[OA\Schema(

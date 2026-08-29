@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Services\Referrals\ReferralService;
 use App\Services\Rewards\RewardService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,7 +28,7 @@ class CustomerRewardController extends Controller
             new OA\Response(response: 403, description: 'Customer access required'),
         ]
     )]
-    public function me(Request $request, RewardService $rewards): JsonResponse
+    public function me(Request $request, RewardService $rewards, ReferralService $referrals): JsonResponse
     {
         $customer = $request->user()->customer;
 
@@ -35,7 +36,7 @@ class CustomerRewardController extends Controller
             return response()->json(['message' => 'No customer profile found for this account.'], 404);
         }
 
-        return response()->json($rewards->summaryForCustomer($customer));
+        return response()->json($this->combinedSummary($customer, $request->user(), $rewards, $referrals));
     }
 
     #[OA\Get(
@@ -63,8 +64,26 @@ class CustomerRewardController extends Controller
             new OA\Response(response: 404, description: 'Customer not found'),
         ]
     )]
-    public function show(Customer $customer, RewardService $rewards): JsonResponse
+    public function show(Customer $customer, RewardService $rewards, ReferralService $referrals): JsonResponse
     {
-        return response()->json($rewards->summaryForCustomer($customer));
+        return response()->json($this->combinedSummary($customer, $customer->user, $rewards, $referrals));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function combinedSummary(Customer $customer, ?\App\Models\User $user, RewardService $rewards, ReferralService $referrals): array
+    {
+        $purchaseSummary = $rewards->summaryForCustomer($customer);
+        $referralSummary = $user !== null ? $referrals->summaryForUser($user) : null;
+        $purchaseRewardsAvailable = collect($purchaseSummary['programs'] ?? [])->sum('rewards_available');
+
+        return $purchaseSummary + [
+            'purchase_loyalty' => [
+                'programs' => $purchaseSummary['programs'] ?? [],
+            ],
+            'referral_loyalty' => $referralSummary,
+            'total_rewards_available' => $purchaseRewardsAvailable + (int) ($referralSummary['rewards_available'] ?? 0),
+        ];
     }
 }

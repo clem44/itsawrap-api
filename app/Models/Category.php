@@ -39,4 +39,9 @@ class Category extends Model
     {
         return $this->hasMany(RewardProgram::class, 'reward_category_id');
     }
+
+    public function redeemableReferralPrograms(): HasMany
+    {
+        return $this->hasMany(ReferralProgram::class, 'reward_category_id');
+    }
 }
