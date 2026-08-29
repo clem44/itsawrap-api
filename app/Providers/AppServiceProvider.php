@@ -119,5 +119,21 @@ class AppServiceProvider extends ServiceProvider
                     ], 429);
                 });
         });
+
+        RateLimiter::for('guest-order-lookup', function (Request $request): Limit {
+            return Limit::perMinute(30)
+                ->by($request->ip())
+                ->response(function () use ($request) {
+                    Log::warning('guest-order-lookup-throttled', [
+                        'ip' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                        'path' => $request->path(),
+                    ]);
+
+                    return response()->json([
+                        'message' => 'Too many guest order lookup requests.',
+                    ], 429);
+                });
+        });
     }
 }

@@ -29,6 +29,14 @@ class Order extends Model
         'session_id',
         'source',
         'idempotency_key',
+        'guest_access_token',
+        'guest_access_token_hash',
+        'guest_access_token_expires_at',
+    ];
+
+    protected $hidden = [
+        'guest_access_token',
+        'guest_access_token_hash',
     ];
 
     protected function casts(): array
@@ -42,6 +50,8 @@ class Order extends Model
             'is_delivery' => 'boolean',
             'is_reward' => 'boolean',
             'placed_at' => 'datetime',
+            'guest_access_token' => 'encrypted',
+            'guest_access_token_expires_at' => 'datetime',
         ];
     }
 

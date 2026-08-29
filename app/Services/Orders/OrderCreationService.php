@@ -9,9 +9,12 @@ use App\Services\Push\PosPushNotifier;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class OrderCreationService
 {
+    private const GUEST_LOOKUP_TOKEN_TTL_DAYS = 7;
+
     public function __construct(
         private readonly PosPushNotifier $posPushNotifier,
         private readonly DeliveryScheduler $deliveryScheduler,
@@ -65,6 +68,8 @@ class OrderCreationService
                 ->value('id') ?? 1;
 
             $createOrder = function () use ($validated, $customerId, $source, $pendingStatusId, $idempotencyKey): Order {
+                $guestLookupToken = $source === 'guest-web' ? Str::random(64) : null;
+
                 $order = Order::query()->create([
                     'number' => filled($validated['number'] ?? null) ? $validated['number'] : $this->generateOrderNumber(),
                     'customer_id' => $customerId,
@@ -81,6 +86,9 @@ class OrderCreationService
                     'session_id' => null,
                     'source' => $source,
                     'idempotency_key' => $idempotencyKey,
+                    'guest_access_token' => $guestLookupToken,
+                    'guest_access_token_hash' => $guestLookupToken !== null ? hash('sha256', $guestLookupToken) : null,
+                    'guest_access_token_expires_at' => $guestLookupToken !== null ? now()->addDays(self::GUEST_LOOKUP_TOKEN_TTL_DAYS) : null,
                 ]);
 
                 foreach ($validated['items'] as $itemData) {

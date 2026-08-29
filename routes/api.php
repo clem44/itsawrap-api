@@ -42,6 +42,7 @@ Route::prefix('guest')->group(function () {
     Route::middleware('throttle:guest-delivery-windows')->get('/delivery-windows/today', DeliveryWindowTodayController::class);
     Route::middleware('throttle:guest-customer')->post('/customers', [GuestCustomerController::class, 'store']);
     Route::middleware('throttle:guest-order')->post('/orders', [GuestOrderController::class, 'store']);
+    Route::middleware('throttle:guest-order-lookup')->get('/orders/{number}', [GuestOrderController::class, 'show']);
     Route::middleware('throttle:guest-register')->post('/register', [GuestRegistrationController::class, 'store']);
 });
 

@@ -194,6 +194,85 @@ use OpenApi\Attributes as OA;
     ]
 )]
 #[OA\Schema(
+    schema: 'GuestOrderLookup',
+    properties: [
+        new OA\Property(property: 'token', type: 'string', example: 'z0Zpgxd5WHC0x0QxLzSfHmW8n5k4xJ0l6DOLxP9pWcMKRz4OzVzMxE2oOfqg1PtA'),
+        new OA\Property(property: 'expires_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'status_url', type: 'string', example: 'https://itsawrap.ai/api/guest/orders/IAW-000123?token=z0Zpgxd5WHC0x0QxLzSfHmW8n5k4xJ0l6DOLxP9pWcMKRz4OzVzMxE2oOfqg1PtA'),
+    ]
+)]
+#[OA\Schema(
+    schema: 'GuestOrderDetails',
+    properties: [
+        new OA\Property(property: 'number', type: 'string', example: 'IAW-000123'),
+        new OA\Property(property: 'status', type: 'object', nullable: true, properties: [
+            new OA\Property(property: 'id', type: 'integer', example: 1),
+            new OA\Property(property: 'name', type: 'string', example: 'pending'),
+        ]),
+        new OA\Property(property: 'subtotal', type: 'string', example: '13.50'),
+        new OA\Property(property: 'discount', type: 'string', nullable: true, example: '0.00'),
+        new OA\Property(property: 'discount_percent', type: 'string', nullable: true, example: '0.00'),
+        new OA\Property(property: 'service_charge', type: 'string', example: '0.00'),
+        new OA\Property(property: 'total', type: 'string', example: '13.50'),
+        new OA\Property(property: 'comments', type: 'string', nullable: true),
+        new OA\Property(property: 'placed_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'is_delivery', type: 'boolean', example: false),
+        new OA\Property(property: 'delivery', type: 'object', nullable: true, properties: [
+            new OA\Property(property: 'delivery_date', type: 'string', format: 'date', example: '2026-08-31'),
+            new OA\Property(property: 'window_start_at', type: 'string', format: 'date-time'),
+            new OA\Property(property: 'window_end_at', type: 'string', format: 'date-time'),
+            new OA\Property(property: 'address', type: 'string', example: '123 Main Road, The Valley'),
+            new OA\Property(property: 'latitude', type: 'string', example: '18.2208000'),
+            new OA\Property(property: 'longitude', type: 'string', example: '-63.0686000'),
+            new OA\Property(property: 'delivery_instructions', type: 'string', nullable: true, example: 'Call on arrival'),
+            new OA\Property(property: 'status', type: 'string', example: 'pending'),
+        ]),
+        new OA\Property(
+            property: 'order_items',
+            type: 'array',
+            items: new OA\Items(
+                properties: [
+                    new OA\Property(property: 'item', type: 'object', nullable: true, properties: [
+                        new OA\Property(property: 'name', type: 'string', example: 'Chicken Wrap'),
+                    ]),
+                    new OA\Property(property: 'price', type: 'string', example: '12.50'),
+                    new OA\Property(property: 'quantity', type: 'integer', example: 1),
+                    new OA\Property(property: 'comment', type: 'string', nullable: true),
+                    new OA\Property(
+                        property: 'options',
+                        type: 'array',
+                        items: new OA\Items(
+                            properties: [
+                                new OA\Property(property: 'name', type: 'string', nullable: true, example: 'BBQ'),
+                                new OA\Property(property: 'option_name', type: 'string', nullable: true, example: 'Sauce'),
+                                new OA\Property(property: 'price', type: 'string', example: '1.00'),
+                                new OA\Property(property: 'qty', type: 'integer', nullable: true, example: 1),
+                            ]
+                        )
+                    ),
+                ]
+            )
+        ),
+        new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'updated_at', type: 'string', format: 'date-time', nullable: true),
+    ]
+)]
+#[OA\Schema(
+    schema: 'GuestOrderResponse',
+    allOf: [
+        new OA\Schema(ref: '#/components/schemas/GuestOrderDetails'),
+        new OA\Schema(properties: [
+            new OA\Property(property: 'id', type: 'integer', example: 123),
+            new OA\Property(property: 'customer_id', type: 'integer', nullable: true, example: 1),
+            new OA\Property(property: 'status_id', type: 'integer', example: 1),
+            new OA\Property(property: 'is_reward', type: 'boolean', example: false),
+            new OA\Property(property: 'session_id', type: 'integer', nullable: true),
+            new OA\Property(property: 'source', type: 'string', example: 'guest-web'),
+            new OA\Property(property: 'lookup', ref: '#/components/schemas/GuestOrderLookup'),
+        ]),
+    ]
+)]
+#[OA\Schema(
     schema: 'RewardProgram',
     properties: [
         new OA\Property(property: 'id', type: 'integer', example: 1),

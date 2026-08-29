@@ -1465,6 +1465,250 @@
                 ]
             }
         },
+        "/guest/orders": {
+            "post": {
+                "tags": [
+                    "Guest",
+                    "Orders"
+                ],
+                "summary": "Create a guest order",
+                "description": "Create a guest checkout order and return a secure lookup token for later guest order status checks.",
+                "operationId": "69986c3c2a65353582ee06762aeae1f4",
+                "parameters": [
+                    {
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "description": "Optional key used to safely replay the same guest order creation request.",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 100
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "customer_id",
+                                    "subtotal",
+                                    "total",
+                                    "is_delivery",
+                                    "items"
+                                ],
+                                "properties": {
+                                    "number": {
+                                        "type": "string",
+                                        "example": "IAW-000123",
+                                        "nullable": true
+                                    },
+                                    "customer_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "subtotal": {
+                                        "type": "number",
+                                        "example": 13.5
+                                    },
+                                    "service_charge": {
+                                        "type": "number",
+                                        "example": 0,
+                                        "nullable": true
+                                    },
+                                    "total": {
+                                        "type": "number",
+                                        "example": 13.5
+                                    },
+                                    "comments": {
+                                        "type": "string",
+                                        "example": "No onions",
+                                        "nullable": true
+                                    },
+                                    "is_delivery": {
+                                        "type": "boolean",
+                                        "example": false
+                                    },
+                                    "delivery_window_id": {
+                                        "type": "integer",
+                                        "example": 5,
+                                        "nullable": true
+                                    },
+                                    "delivery_address": {
+                                        "type": "string",
+                                        "example": "123 Main Road, The Valley",
+                                        "nullable": true
+                                    },
+                                    "delivery_latitude": {
+                                        "type": "number",
+                                        "example": 18.2208,
+                                        "nullable": true
+                                    },
+                                    "delivery_longitude": {
+                                        "type": "number",
+                                        "example": -63.0686,
+                                        "nullable": true
+                                    },
+                                    "delivery_instructions": {
+                                        "type": "string",
+                                        "example": "Call on arrival",
+                                        "nullable": true
+                                    },
+                                    "items": {
+                                        "type": "array",
+                                        "items": {
+                                            "required": [
+                                                "item_id",
+                                                "price",
+                                                "quantity"
+                                            ],
+                                            "properties": {
+                                                "item_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "price": {
+                                                    "type": "number",
+                                                    "example": 12.5
+                                                },
+                                                "quantity": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "comment": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "options": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "option_value_id": {
+                                                                "type": "integer",
+                                                                "example": 2
+                                                            },
+                                                            "price": {
+                                                                "type": "number",
+                                                                "example": 1,
+                                                                "nullable": true
+                                                            },
+                                                            "qty": {
+                                                                "type": "integer",
+                                                                "example": 1,
+                                                                "nullable": true
+                                                            },
+                                                            "parent_option_value_id": {
+                                                                "type": "integer",
+                                                                "nullable": true
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    },
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Guest order created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GuestOrderResponse"
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "Existing guest order replayed by idempotency key",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GuestOrderResponse"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Duplicate order is already being processed"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    },
+                    "429": {
+                        "description": "Too many guest order requests"
+                    }
+                }
+            }
+        },
+        "/guest/orders/{number}": {
+            "get": {
+                "tags": [
+                    "Guest",
+                    "Orders"
+                ],
+                "summary": "Get guest order status",
+                "description": "Fetch guest-safe order details and status using the order number and secure lookup token returned when the guest order was created. One of the token query parameter or X-Guest-Order-Token header is required.",
+                "operationId": "f3b193d070b079c6d2d01fe31c695fa0",
+                "parameters": [
+                    {
+                        "name": "number",
+                        "in": "path",
+                        "description": "Public order number returned by guest order creation.",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "IAW-000123"
+                    },
+                    {
+                        "name": "token",
+                        "in": "query",
+                        "description": "Guest lookup token returned by guest order creation. May also be sent as X-Guest-Order-Token.",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "X-Guest-Order-Token",
+                        "in": "header",
+                        "description": "Alternative header for the guest lookup token.",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Guest-safe order details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GuestOrderDetails"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Order not found or token invalid"
+                    },
+                    "429": {
+                        "description": "Too many guest order lookup requests"
+                    }
+                }
+            }
+        },
         "/guest/register": {
             "post": {
                 "tags": [
@@ -6603,6 +6847,229 @@
                     }
                 },
                 "type": "object"
+            },
+            "GuestOrderLookup": {
+                "properties": {
+                    "token": {
+                        "type": "string",
+                        "example": "z0Zpgxd5WHC0x0QxLzSfHmW8n5k4xJ0l6DOLxP9pWcMKRz4OzVzMxE2oOfqg1PtA"
+                    },
+                    "expires_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "status_url": {
+                        "type": "string",
+                        "example": "https://itsawrap.ai/api/guest/orders/IAW-000123?token=z0Zpgxd5WHC0x0QxLzSfHmW8n5k4xJ0l6DOLxP9pWcMKRz4OzVzMxE2oOfqg1PtA"
+                    }
+                },
+                "type": "object"
+            },
+            "GuestOrderDetails": {
+                "properties": {
+                    "number": {
+                        "type": "string",
+                        "example": "IAW-000123"
+                    },
+                    "status": {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "name": {
+                                "type": "string",
+                                "example": "pending"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "subtotal": {
+                        "type": "string",
+                        "example": "13.50"
+                    },
+                    "discount": {
+                        "type": "string",
+                        "example": "0.00",
+                        "nullable": true
+                    },
+                    "discount_percent": {
+                        "type": "string",
+                        "example": "0.00",
+                        "nullable": true
+                    },
+                    "service_charge": {
+                        "type": "string",
+                        "example": "0.00"
+                    },
+                    "total": {
+                        "type": "string",
+                        "example": "13.50"
+                    },
+                    "comments": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "placed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "is_delivery": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "delivery": {
+                        "properties": {
+                            "delivery_date": {
+                                "type": "string",
+                                "format": "date",
+                                "example": "2026-08-31"
+                            },
+                            "window_start_at": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "window_end_at": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "address": {
+                                "type": "string",
+                                "example": "123 Main Road, The Valley"
+                            },
+                            "latitude": {
+                                "type": "string",
+                                "example": "18.2208000"
+                            },
+                            "longitude": {
+                                "type": "string",
+                                "example": "-63.0686000"
+                            },
+                            "delivery_instructions": {
+                                "type": "string",
+                                "example": "Call on arrival",
+                                "nullable": true
+                            },
+                            "status": {
+                                "type": "string",
+                                "example": "pending"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "order_items": {
+                        "type": "array",
+                        "items": {
+                            "properties": {
+                                "item": {
+                                    "properties": {
+                                        "name": {
+                                            "type": "string",
+                                            "example": "Chicken Wrap"
+                                        }
+                                    },
+                                    "type": "object",
+                                    "nullable": true
+                                },
+                                "price": {
+                                    "type": "string",
+                                    "example": "12.50"
+                                },
+                                "quantity": {
+                                    "type": "integer",
+                                    "example": 1
+                                },
+                                "comment": {
+                                    "type": "string",
+                                    "nullable": true
+                                },
+                                "options": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "name": {
+                                                "type": "string",
+                                                "example": "BBQ",
+                                                "nullable": true
+                                            },
+                                            "option_name": {
+                                                "type": "string",
+                                                "example": "Sauce",
+                                                "nullable": true
+                                            },
+                                            "price": {
+                                                "type": "string",
+                                                "example": "1.00"
+                                            },
+                                            "qty": {
+                                                "type": "integer",
+                                                "example": 1,
+                                                "nullable": true
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            },
+                            "type": "object"
+                        }
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "GuestOrderResponse": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/GuestOrderDetails"
+                    },
+                    {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 123
+                            },
+                            "customer_id": {
+                                "type": "integer",
+                                "example": 1,
+                                "nullable": true
+                            },
+                            "status_id": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "is_reward": {
+                                "type": "boolean",
+                                "example": false
+                            },
+                            "session_id": {
+                                "type": "integer",
+                                "nullable": true
+                            },
+                            "source": {
+                                "type": "string",
+                                "example": "guest-web"
+                            },
+                            "lookup": {
+                                "$ref": "#/components/schemas/GuestOrderLookup"
+                            }
+                        },
+                        "type": "object"
+                    }
+                ]
             },
             "RewardProgram": {
                 "properties": {

@@ -9,6 +9,7 @@ use App\Models\DeliveryWindow;
 use App\Models\Item;
 use App\Models\Option;
 use App\Models\OptionValue;
+use App\Models\Order;
 use App\Models\PushSubscription;
 use App\Models\Status;
 use App\Models\User;
@@ -111,7 +112,12 @@ class GuestOrderingApiTest extends TestCase
             ->assertJsonPath('source', 'guest-web')
             ->assertJsonPath('status_id', $status->id)
             ->assertJsonPath('session_id', null)
-            ->assertJsonPath('order_items.0.item_id', $item->id);
+            ->assertJsonPath('order_items.0.item_id', $item->id)
+            ->assertJsonStructure([
+                'lookup' => ['token', 'expires_at', 'status_url'],
+            ])
+            ->assertJsonMissingPath('guest_access_token')
+            ->assertJsonMissingPath('guest_access_token_hash');
 
         $this->assertDatabaseHas('orders', [
             'customer_id' => $customer->id,
@@ -121,6 +127,10 @@ class GuestOrderingApiTest extends TestCase
             'session_id' => null,
             'is_reward' => false,
         ]);
+
+        $order = Order::query()->findOrFail($response->json('id'));
+        $this->assertSame(hash('sha256', $response->json('lookup.token')), $order->guest_access_token_hash);
+        $this->assertNotSame($response->json('lookup.token'), $order->getRawOriginal('guest_access_token'));
 
         Queue::assertPushed(SendFirebasePushNotification::class, function (SendFirebasePushNotification $job): bool {
             return $job->data['type'] === 'web_order_created'
@@ -161,9 +171,135 @@ class GuestOrderingApiTest extends TestCase
         $firstResponse->assertCreated();
         $secondResponse
             ->assertOk()
-            ->assertJsonPath('id', $firstResponse->json('id'));
+            ->assertJsonPath('id', $firstResponse->json('id'))
+            ->assertJsonPath('lookup.token', $firstResponse->json('lookup.token'));
 
         $this->assertDatabaseCount('orders', 1);
+    }
+
+    public function test_guest_can_fetch_order_details_with_lookup_token(): void
+    {
+        $pending = Status::query()->create(['name' => 'pending']);
+        $ready = Status::query()->create(['name' => 'ready']);
+        $category = Category::query()->create(['name' => 'Wraps', 'sort_order' => 1]);
+        $item = Item::query()->create(['name' => 'Chicken Wrap', 'category_id' => $category->id, 'cost' => 12.50, 'active' => true]);
+        $customer = Customer::query()->create(['name' => 'Guest Customer', 'source' => 'guest-web']);
+
+        $created = $this->postJson('/api/guest/orders', [
+            'customer_id' => $customer->id,
+            'subtotal' => 12.50,
+            'service_charge' => 0,
+            'total' => 12.50,
+            'is_delivery' => false,
+            'items' => [
+                [
+                    'item_id' => $item->id,
+                    'price' => 12.50,
+                    'quantity' => 1,
+                ],
+            ],
+        ])->assertCreated();
+
+        Order::query()->whereKey($created->json('id'))->update(['status_id' => $ready->id]);
+
+        $this->getJson('/api/guest/orders/'.$created->json('number').'?token='.$created->json('lookup.token'))
+            ->assertOk()
+            ->assertJsonPath('number', $created->json('number'))
+            ->assertJsonPath('status.id', $ready->id)
+            ->assertJsonPath('status.name', 'ready')
+            ->assertJsonPath('order_items.0.item.name', 'Chicken Wrap')
+            ->assertJsonMissingPath('lookup')
+            ->assertJsonMissingPath('id')
+            ->assertJsonMissingPath('customer_id')
+            ->assertJsonMissingPath('status_id')
+            ->assertJsonMissingPath('is_reward')
+            ->assertJsonMissingPath('session_id')
+            ->assertJsonMissingPath('source')
+            ->assertJsonMissingPath('delivery.delivery_window_id')
+            ->assertJsonMissingPath('order_items.0.id')
+            ->assertJsonMissingPath('order_items.0.item_id')
+            ->assertJsonMissingPath('order_items.0.item.id')
+            ->assertJsonMissingPath('guest_access_token')
+            ->assertJsonMissingPath('payments')
+            ->assertJsonMissingPath('tips');
+
+        $this->getJson('/api/guest/orders/'.$created->json('number'), [
+            'X-Guest-Order-Token' => $created->json('lookup.token'),
+        ])
+            ->assertOk()
+            ->assertJsonPath('number', $created->json('number'));
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $created->json('id'),
+            'status_id' => $ready->id,
+            'source' => 'guest-web',
+        ]);
+        $this->assertNotSame($pending->id, $ready->id);
+    }
+
+    public function test_guest_order_lookup_rejects_missing_invalid_and_expired_tokens(): void
+    {
+        Status::query()->create(['name' => 'pending']);
+        $category = Category::query()->create(['name' => 'Wraps', 'sort_order' => 1]);
+        $item = Item::query()->create(['name' => 'Chicken Wrap', 'category_id' => $category->id, 'cost' => 12.50, 'active' => true]);
+        $customer = Customer::query()->create(['name' => 'Guest Customer', 'source' => 'guest-web']);
+
+        $created = $this->postJson('/api/guest/orders', [
+            'customer_id' => $customer->id,
+            'subtotal' => 12.50,
+            'service_charge' => 0,
+            'total' => 12.50,
+            'is_delivery' => false,
+            'items' => [
+                [
+                    'item_id' => $item->id,
+                    'price' => 12.50,
+                    'quantity' => 1,
+                ],
+            ],
+        ])->assertCreated();
+
+        $this->getJson('/api/guest/orders/'.$created->json('number'))->assertNotFound();
+        $this->getJson('/api/guest/orders/'.$created->json('number').'?token=wrong-token')->assertNotFound();
+
+        Order::query()->whereKey($created->json('id'))->update([
+            'guest_access_token_expires_at' => now()->subMinute(),
+        ]);
+
+        $this->getJson('/api/guest/orders/'.$created->json('number').'?token='.$created->json('lookup.token'))
+            ->assertNotFound();
+    }
+
+    public function test_guest_order_lookup_route_is_throttled(): void
+    {
+        Cache::flush();
+        Status::query()->create(['name' => 'pending']);
+        $category = Category::query()->create(['name' => 'Wraps', 'sort_order' => 1]);
+        $item = Item::query()->create(['name' => 'Chicken Wrap', 'category_id' => $category->id, 'cost' => 12.50, 'active' => true]);
+        $customer = Customer::query()->create(['name' => 'Guest Customer', 'source' => 'guest-web']);
+
+        $created = $this->postJson('/api/guest/orders', [
+            'customer_id' => $customer->id,
+            'subtotal' => 12.50,
+            'service_charge' => 0,
+            'total' => 12.50,
+            'is_delivery' => false,
+            'items' => [
+                [
+                    'item_id' => $item->id,
+                    'price' => 12.50,
+                    'quantity' => 1,
+                ],
+            ],
+        ])->assertCreated();
+
+        $url = '/api/guest/orders/'.$created->json('number').'?token='.$created->json('lookup.token');
+
+        foreach (range(1, 30) as $index) {
+            $this->getJson($url)->assertOk();
+        }
+
+        $this->getJson($url)->assertStatus(429);
     }
 
     public function test_guest_order_requires_guest_customer_source(): void
