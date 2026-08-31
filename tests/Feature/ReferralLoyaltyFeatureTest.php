@@ -347,6 +347,28 @@ class ReferralLoyaltyFeatureTest extends TestCase
         ]);
     }
 
+    public function test_admin_rewards_page_uses_referral_modal_actions_and_flatpickr_inputs(): void
+    {
+        $category = Category::query()->create(['name' => 'Wraps']);
+        $program = ReferralProgram::query()->create([
+            'name' => 'Referral Loyalty',
+            'is_active' => true,
+            'required_referrals' => 5,
+            'reward_category_id' => $category->id,
+            'reward_quantity' => 1,
+        ]);
+        $admin = $this->makeStaffUser('admin-referral-ui@example.com');
+
+        $this->actingAs($admin)
+            ->get(route('admin.rewards.index'))
+            ->assertOk()
+            ->assertSee('openReferralCreate()', false)
+            ->assertSee('openReferralEdit', false)
+            ->assertSee(route('admin.referral-rewards.update', $program), false)
+            ->assertSee(route('admin.referral-rewards.destroy', $program), false)
+            ->assertSee('data-flatpickr-datetime', false);
+    }
+
     public function test_admin_can_view_customer_referral_summary_and_adjust_balance(): void
     {
         $program = $this->createReferralProgram();

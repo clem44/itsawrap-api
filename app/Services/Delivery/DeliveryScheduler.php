@@ -157,7 +157,7 @@ class DeliveryScheduler
         $remainingCapacity = max(0, $window->capacity - (int) $window->deliveries_count);
         $unavailableReason = null;
 
-        if ($this->now()->greaterThanOrEqualTo($startsAt)) {
+        if ($this->now()->greaterThanOrEqualTo($endsAt)) {
             $unavailableReason = 'time_passed';
         } elseif ($remainingCapacity < 1) {
             $unavailableReason = 'full';
@@ -194,6 +194,6 @@ class DeliveryScheduler
 
     private function timezone(): string
     {
-        return config('app.timezone', 'UTC');
+        return config('delivery.timezone', 'America/Anguilla');
     }
 }

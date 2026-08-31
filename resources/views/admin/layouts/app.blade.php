@@ -2,13 +2,19 @@
     $dataMenuOpen = request()->routeIs(
         'admin.categories.*',
         'admin.orders.*',
+        'admin.statuses.*',
         'admin.sessions.*',
         'admin.tips.*',
         'admin.payments.*',
         'admin.items.*',
         'admin.options.*',
         'admin.branches.*',
-        'admin.customers.*'
+        'admin.customers.*',
+        'admin.media-library.*'
+    );
+    $deliveryMenuOpen = request()->routeIs(
+        'admin.deliveries.*',
+        'admin.delivery-windows.*'
     );
 @endphp
 <!DOCTYPE html>
@@ -34,6 +40,7 @@
         id="admin-vue-app"
         v-cloak
         data-menu-open="{{ $dataMenuOpen ? 'true' : 'false' }}"
+        data-delivery-menu-open="{{ $deliveryMenuOpen ? 'true' : 'false' }}"
         class="flex h-screen overflow-hidden"
     >
         <!-- Sidebar -->
@@ -51,7 +58,7 @@
                     </button>
                 </div>
                 <nav class="flex-1 px-3 py-4 overflow-y-auto relative z-10">
-                    
+
                     <a href="{{ route('admin.dashboard') }}" class="sidebar-nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
@@ -76,6 +83,7 @@
                         </button>
                         <div class="sidebar-submenu" v-show="dataMenuOpen && !sidebarCollapsed" v-cloak>
                             <a href="{{ route('admin.orders.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}"><span class="sidebar-label">Orders</span></a>
+                            <a href="{{ route('admin.statuses.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.statuses.*') ? 'active' : '' }}"><span class="sidebar-label">Statuses</span></a>
                             <a href="{{ route('admin.sessions.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.sessions.*') ? 'active' : '' }}"><span class="sidebar-label">Sessions</span></a>
                             <a href="{{ route('admin.customers.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.customers.*') ? 'active' : '' }}"><span class="sidebar-label">Customers</span></a>
                             <a href="{{ route('admin.tips.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.tips.*') ? 'active' : '' }}"><span class="sidebar-label">Tips</span></a>
@@ -92,17 +100,34 @@
                         </svg>
                         <span class="sidebar-label">API Documentation</span>
                     </a>
-                    <a href="{{ route('admin.delivery-windows.index') }}" class="sidebar-nav-link {{ request()->routeIs('admin.delivery-windows.*') ? 'active' : '' }}">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                        </svg>
-                        <span class="sidebar-label">Delivery</span>
-                    </a>
+                    <div class="sidebar-section">
+                        <button type="button" class="sidebar-nav-link sidebar-nav-toggle" :class="{ 'active': deliveryMenuOpen }" @click="deliveryMenuOpen = !deliveryMenuOpen">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            <span class="sidebar-label">Delivery</span>
+                            <svg class="w-4 h-4 sidebar-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" :class="{ 'sidebar-chevron-open': deliveryMenuOpen }" v-show="!sidebarCollapsed">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div class="sidebar-submenu" v-show="deliveryMenuOpen && !sidebarCollapsed" v-cloak>
+                            <a href="{{ route('admin.deliveries.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.deliveries.*') ? 'active' : '' }}"><span class="sidebar-label">Deliveries</span></a>
+                            <a href="{{ route('admin.delivery-windows.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.delivery-windows.*') ? 'active' : '' }}"><span class="sidebar-label">Delivery Windows</span></a>
+                        </div>
+                    </div>
                     <a href="{{ route('admin.rewards.index') }}" class="sidebar-nav-link {{ request()->routeIs('admin.rewards.*') ? 'active' : '' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v8m-4-4h8m-9 8h10a2 2 0 002-2V6a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                         </svg>
                         <span class="sidebar-label">Rewards</span>
+                    </a>
+                    <a href="{{ route('admin.media-library.show') }}" class="sidebar-nav-link {{ request()->routeIs('admin.media-library.*') ? 'active' : '' }}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <rect x="3" y="3" width="18" height="18" rx="2" stroke-width="2"></rect>
+                            <circle cx="9" cy="9" r="2" stroke-width="2"></circle>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15l-3.5-3.5a2 2 0 00-2.8 0L6 20"></path>
+                        </svg>
+                        <span class="sidebar-label">Media Library</span>
                     </a>
                     <a href="{{ route('admin.reports') }}" class="sidebar-nav-link {{ request()->routeIs('admin.reports') ? 'active' : '' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -116,6 +141,7 @@
                         </svg>
                         <span class="sidebar-label">Downloads</span>
                     </a>
+
                 </nav>
                 <div class="flex-shrink-0 p-4 sidebar-footer relative z-10">
                     <div class="flex items-center">
@@ -175,6 +201,7 @@
                         </button>
                         <div class="sidebar-submenu" v-show="dataMenuOpen" v-cloak>
                             <a href="{{ route('admin.orders.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">Orders</a>
+                            <a href="{{ route('admin.statuses.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.statuses.*') ? 'active' : '' }}">Statuses</a>
                             <a href="{{ route('admin.sessions.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.sessions.*') ? 'active' : '' }}">Sessions</a>
                             <a href="{{ route('admin.customers.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.customers.*') ? 'active' : '' }}">Customers</a>
                             <a href="{{ route('admin.tips.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.tips.*') ? 'active' : '' }}">Tips</a>
@@ -191,17 +218,34 @@
                         </svg>
                         API Documentation
                     </a>
-                    <a href="{{ route('admin.delivery-windows.index') }}" class="sidebar-nav-link {{ request()->routeIs('admin.delivery-windows.*') ? 'active' : '' }}">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                        </svg>
-                        Delivery
-                    </a>
+                    <div class="sidebar-section">
+                        <button type="button" class="sidebar-nav-link sidebar-nav-toggle" :class="{ 'active': deliveryMenuOpen }" @click="deliveryMenuOpen = !deliveryMenuOpen">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            Delivery
+                            <svg class="w-4 h-4 sidebar-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" :class="{ 'sidebar-chevron-open': deliveryMenuOpen }">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div class="sidebar-submenu" v-show="deliveryMenuOpen" v-cloak>
+                            <a href="{{ route('admin.deliveries.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.deliveries.*') ? 'active' : '' }}">Deliveries</a>
+                            <a href="{{ route('admin.delivery-windows.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.delivery-windows.*') ? 'active' : '' }}">Delivery Windows</a>
+                        </div>
+                    </div>
                     <a href="{{ route('admin.rewards.index') }}" class="sidebar-nav-link {{ request()->routeIs('admin.rewards.*') ? 'active' : '' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v8m-4-4h8m-9 8h10a2 2 0 002-2V6a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                         </svg>
                         Rewards
+                    </a>
+                    <a href="{{ route('admin.media-library.show') }}" class="sidebar-nav-link {{ request()->routeIs('admin.media-library.*') ? 'active' : '' }}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <rect x="3" y="3" width="18" height="18" rx="2" stroke-width="2"></rect>
+                            <circle cx="9" cy="9" r="2" stroke-width="2"></circle>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15l-3.5-3.5a2 2 0 00-2.8 0L6 20"></path>
+                        </svg>
+                        Media Library
                     </a>
                     <a href="{{ route('admin.reports') }}" class="sidebar-nav-link {{ request()->routeIs('admin.reports') ? 'active' : '' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -215,6 +259,7 @@
                         </svg>
                         Downloads
                     </a>
+
                 </nav>
             </div>
         </div>
@@ -252,6 +297,9 @@
             </main>
         </div>
     </div>
+    @auth
+        @include('admin.media-library._picker')
+    @endauth
     @stack('scripts')
 </body>
 </html>

@@ -8,14 +8,17 @@ use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\CustomerReferralController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DeliveryController;
 use App\Http\Controllers\Admin\DeliveryWindowController;
 use App\Http\Controllers\Admin\DownloadController;
 use App\Http\Controllers\Admin\ItemController;
+use App\Http\Controllers\Admin\MediaLibraryController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\ReferralProgramController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RewardController;
+use App\Http\Controllers\Admin\StatusController;
 use App\Http\Controllers\Admin\TipController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Auth;
@@ -56,11 +59,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('branches', BranchController::class);
 
         // Delivery windows management
+        Route::resource('deliveries', DeliveryController::class, ['only' => ['index', 'edit', 'update', 'destroy']]);
         Route::post('/delivery-windows/{delivery_window}/duplicate', [DeliveryWindowController::class, 'duplicate'])->name('delivery-windows.duplicate');
         Route::resource('delivery-windows', DeliveryWindowController::class, ['only' => ['index', 'store', 'update', 'destroy']]);
 
         // Orders management
         Route::resource('orders', OrderController::class, ['only' => ['index', 'show', 'update', 'destroy']]);
+
+        // Statuses management
+        Route::resource('statuses', StatusController::class, ['only' => ['index', 'store', 'update', 'destroy']]);
 
         // Sessions management
         Route::resource('sessions', CashSessionController::class, ['only' => ['index', 'show', 'destroy']]);
@@ -95,6 +102,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Downloads
         Route::resource('downloads', DownloadController::class, ['only' => ['index', 'create', 'store', 'edit', 'update']]);
+
+        // Media Library
+        Route::get('/media-library', [MediaLibraryController::class, 'show'])->name('media-library.show');
+        Route::get('/media-library/files', [MediaLibraryController::class, 'index'])->name('media-library.index');
+        Route::post('/media-library/files', [MediaLibraryController::class, 'store'])->name('media-library.store');
+        Route::patch('/media-library/files/{media}', [MediaLibraryController::class, 'update'])->name('media-library.update');
+        Route::delete('/media-library/files/{media}', [MediaLibraryController::class, 'destroy'])->name('media-library.destroy');
+        Route::post('/media-library/attach', [MediaLibraryController::class, 'attach'])->name('media-library.attach');
 
         // Options management
         Route::resource('options', \App\Http\Controllers\Admin\OptionController::class);

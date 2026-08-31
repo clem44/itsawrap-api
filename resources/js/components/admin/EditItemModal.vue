@@ -113,15 +113,56 @@
                             </div>
 
                             <div>
-                                <label class="mb-2 block text-sm font-medium text-gray-900">Image Path</label>
-                                <input
-                                    type="text"
-                                    name="image_path"
-                                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)]"
-                                    :class="fieldClass('image_path')"
-                                    v-model="item.image_path"
-                                >
-                                <p v-for="error in fieldErrors('image_path')" :key="error" class="mt-1.5 text-sm text-red-600" v-text="error"></p>
+                                <label class="mb-2 block text-sm font-medium text-gray-900">Item Image</label>
+                                <input type="hidden" id="edit_item_media_id" name="media_id" v-model="item.media_id">
+                                <div class="media-picker-field" :class="fieldClass('media_id')">
+                                    <div
+                                        id="edit_item_media_preview"
+                                        class="media-picker-field__preview"
+                                        :class="{ 'has-media': item.primary_media && item.primary_media.preview_url }"
+                                    >
+                                        <img
+                                            v-if="item.primary_media && item.primary_media.preview_url"
+                                            :src="item.primary_media.preview_url"
+                                            :alt="item.primary_media.alt || item.primary_media.basename"
+                                        >
+                                        <svg v-else fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                            <rect width="18" height="18" x="3" y="3" rx="2"></rect>
+                                            <circle cx="9" cy="9" r="2"></circle>
+                                            <path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div
+                                            id="edit_item_media_label"
+                                            class="media-picker-field__label"
+                                            v-text="item.primary_media?.basename || item.image_path || 'No image selected'"
+                                        ></div>
+                                        <div class="media-picker-field__hint">Choose an image from the media library.</div>
+                                    </div>
+                                    <div class="media-picker-field__actions">
+                                        <button
+                                            type="button"
+                                            class="media-picker-field__button media-picker-field__button--secondary"
+                                            @click="clearMedia"
+                                        >
+                                            Clear
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="media-picker-field__button"
+                                            data-media-picker-trigger
+                                            data-media-picker-target-input="edit_item_media_id"
+                                            data-media-picker-preview="edit_item_media_preview"
+                                            data-media-picker-label="edit_item_media_label"
+                                            data-media-picker-accept="image"
+                                            @media-picker:selected="selectMedia"
+                                        >
+                                            Choose
+                                        </button>
+                                    </div>
+                                </div>
+                                <p v-for="error in fieldErrors('media_id')" :key="error" class="mt-1.5 text-sm text-red-600" v-text="error"></p>
                             </div>
 
                             <div>
@@ -241,6 +282,16 @@ export default {
             }
 
             options.push(id);
+        },
+
+        selectMedia(event) {
+            this.item.media_id = event.detail.media.id;
+            this.item.primary_media = event.detail.media;
+        },
+
+        clearMedia() {
+            this.item.media_id = '';
+            this.item.primary_media = null;
         },
     },
 };

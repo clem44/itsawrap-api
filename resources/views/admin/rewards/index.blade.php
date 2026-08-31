@@ -11,6 +11,11 @@
         createAction: '{{ route('admin.rewards.store') }}',
         updateAction: '{{ route('admin.rewards.update', ['reward' => '__ID__']) }}',
         modalAction: '{{ old('form_action') === 'edit' && old('edit_id') ? route('admin.rewards.update', ['reward' => old('edit_id')]) : route('admin.rewards.store') }}',
+        referralOpen: {{ $errors->any() && in_array(old('form_action'), ['referral_create', 'referral_edit'], true) ? 'true' : 'false' }},
+        referralMode: '{{ old('form_action') === 'referral_edit' ? 'edit' : 'create' }}',
+        referralCreateAction: '{{ route('admin.referral-rewards.store') }}',
+        referralUpdateAction: '{{ route('admin.referral-rewards.update', ['referralReward' => '__ID__']) }}',
+        referralModalAction: '{{ old('form_action') === 'referral_edit' && old('edit_id') ? route('admin.referral-rewards.update', ['referralReward' => old('edit_id')]) : route('admin.referral-rewards.store') }}',
         modalProgram: {
             id: {{ old('form_action') === 'edit' ? (old('edit_id') ?: 'null') : 'null' }},
             name: '{{ old('form_action') ? addslashes(old('name', 'Buy 6 Wraps, Get 1 Free Wrap')) : 'Buy 6 Wraps, Get 1 Free Wrap' }}',
@@ -21,6 +26,31 @@
             starts_at: '{{ old('form_action') ? old('starts_at', '') : '' }}',
             ends_at: '{{ old('form_action') ? old('ends_at', '') : '' }}',
             is_active: {{ old('form_action') ? (old('is_active') ? 'true' : 'false') : 'true' }},
+        },
+        referralProgram: {
+            id: {{ old('form_action') === 'referral_edit' ? (old('edit_id') ?: 'null') : 'null' }},
+            name: '{{ old('form_action') && str_starts_with((string) old('form_action'), 'referral_') ? addslashes(old('name', 'Referral Loyalty')) : 'Referral Loyalty' }}',
+            required_referrals: '{{ old('form_action') && str_starts_with((string) old('form_action'), 'referral_') ? old('required_referrals', 5) : 5 }}',
+            reward_category_id: '{{ old('form_action') && str_starts_with((string) old('form_action'), 'referral_') ? old('reward_category_id', '') : '' }}',
+            reward_quantity: '{{ old('form_action') && str_starts_with((string) old('form_action'), 'referral_') ? old('reward_quantity', 1) : 1 }}',
+            starts_at: '{{ old('form_action') && str_starts_with((string) old('form_action'), 'referral_') ? old('starts_at', '') : '' }}',
+            ends_at: '{{ old('form_action') && str_starts_with((string) old('form_action'), 'referral_') ? old('ends_at', '') : '' }}',
+            is_active: {{ old('form_action') && str_starts_with((string) old('form_action'), 'referral_') ? (old('is_active') ? 'true' : 'false') : 'true' }},
+        },
+
+        initDatepickers() {
+            this.$nextTick(() => {
+                document.querySelectorAll('[data-flatpickr-datetime]').forEach((input) => {
+                    input._flatpickr?.destroy();
+                    window.flatpickr(input, {
+                        altInput: true,
+                        altFormat: 'M j, Y h:i K',
+                        dateFormat: 'Y-m-d\\TH:i',
+                        enableTime: true,
+                        time_24hr: false,
+                    });
+                });
+            });
         },
 
         openCreate() {
@@ -38,6 +68,7 @@
                 is_active: true,
             };
             this.createOpen = true;
+            this.initDatepickers();
         },
 
         openEdit(program) {
@@ -55,10 +86,49 @@
                 is_active: program.is_active === true,
             };
             this.createOpen = true;
+            this.initDatepickers();
         },
 
         closeCreate() {
             this.createOpen = false;
+        },
+
+        openReferralCreate() {
+            this.referralMode = 'create';
+            this.referralModalAction = this.referralCreateAction;
+            this.referralProgram = {
+                id: null,
+                name: 'Referral Loyalty',
+                required_referrals: 5,
+                reward_category_id: '',
+                reward_quantity: 1,
+                starts_at: '',
+                ends_at: '',
+                is_active: true,
+            };
+            this.referralOpen = true;
+            this.initDatepickers();
+        },
+
+        openReferralEdit(program) {
+            this.referralMode = 'edit';
+            this.referralModalAction = this.referralUpdateAction.replace('__ID__', program.id);
+            this.referralProgram = {
+                id: program.id,
+                name: program.name || '',
+                required_referrals: program.required_referrals || 1,
+                reward_category_id: program.reward_category_id ? String(program.reward_category_id) : '',
+                reward_quantity: program.reward_quantity || 1,
+                starts_at: program.starts_at || '',
+                ends_at: program.ends_at || '',
+                is_active: program.is_active === true,
+            };
+            this.referralOpen = true;
+            this.initDatepickers();
+        },
+
+        closeReferral() {
+            this.referralOpen = false;
         },
     });
 </script>
@@ -172,56 +242,21 @@
     @endif
 
     <div class="page-header animate-in animate-delay-2" style="margin-top: 2rem;">
-        <div class="page-header-content">
-            <h2 class="heading-serif text-2xl font-semibold text-white mb-1">Referral Loyalty</h2>
-            <p style="color: var(--color-sage-light); opacity: 0.9;">Configure referral-based rewards independently from purchase rewards.</p>
+        <div class="page-header-content flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h2 class="heading-serif text-2xl font-semibold text-white mb-1">Referral Loyalty</h2>
+                <p style="color: var(--color-sage-light); opacity: 0.9;">Configure referral-based rewards independently from purchase rewards.</p>
+            </div>
+            <button type="button" class="btn-primary btn-forest btn" @click.stop="openReferralCreate()">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                </svg>
+                Create Referral Program
+            </button>
         </div>
     </div>
 
     <div class="users-table-container animate-in animate-delay-2">
-        <form method="POST" action="{{ route('admin.referral-rewards.store') }}" class="form-grid" style="padding: 1.5rem;">
-            @csrf
-            <div class="form-group">
-                <label class="form-label" for="referral_name">Name</label>
-                <input id="referral_name" name="name" type="text" class="form-input" value="{{ old('name', 'Referral Loyalty') }}" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label" for="required_referrals">Required Referrals</label>
-                <input id="required_referrals" name="required_referrals" type="number" min="1" class="form-input" value="{{ old('required_referrals', 5) }}" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label" for="referral_reward_category_id">Reward Category</label>
-                <select id="referral_reward_category_id" name="reward_category_id" class="form-select" required>
-                    <option value="">Select category</option>
-                    @foreach($categories as $category)
-                        <option value="{{ $category->id }}" @selected(old('reward_category_id') == $category->id)>{{ $category->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label" for="referral_reward_quantity">Reward Quantity</label>
-                <input id="referral_reward_quantity" name="reward_quantity" type="number" min="1" class="form-input" value="{{ old('reward_quantity', 1) }}" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label" for="referral_starts_at">Starts At</label>
-                <input id="referral_starts_at" name="starts_at" type="datetime-local" class="form-input" value="{{ old('starts_at') }}">
-            </div>
-            <div class="form-group">
-                <label class="form-label" for="referral_ends_at">Ends At</label>
-                <input id="referral_ends_at" name="ends_at" type="datetime-local" class="form-input" value="{{ old('ends_at') }}">
-            </div>
-            <div class="form-group">
-                <label class="form-label" for="referral_is_active">Status</label>
-                <label class="inline-flex items-center gap-2">
-                    <input id="referral_is_active" name="is_active" type="checkbox" value="1" class="h-4 w-4 rounded border-gray-300 text-[var(--color-sage)] focus:ring-[var(--color-sage)]" checked>
-                    <span class="text-sm font-medium text-gray-900">Active Program</span>
-                </label>
-            </div>
-            <div class="form-actions full-width">
-                <button type="submit" class="btn btn-primary btn-forest">Create Referral Program</button>
-            </div>
-        </form>
-
         <table class="users-table">
             <thead>
                 <tr>
@@ -236,59 +271,43 @@
                 @forelse($referralPrograms as $program)
                     <tr>
                         <td>
-                            <input form="referral-program-{{ $program->id }}" name="name" type="text" class="form-input" value="{{ $program->name }}" required>
-                            <div class="grid grid-cols-1 gap-2" style="margin-top: 0.75rem;">
-                                <input form="referral-program-{{ $program->id }}" name="starts_at" type="datetime-local" class="form-input" value="{{ $program->starts_at?->format('Y-m-d\TH:i') }}">
-                                <input form="referral-program-{{ $program->id }}" name="ends_at" type="datetime-local" class="form-input" value="{{ $program->ends_at?->format('Y-m-d\TH:i') }}">
+                            <div class="user-name">{{ $program->name }}</div>
+                            <div class="user-meta">
+                                {{ $program->starts_at?->format('M d, Y') ?? 'No start date' }}
+                                -
+                                {{ $program->ends_at?->format('M d, Y') ?? 'No end date' }}
                             </div>
                         </td>
                         <td>
-                            <input form="referral-program-{{ $program->id }}" name="required_referrals" type="number" min="1" class="form-input" value="{{ $program->required_referrals }}" required>
+                            <span class="user-meta">{{ $program->required_referrals }} registered referrals</span>
                         </td>
                         <td>
-                            <select form="referral-program-{{ $program->id }}" name="reward_category_id" class="form-select" required>
-                                @foreach($categories as $category)
-                                    <option value="{{ $category->id }}" @selected($program->reward_category_id === $category->id)>{{ $category->name }}</option>
-                                @endforeach
-                            </select>
-                            <input form="referral-program-{{ $program->id }}" name="reward_quantity" type="number" min="1" class="form-input" value="{{ $program->reward_quantity }}" required style="margin-top: 0.5rem;">
-                            <input form="referral-program-{{ $program->id }}" type="hidden" name="is_active" value="{{ $program->is_active ? 1 : 0 }}">
+                            <span class="user-meta">{{ $program->reward_quantity }} free {{ $program->rewardCategory?->name ?? 'item' }}</span>
                         </td>
                         <td>
                             <span class="role-badge {{ $program->is_active ? 'admin' : 'user' }}">{{ $program->is_active ? 'Active' : 'Inactive' }}</span>
                         </td>
                         <td>
                             <div class="flex justify-end gap-1">
-                                <form id="referral-program-{{ $program->id }}" method="POST" action="{{ route('admin.referral-rewards.update', $program) }}">
-                                    @csrf
-                                    @method('PUT')
-                                </form>
-                                <button type="submit" form="referral-program-{{ $program->id }}" class="action-btn edit" title="Save Referral Program">
+                                <button
+                                    type="button"
+                                    class="action-btn edit"
+                                    title="Edit Referral Program"
+                                    @click.stop="openReferralEdit(@js([
+                                        'id' => $program->id,
+                                        'name' => $program->name,
+                                        'required_referrals' => $program->required_referrals,
+                                        'reward_category_id' => $program->reward_category_id,
+                                        'reward_quantity' => $program->reward_quantity,
+                                        'starts_at' => $program->starts_at?->format('Y-m-d\TH:i'),
+                                        'ends_at' => $program->ends_at?->format('Y-m-d\TH:i'),
+                                        'is_active' => $program->is_active,
+                                    ]))"
+                                >
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                     </svg>
                                 </button>
-                                @if($program->is_active)
-                                    <form method="POST" action="{{ route('admin.referral-rewards.deactivate', $program) }}" class="inline">
-                                        @csrf
-                                        @method('PATCH')
-                                        <button type="submit" class="action-btn" title="Deactivate Referral Program">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728"></path>
-                                            </svg>
-                                        </button>
-                                    </form>
-                                @else
-                                    <form method="POST" action="{{ route('admin.referral-rewards.activate', $program) }}" class="inline">
-                                        @csrf
-                                        @method('PATCH')
-                                        <button type="submit" class="action-btn edit" title="Activate Referral Program">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                            </svg>
-                                        </button>
-                                    </form>
-                                @endif
                                 <form method="POST" action="{{ route('admin.referral-rewards.destroy', $program) }}" class="inline" onsubmit="return confirm('Delete this referral program? Programs with customer activity cannot be deleted.')">
                                     @csrf
                                     @method('DELETE')
@@ -450,7 +469,8 @@
                                     <input
                                         id="create_starts_at"
                                         name="starts_at"
-                                        type="datetime-local"
+                                        type="text"
+                                        data-flatpickr-datetime
                                         class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('starts_at') border-red-500 @enderror"
                                         v-model="modalProgram.starts_at"
                                     >
@@ -461,7 +481,8 @@
                                     <input
                                         id="create_ends_at"
                                         name="ends_at"
-                                        type="datetime-local"
+                                        type="text"
+                                        data-flatpickr-datetime
                                         class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('ends_at') border-red-500 @enderror"
                                         v-model="modalProgram.ends_at"
                                     >
@@ -487,6 +508,165 @@
                             </button>
                             <button type="submit" class="rounded-lg bg-[var(--color-forest)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--color-forest-dark)] transition-colors">
                                 <span v-text="modalMode === 'edit' ? 'Save Changes' : 'Create Program'"></span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </teleport>
+
+    <teleport to="body">
+        <div
+            v-show="referralOpen"
+            v-cloak
+            class="fixed inset-0 z-50 overflow-y-auto"
+            aria-labelledby="referral-modal-title"
+            role="dialog"
+            aria-modal="true"
+        >
+            <div class="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                <div
+                    v-show="referralOpen"
+                    class="fixed inset-0 bg-black/60 backdrop-blur-sm"
+                    @click="closeReferral()"
+                ></div>
+
+                <span class="hidden sm:inline-block sm:h-screen sm:align-middle" aria-hidden="true">&#8203;</span>
+
+                <div
+                    v-show="referralOpen"
+                    class="relative inline-block w-full max-w-3xl transform overflow-hidden rounded-2xl bg-white text-left align-bottom shadow-xl sm:my-8 sm:align-middle"
+                    @click.stop
+                >
+                    <form method="POST" :action="referralModalAction">
+                        @csrf
+                        <input v-if="referralMode === 'edit'" type="hidden" name="_method" value="PUT">
+                        <input type="hidden" name="form_action" :value="referralMode === 'edit' ? 'referral_edit' : 'referral_create'">
+                        <input type="hidden" name="edit_id" :value="referralProgram.id">
+
+                        <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+                            <h2 id="referral-modal-title" class="text-xl font-semibold text-gray-900" v-text="referralMode === 'edit' ? 'Edit Referral Program' : 'Create Referral Program'"></h2>
+                            <button type="button" class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors" @click="closeReferral()">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="space-y-6 px-6 py-5 max-h-96 overflow-y-auto">
+                            @if(str_starts_with((string) old('form_action'), 'referral_') && $errors->any())
+                                <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                                    <p class="font-semibold mb-1">Please fix the following:</p>
+                                    <ul class="list-disc pl-5 space-y-1">
+                                        @foreach($errors->all() as $error)
+                                            <li>{{ $error }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            @endif
+
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-gray-900" for="referral_modal_name">Name</label>
+                                <input
+                                    id="referral_modal_name"
+                                    name="name"
+                                    type="text"
+                                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('name') border-red-500 @enderror"
+                                    v-model="referralProgram.name"
+                                    required
+                                >
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <div>
+                                    <label class="mb-2 block text-sm font-medium text-gray-900" for="referral_modal_required_referrals">Required Referrals</label>
+                                    <input
+                                        id="referral_modal_required_referrals"
+                                        name="required_referrals"
+                                        type="number"
+                                        min="1"
+                                        class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('required_referrals') border-red-500 @enderror"
+                                        v-model="referralProgram.required_referrals"
+                                        required
+                                    >
+                                </div>
+
+                                <div>
+                                    <label class="mb-2 block text-sm font-medium text-gray-900" for="referral_modal_reward_quantity">Reward Quantity</label>
+                                    <input
+                                        id="referral_modal_reward_quantity"
+                                        name="reward_quantity"
+                                        type="number"
+                                        min="1"
+                                        class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('reward_quantity') border-red-500 @enderror"
+                                        v-model="referralProgram.reward_quantity"
+                                        required
+                                    >
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-gray-900" for="referral_modal_reward_category_id">Reward Category</label>
+                                <select
+                                    id="referral_modal_reward_category_id"
+                                    name="reward_category_id"
+                                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('reward_category_id') border-red-500 @enderror"
+                                    v-model="referralProgram.reward_category_id"
+                                    required
+                                >
+                                    <option value="">Select category</option>
+                                    @foreach($categories as $category)
+                                        <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <div>
+                                    <label class="mb-2 block text-sm font-medium text-gray-900" for="referral_modal_starts_at">Starts At <span class="text-gray-500 font-normal">optional</span></label>
+                                    <input
+                                        id="referral_modal_starts_at"
+                                        name="starts_at"
+                                        type="text"
+                                        data-flatpickr-datetime
+                                        class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('starts_at') border-red-500 @enderror"
+                                        v-model="referralProgram.starts_at"
+                                    >
+                                </div>
+
+                                <div>
+                                    <label class="mb-2 block text-sm font-medium text-gray-900" for="referral_modal_ends_at">Ends At <span class="text-gray-500 font-normal">optional</span></label>
+                                    <input
+                                        id="referral_modal_ends_at"
+                                        name="ends_at"
+                                        type="text"
+                                        data-flatpickr-datetime
+                                        class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('ends_at') border-red-500 @enderror"
+                                        v-model="referralProgram.ends_at"
+                                    >
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-3">
+                                <input
+                                    id="referral_modal_is_active"
+                                    name="is_active"
+                                    type="checkbox"
+                                    value="1"
+                                    class="h-4 w-4 rounded border-gray-300 text-[var(--color-sage)] focus:ring-[var(--color-sage)]"
+                                    v-model="referralProgram.is_active"
+                                >
+                                <label for="referral_modal_is_active" class="text-sm font-medium text-gray-900">Active Program</label>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end gap-3 border-t border-gray-200 px-6 py-4">
+                            <button type="button" class="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors" @click="closeReferral()">
+                                Cancel
+                            </button>
+                            <button type="submit" class="rounded-lg bg-[var(--color-forest)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--color-forest-dark)] transition-colors">
+                                <span v-text="referralMode === 'edit' ? 'Save Changes' : 'Create Program'"></span>
                             </button>
                         </div>
                     </form>

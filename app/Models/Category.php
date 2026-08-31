@@ -5,10 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Plank\Mediable\Mediable;
+
 
 class Category extends Model
 {
-    use HasFactory;
+    use HasFactory, Mediable;
 
     protected $fillable = [
         'name',

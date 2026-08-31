@@ -10,6 +10,7 @@ use App\Models\ItemOptionValue;
 use App\Models\Option;
 use App\Models\OptionDependency;
 use App\Models\OptionValue;
+use App\Support\Media\MediaLibraryPresenter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,9 +19,10 @@ use Illuminate\View\View;
 
 class ItemController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, MediaLibraryPresenter $mediaPresenter): View
     {
         $items = Item::query()
+            ->withMedia('primary_image')
             ->with([
                 'category',
                 'itemOptions.option.optionValues',
@@ -97,7 +99,18 @@ class ItemController extends Controller
             ])->values()->toArray(),
         ])->values();
 
-        return view('admin.items.index', compact('items', 'categories', 'options', 'allOptions', 'itemsData'));
+        $itemEditData = $items->getCollection()
+            ->mapWithKeys(function (Item $item) use ($mediaPresenter) {
+                $primaryMedia = $item->firstMedia('primary_image');
+                $data = $item->only(['id', 'name', 'description', 'cost', 'category_id', 'image_path', 'short_code', 'active']);
+
+                $data['media_id'] = $primaryMedia?->id ?? $item->media_id;
+                $data['primary_media'] = $primaryMedia ? $mediaPresenter->present($primaryMedia) : null;
+
+                return [$item->id => $data];
+            });
+
+        return view('admin.items.index', compact('items', 'categories', 'options', 'allOptions', 'itemsData', 'itemEditData'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -107,6 +120,7 @@ class ItemController extends Controller
             'description' => 'nullable|string',
             'cost' => 'required|numeric|min:0|decimal:0,2',
             'category_id' => 'required|exists:categories,id',
+            'media_id' => 'nullable|integer|exists:media,id',
             'image_path' => 'nullable|string|max:500',
             'short_code' => 'nullable|string|max:50',
             'active' => 'nullable',
@@ -117,6 +131,7 @@ class ItemController extends Controller
         $validated['active'] = $request->has('active');
 
         $item = Item::create($validated);
+        $this->syncPrimaryImage($item, $request);
 
         // Attach options to item if provided
         if (! empty($request->input('options'))) {
@@ -141,6 +156,8 @@ class ItemController extends Controller
                 'description' => 'nullable|string',
                 'cost' => 'required|numeric|min:0|decimal:0,2',
                 'category_id' => 'required|exists:categories,id',
+                'media_id' => 'nullable|integer|exists:media,id',
+                'image_path' => 'nullable|string|max:500',
                 'short_code' => 'nullable|string|max:50',
                 'active' => 'nullable',
                 'options' => 'nullable|array',
@@ -161,6 +178,7 @@ class ItemController extends Controller
             $validated['active'] = $request->has('active');
 
             $item->update($validated);
+            $this->syncPrimaryImage($item, $request);
 
             // Sync options
             ItemOption::where('item_id', $item->id)->delete();
@@ -436,5 +454,16 @@ class ItemController extends Controller
         $itemOption->delete();
 
         return response()->json(['success' => true]);
+    }
+
+    private function syncPrimaryImage(Item $item, Request $request): void
+    {
+        if ($request->filled('media_id')) {
+            $item->syncMedia((int) $request->input('media_id'), 'primary_image');
+
+            return;
+        }
+
+        $item->detachMediaTags('primary_image');
     }
 }

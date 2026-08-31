@@ -15,7 +15,8 @@
                 description: '{{ old('form_action') === 'edit' ? addslashes(old('description', '')) : '' }}',
                 icon: '{{ old('form_action') === 'edit' ? addslashes(old('icon', '')) : '' }}',
                 color: '{{ old('form_action') === 'edit' ? addslashes(old('color', '')) : '' }}',
-                sort_order: '{{ old('form_action') === 'edit' ? old('sort_order', '') : '' }}'
+                sort_order: '{{ old('form_action') === 'edit' ? old('sort_order', '') : '' }}',
+                
             },
             editAction: '{{ route('admin.categories.update', ['category' => '__ID__']) }}',
 

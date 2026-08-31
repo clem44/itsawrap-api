@@ -1,8 +1,14 @@
 import './bootstrap';
+import './plugins/media-library/media-library';
+import './plugins/media-library/Media-library.css';
 import { createApp } from 'vue';
+import flatpickr from 'flatpickr';
+import 'flatpickr/dist/flatpickr.css';
 import EditItemModal from './components/admin/EditItemModal.vue';
 import EditOptionValueModal from './components/admin/EditOptionValueModal.vue';
 import UserForm from './components/admin/users/UserForm.vue';
+
+window.flatpickr = flatpickr;
 
 function splitPageManager(manager) {
     const data = {};
@@ -45,6 +51,7 @@ function mountAdminApp() {
                 sidebarOpen: false,
                 csrfToken: document.querySelector('meta[name="csrf-token"]')?.content || '',
                 dataMenuOpen: root.dataset.menuOpen === 'true',
+                deliveryMenuOpen: root.dataset.deliveryMenuOpen === 'true',
                 sidebarCollapsed: JSON.parse(localStorage.getItem('adminSidebarCollapsed') || 'false'),
                 openEndpointGroups: {},
                 ...pageManager.data,
@@ -55,6 +62,10 @@ function mountAdminApp() {
             sidebarCollapsed(value) {
                 localStorage.setItem('adminSidebarCollapsed', JSON.stringify(value));
             },
+        },
+
+        mounted() {
+            this.initDatepickers?.();
         },
 
         methods: {
@@ -76,6 +87,8 @@ function mountAdminApp() {
         .component('edit-option-value-modal', EditOptionValueModal)
         .component('user-form', UserForm)
         .mount(root);
+
+    window.MediaLibrary?.autoMount();
 }
 
 if (document.readyState === 'loading') {

@@ -30,6 +30,39 @@
     --color-ink-light: #6b6b6b;
     --color-error: #b91c1c;
     --color-error-light: #fef2f2;
+    --color-scrollbar-track: var(--color-cream);
+    --color-scrollbar-thumb: var(--color-sage);
+    --color-scrollbar-thumb-hover: var(--color-forest);
+    --color-scrollbar-corner: var(--color-cream-dark);
+}
+
+html,
+* {
+    scrollbar-color: var(--color-scrollbar-thumb) var(--color-scrollbar-track);
+    scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+    background: var(--color-scrollbar-track);
+}
+
+*::-webkit-scrollbar-thumb {
+    border: 2px solid var(--color-scrollbar-track);
+    border-radius: 999px;
+    background: linear-gradient(180deg, var(--color-sage-light), var(--color-scrollbar-thumb));
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: var(--color-scrollbar-thumb-hover);
+}
+
+*::-webkit-scrollbar-corner {
+    background: var(--color-scrollbar-corner);
 }
 
 /* Typography */
@@ -1103,6 +1136,22 @@
     background-color: white;
     border-color: var(--color-sage);
     box-shadow: 0 0 0 3px rgba(124, 154, 138, 0.15);
+}
+
+.form-textarea {
+    appearance: none;
+    width: 100%;
+    background-color: var(--color-cream);
+    padding-top: 0.5rem;
+    padding-right: 0.75rem;
+    padding-bottom: 0.5rem;
+    padding-left: 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5rem;
+    --tw-shadow: 0 0 #0000;
+    border-color: oklch(0.551 0.027 264.364);
+    border-width: 1px;
+    border-radius: 0.65rem;
 }
 
 .error-message {

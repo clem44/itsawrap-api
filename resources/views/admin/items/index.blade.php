@@ -22,11 +22,14 @@
                 description: '{{ old('form_action') === 'edit' ? addslashes(old('description', '')) : '' }}',
                 cost: '{{ old('form_action') === 'edit' ? old('cost', '') : '' }}',
                 category_id: '{{ old('form_action') === 'edit' ? old('category_id', '') : '' }}',
+                media_id: '{{ old('form_action') === 'edit' ? old('media_id', '') : '' }}',
+                primary_media: null,
                 image_path: '{{ old('form_action') === 'edit' ? addslashes(old('image_path', '')) : '' }}',
                 short_code: '{{ old('form_action') === 'edit' ? addslashes(old('short_code', '')) : '' }}',
                 active: {{ old('form_action') === 'edit' ? (old('active') ? 'true' : 'false') : 'false' }},
                 options: @js(old('form_action') === 'edit' ? collect(old('options', []))->map(fn ($optionId) => (int) $optionId)->all() : [])
             },
+            itemEditData: @js($itemEditData),
             editOptionsItem: {
                 id: null,
                 options: []
@@ -42,6 +45,8 @@
                 description: '',
                 cost: '',
                 category_id: '',
+                media_id: '',
+                primary_media: null,
                 image_path: '',
                 short_code: '',
                 active: false
@@ -60,6 +65,8 @@
                     description: '',
                     cost: '',
                     category_id: '',
+                    media_id: '',
+                    primary_media: null,
                     image_path: '',
                     short_code: '',
                     active: false
@@ -71,6 +78,11 @@
                 this.createOpen = false;
             },
 
+            clearCreateMedia() {
+                this.createItem.media_id = '';
+                this.createItem.primary_media = null;
+            },
+
             openEdit(item, selectedOptions) {
                 this.editItem = {
                     id: item.id,
@@ -78,6 +90,8 @@
                     description: item.description || '',
                     cost: item.cost || '',
                     category_id: item.category_id || '',
+                    media_id: item.media_id || '',
+                    primary_media: item.primary_media || null,
                     image_path: item.image_path || '',
                     short_code: item.short_code || '',
                     active: item.active || false,
@@ -576,12 +590,19 @@
             </thead>
             <tbody>
                 @forelse($items as $item)
+                    @php($primaryMedia = $item->firstMedia('primary_image'))
                     <tr>
                         <td>
                             <div class="flex items-center gap-3">
-                                <div class="user-avatar" style="background: linear-gradient(135deg, rgba(124, 154, 138, 0.2) 0%, rgba(124, 154, 138, 0.6) 100%); color: var(--color-forest);">
-                                    {{ strtoupper(substr($item->name, 0, 2)) }}
-                                </div>
+                                @if($primaryMedia)
+                                    <div class="user-avatar overflow-hidden" style="background: var(--color-cream);">
+                                        <img src="{{ $primaryMedia->getUrl() }}" alt="{{ $primaryMedia->alt ?: $item->name }}" class="h-full w-full object-cover">
+                                    </div>
+                                @else
+                                    <div class="user-avatar" style="background: linear-gradient(135deg, rgba(124, 154, 138, 0.2) 0%, rgba(124, 154, 138, 0.6) 100%); color: var(--color-forest);">
+                                        {{ strtoupper(substr($item->name, 0, 2)) }}
+                                    </div>
+                                @endif
                                 <div>
                                     <div class="user-name">{{ $item->name }}</div>
                                     @if($item->short_code)
@@ -623,7 +644,7 @@
                                     type="button"
                                     class="action-btn edit"
                                     title="Edit Item"
-                                    @click.stop="openEdit(@js($item->only(['id', 'name', 'description', 'cost', 'category_id', 'image_path', 'short_code', 'active'])), @js($item->itemOptions->pluck('option_id')->toArray()))"
+                                    @click.stop="openEdit(itemEditData[{{ $item->id }}], @js($item->itemOptions->pluck('option_id')->toArray()))"
                                 >
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -812,14 +833,53 @@
                         </div>
 
                         <div>
-                            <label class="mb-2 block text-sm font-medium text-gray-900">Image Path</label>
+                            <label class="mb-2 block text-sm font-medium text-gray-900">Image</label>
                             <input
-                                type="text"
-                                name="image_path"
-                                class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('image_path') border-red-500 @enderror"
-                                placeholder="e.g. /images/items/chicken-wrap.jpg"
-                                v-model="createItem.image_path"
+                                type="hidden"
+                                id="create_item_media_id"
+                                name="media_id"
+                                v-model="createItem.media_id"
                             >
+                            <div class="media-picker-field">
+                                <div id="create_item_media_preview" class="media-picker-field__preview" :class="{ 'has-media': createItem.primary_media }">
+                                    <img v-if="createItem.primary_media && createItem.primary_media.preview_url" :src="createItem.primary_media.preview_url" :alt="createItem.primary_media.alt || createItem.primary_media.basename">
+                                    <svg v-else fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <rect x="3" y="3" width="18" height="18" rx="2" stroke-width="2"></rect>
+                                        <circle cx="9" cy="9" r="2" stroke-width="2"></circle>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15l-3.5-3.5a2 2 0 00-2.8 0L6 20"></path>
+                                    </svg>
+                                </div>
+                                <div class="min-w-0">
+                                    <div id="create_item_media_label" class="media-picker-field__label" v-text="createItem.primary_media ? createItem.primary_media.basename : 'No image selected'"></div>
+                                    <div class="media-picker-field__hint">Choose an uploaded library image or upload a new one.</div>
+                                </div>
+                                <div class="media-picker-field__actions">
+                                    <button
+                                        type="button"
+                                        class="media-picker-field__button media-picker-field__button--secondary"
+                                        @click="clearCreateMedia"
+                                    >
+                                        Clear
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="media-picker-field__button"
+                                        data-media-picker-trigger
+                                        data-media-picker-target-input="create_item_media_id"
+                                        data-media-picker-preview="create_item_media_preview"
+                                        data-media-picker-label="create_item_media_label"
+                                        data-media-picker-accept="image"
+                                        @media-picker:selected="createItem.media_id = $event.detail.media.id; createItem.primary_media = $event.detail.media"
+                                    >
+                                        Choose
+                                    </button>
+                                </div>
+                            </div>
+                            @if(old('form_action') === 'create')
+                                @error('media_id')
+                                    <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            @endif
                             @if(old('form_action') === 'create')
                                 @error('image_path')
                                     <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>

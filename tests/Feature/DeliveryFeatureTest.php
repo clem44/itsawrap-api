@@ -133,6 +133,51 @@ class DeliveryFeatureTest extends TestCase
             ->assertJsonPath('delivery_windows.0.label', '10:00 AM - 11:30 AM');
     }
 
+    public function test_everyday_window_stays_available_until_end_time(): void
+    {
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-09-01 10:30:00', 'America/Anguilla'));
+
+        $window = DeliveryWindow::query()->create([
+            'schedule_type' => DeliveryWindow::TYPE_WEEKLY,
+            'day_of_week' => null,
+            'start_time' => '10:00',
+            'end_time' => '11:30',
+            'capacity' => 8,
+            'is_active' => true,
+        ]);
+
+        $this->getJson('/api/guest/delivery-windows/today')
+            ->assertOk()
+            ->assertJsonPath('delivery_windows.0.delivery_window_id', $window->id)
+            ->assertJsonPath('delivery_windows.0.is_available', true)
+            ->assertJsonPath('delivery_windows.0.unavailable_reason', null);
+    }
+
+    public function test_delivery_windows_use_restaurant_timezone_when_app_timezone_is_utc(): void
+    {
+        config([
+            'app.timezone' => 'UTC',
+            'delivery.timezone' => 'America/Anguilla',
+        ]);
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-08-29 21:03:00', 'UTC'));
+
+        $window = DeliveryWindow::query()->create([
+            'schedule_type' => DeliveryWindow::TYPE_WEEKLY,
+            'day_of_week' => null,
+            'start_time' => '17:00',
+            'end_time' => '19:30',
+            'capacity' => 20,
+            'is_active' => true,
+        ]);
+
+        $this->getJson('/api/guest/delivery-windows/today')
+            ->assertOk()
+            ->assertJsonPath('delivery_windows.0.delivery_window_id', $window->id)
+            ->assertJsonPath('delivery_windows.0.label', '5:00 PM - 7:30 PM')
+            ->assertJsonPath('delivery_windows.0.is_available', true)
+            ->assertJsonPath('delivery_windows.0.unavailable_reason', null);
+    }
+
     public function test_specific_date_windows_replace_everyday_recurring_windows(): void
     {
         CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-09-01 09:00:00', 'America/Anguilla'));
@@ -201,7 +246,7 @@ class DeliveryFeatureTest extends TestCase
 
     public function test_passed_and_full_windows_are_returned_as_unavailable(): void
     {
-        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-08-31 10:30:00', 'America/Anguilla'));
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-08-31 11:31:00', 'America/Anguilla'));
 
         $passedWindow = DeliveryWindow::query()->create([
             'schedule_type' => DeliveryWindow::TYPE_WEEKLY,
@@ -562,6 +607,159 @@ class DeliveryFeatureTest extends TestCase
             ->assertSee('10:00 AM - 11:30 AM')
             ->assertSee('Duplicate Delivery Window')
             ->assertSee('Delete Delivery Window');
+    }
+
+    public function test_admin_sidebar_renders_delivery_dropdown_links(): void
+    {
+        $admin = $this->makeUser(Role::ADMIN_ID, 'delivery-sidebar-admin');
+
+        $this->actingAs($admin)
+            ->get(route('admin.delivery-windows.index'))
+            ->assertOk()
+            ->assertSee('Delivery')
+            ->assertSee(route('admin.deliveries.index'), false)
+            ->assertSee('Deliveries')
+            ->assertSee(route('admin.delivery-windows.index'), false)
+            ->assertSee('Delivery Windows');
+    }
+
+    public function test_admin_deliveries_index_lists_and_filters_by_delivery_window(): void
+    {
+        $admin = $this->makeUser(Role::ADMIN_ID, 'deliveries-index-admin');
+        $firstWindow = DeliveryWindow::query()->create([
+            'schedule_type' => DeliveryWindow::TYPE_WEEKLY,
+            'day_of_week' => null,
+            'start_time' => '10:00',
+            'end_time' => '11:30',
+            'capacity' => 8,
+            'is_active' => true,
+        ]);
+        $secondWindow = DeliveryWindow::query()->create([
+            'schedule_type' => DeliveryWindow::TYPE_WEEKLY,
+            'day_of_week' => null,
+            'start_time' => '17:00',
+            'end_time' => '19:30',
+            'capacity' => 8,
+            'is_active' => true,
+        ]);
+
+        $firstDelivery = $this->createExistingDelivery($firstWindow);
+        $secondDelivery = $this->createExistingDelivery($secondWindow);
+        $secondDelivery->update(['address' => 'Filtered Address']);
+
+        $this->actingAs($admin)
+            ->get(route('admin.deliveries.index', ['delivery_window_id' => $secondWindow->id]))
+            ->assertOk()
+            ->assertSee('Deliveries')
+            ->assertSee('Filtered Address')
+            ->assertSee(route('admin.deliveries.edit', $secondDelivery), false)
+            ->assertDontSee('#'.$firstDelivery->id);
+    }
+
+    public function test_admin_can_edit_delivery_window_driver_and_details(): void
+    {
+        $admin = $this->makeUser(Role::ADMIN_ID, 'deliveries-edit-admin');
+        $driver = $this->makeUser(Role::DRIVER_ID, 'deliveries-driver');
+        $oldWindow = DeliveryWindow::query()->create([
+            'schedule_type' => DeliveryWindow::TYPE_WEEKLY,
+            'day_of_week' => null,
+            'start_time' => '10:00',
+            'end_time' => '11:30',
+            'capacity' => 8,
+            'is_active' => true,
+        ]);
+        $newWindow = DeliveryWindow::query()->create([
+            'schedule_type' => DeliveryWindow::TYPE_WEEKLY,
+            'day_of_week' => null,
+            'start_time' => '17:00',
+            'end_time' => '19:30',
+            'capacity' => 8,
+            'is_active' => true,
+        ]);
+        $delivery = $this->createExistingDelivery($oldWindow);
+
+        $this->actingAs($admin)
+            ->get(route('admin.deliveries.edit', $delivery))
+            ->assertOk()
+            ->assertSee('Delivery Details')
+            ->assertSee('Trash Delivery')
+            ->assertSee($driver->full_name);
+
+        $this->actingAs($admin)
+            ->put(route('admin.deliveries.update', $delivery), [
+                'delivery_window_id' => $newWindow->id,
+                'delivery_date' => '2026-09-01',
+                'assigned_driver_id' => $driver->id,
+                'address' => '456 Updated Road',
+                'latitude' => 18.2208000,
+                'longitude' => -63.0686000,
+                'delivery_instructions' => 'Meet at the gate',
+                'status' => 'assigned',
+            ])
+            ->assertRedirect(route('admin.deliveries.edit', $delivery));
+
+        $delivery->refresh();
+        $this->assertSame($newWindow->id, $delivery->delivery_window_id);
+        $this->assertSame($driver->id, $delivery->assigned_driver_id);
+        $this->assertSame('2026-09-01', $delivery->delivery_date->format('Y-m-d'));
+        $this->assertSame('17:00', $delivery->window_start_at->format('H:i'));
+        $this->assertSame('19:30', $delivery->window_end_at->format('H:i'));
+        $this->assertSame('456 Updated Road', $delivery->address);
+        $this->assertSame('assigned', $delivery->status);
+    }
+
+    public function test_admin_delivery_update_requires_driver_role(): void
+    {
+        $admin = $this->makeUser(Role::ADMIN_ID, 'deliveries-role-admin');
+        $staff = $this->makeUser(Role::STAFF_ID, 'deliveries-staff');
+        $window = DeliveryWindow::query()->create([
+            'schedule_type' => DeliveryWindow::TYPE_WEEKLY,
+            'day_of_week' => null,
+            'start_time' => '10:00',
+            'end_time' => '11:30',
+            'capacity' => 8,
+            'is_active' => true,
+        ]);
+        $delivery = $this->createExistingDelivery($window);
+
+        $this->actingAs($admin)
+            ->from(route('admin.deliveries.edit', $delivery))
+            ->put(route('admin.deliveries.update', $delivery), [
+                'delivery_window_id' => $window->id,
+                'delivery_date' => '2026-08-31',
+                'assigned_driver_id' => $staff->id,
+                'address' => 'Existing Address',
+                'latitude' => 18.2,
+                'longitude' => -63.0,
+                'status' => 'pending',
+            ])
+            ->assertRedirect(route('admin.deliveries.edit', $delivery))
+            ->assertSessionHasErrors('assigned_driver_id');
+    }
+
+    public function test_admin_can_trash_delivery_without_deleting_order(): void
+    {
+        $admin = $this->makeUser(Role::ADMIN_ID, 'deliveries-trash-admin');
+        $window = DeliveryWindow::query()->create([
+            'schedule_type' => DeliveryWindow::TYPE_WEEKLY,
+            'day_of_week' => null,
+            'start_time' => '10:00',
+            'end_time' => '11:30',
+            'capacity' => 8,
+            'is_active' => true,
+        ]);
+        $delivery = $this->createExistingDelivery($window);
+        $order = $delivery->order;
+
+        $this->actingAs($admin)
+            ->delete(route('admin.deliveries.destroy', $delivery))
+            ->assertRedirect(route('admin.deliveries.index'));
+
+        $this->assertDatabaseMissing('deliveries', ['id' => $delivery->id]);
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'is_delivery' => false,
+        ]);
     }
 
     public function test_admin_delivery_window_index_labels_null_weekday_as_everyday(): void
