@@ -18,6 +18,7 @@ class Category extends Model
         'icon',
         'color',
         'sort_order',
+        'media_id',
     ];
 
     protected function casts(): array
