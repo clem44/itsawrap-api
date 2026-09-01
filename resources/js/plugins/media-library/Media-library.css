@@ -60,8 +60,8 @@
 }
 
 .media-library--picker .media-library__shell {
-    width: min(calc(100vw - 4rem), 1216px);
-    height: min(calc(100vh - 4rem), 693px);
+    width: min(calc(100vw - 3rem), 1216px);
+    height: min(calc(100vh - 2rem), 700px);
     border-radius: 0.5rem;
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.36);
 }
@@ -543,7 +543,7 @@
 }
 
 .media-library__properties {
-    margin-top: 1.6rem;
+    margin-top: 1rem;
     padding-top: 1rem;
     border-top: 1px solid var(--media-library-border);
 }
