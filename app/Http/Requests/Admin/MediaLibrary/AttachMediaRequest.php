@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin\MediaLibrary;
 
 use App\Models\Item;
+use App\Models\Offer;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -27,6 +28,7 @@ class AttachMediaRequest extends FormRequest
     {
         return [
             Item::class,
+            Offer::class,
         ];
     }
 

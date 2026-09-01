@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\DownloadController;
 use App\Http\Controllers\Admin\ItemController;
 use App\Http\Controllers\Admin\MediaLibraryController;
 use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\OfferController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\ReferralProgramController;
 use App\Http\Controllers\Admin\ReportController;
@@ -88,6 +89,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/reports', [ReportController::class, 'index'])->name('reports');
 
         // Rewards
+        Route::resource('offers', OfferController::class, ['only' => ['index', 'store', 'update', 'destroy']]);
         Route::get('/rewards', [RewardController::class, 'index'])->name('rewards.index');
         Route::post('/rewards', [RewardController::class, 'store'])->name('rewards.store');
         Route::put('/rewards/{reward}', [RewardController::class, 'update'])->name('rewards.update');

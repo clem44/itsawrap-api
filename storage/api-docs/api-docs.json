@@ -2830,6 +2830,74 @@
                 ]
             }
         },
+        "/guest/offers": {
+            "get": {
+                "tags": [
+                    "Offers"
+                ],
+                "summary": "List active customer offers",
+                "description": "Returns currently active promotional offers for guest checkout and customer account surfaces.",
+                "operationId": "dead1abe47b46ad193bfcefb4cdfb11d",
+                "responses": {
+                    "200": {
+                        "description": "List of active offers",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "offers": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Offer"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/me/offers": {
+            "get": {
+                "tags": [
+                    "Offers"
+                ],
+                "summary": "List active customer offers",
+                "description": "Returns currently active promotional offers for the signed-in customer account area.",
+                "operationId": "2eaddfd805bc1d4254386c6407832238",
+                "responses": {
+                    "200": {
+                        "description": "List of active offers",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "offers": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Offer"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/options": {
             "get": {
                 "tags": [
@@ -7355,6 +7423,144 @@
                 },
                 "type": "object"
             },
+            "Offer": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Get 10% off Rice Bowls"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "Limited time rice bowl discount.",
+                        "nullable": true
+                    },
+                    "offer_type": {
+                        "type": "string",
+                        "enum": [
+                            "percentage_discount",
+                            "fixed_discount",
+                            "buy_x_get_y",
+                            "spend_x_get_y"
+                        ],
+                        "example": "percentage_discount"
+                    },
+                    "discount_type": {
+                        "type": "string",
+                        "enum": [
+                            "percent",
+                            "fixed_amount",
+                            "free_item"
+                        ],
+                        "example": "percent"
+                    },
+                    "discount_value": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 10,
+                        "nullable": true
+                    },
+                    "minimum_subtotal": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 20,
+                        "nullable": true
+                    },
+                    "required_quantity": {
+                        "type": "integer",
+                        "example": 6,
+                        "nullable": true
+                    },
+                    "reward_quantity": {
+                        "type": "integer",
+                        "example": 1,
+                        "nullable": true
+                    },
+                    "starts_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "ends_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "is_stackable": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "priority": {
+                        "type": "integer",
+                        "example": 10
+                    },
+                    "featured_image_url": {
+                        "type": "string",
+                        "example": "https://itsawrap.ai/storage/media-library/rice-bowls.jpg",
+                        "nullable": true
+                    },
+                    "qualifying_category": {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "name": {
+                                "type": "string",
+                                "example": "Rice Bowls"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "qualifying_item": {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 10
+                            },
+                            "name": {
+                                "type": "string",
+                                "example": "Chicken Rice Bowl"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "reward_category": {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 2
+                            },
+                            "name": {
+                                "type": "string",
+                                "example": "Sides"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "reward_item": {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 20
+                            },
+                            "name": {
+                                "type": "string",
+                                "example": "Plantain Side"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
             "PushSubscription": {
                 "properties": {
                     "id": {
@@ -7694,6 +7900,10 @@
         {
             "name": "Item Option Values",
             "description": "Item Option Values"
+        },
+        {
+            "name": "Offers",
+            "description": "Offers"
         },
         {
             "name": "Option Dependencies",

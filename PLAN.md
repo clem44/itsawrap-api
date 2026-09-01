@@ -389,3 +389,97 @@ Frontend/manual verification:
 - Should deleting a media file be blocked forever once attached anywhere, or should admins get a force-delete flow later?
 - Should existing `items.image_path` values be backfilled immediately, or kept as fallback until a separate cleanup task?
 - What is the exact tag name preferred for Offers: `primary_image`, `offer_banner`, or both?
+
+# Offers Feature Plan
+
+## Goal
+
+Add an admin-managed Offers feature for restaurant promotions such as:
+
+- `Get 10% off Rice Bowls`
+- `Buy 6 wraps, 7th free`
+- `Spend over $20, get a free side`
+
+Offers are separate from purchase rewards and referral loyalty. Rewards track earned customer entitlements over time; Offers are promotional rules that can be shown to customers and later evaluated against a cart/order.
+
+## First Implementation Scope
+
+Build the offer catalog foundation first:
+
+- Create an `offers` table and `Offer` model.
+- Implement `Plank\Mediable\Mediable` on `Offer`.
+- Use the existing admin media picker with the `primary_image` media tag for the offer featured image.
+- Add admin Offer CRUD using the same create/edit modal workflow used by Rewards and Categories.
+- Add edit and delete action icons on the Offers table.
+- Add an admin sidebar link for Offers near Rewards.
+- Add public/customer API endpoints that return currently active offers for the client app.
+
+Cart preview, automatic discount calculation, free item injection, and order-level offer redemption records are a later slice. That later slice should be implemented only after the checkout payload and total-calculation rules are finalized.
+
+## Data Model
+
+`offers` should include:
+
+- `name`
+- `description`
+- `offer_type`: `percentage_discount`, `fixed_discount`, `buy_x_get_y`, `spend_x_get_y`
+- `discount_type`: `percent`, `fixed_amount`, `free_item`
+- `discount_value`: nullable decimal for percent/fixed offers
+- `qualifying_category_id`: nullable category target
+- `qualifying_item_id`: nullable item target
+- `reward_category_id`: nullable category for free-item rewards
+- `reward_item_id`: nullable item for free-item rewards
+- `minimum_subtotal`: nullable decimal for spend threshold offers
+- `required_quantity`: nullable integer for buy-X rules
+- `reward_quantity`: nullable integer for free-item rules
+- `starts_at` and `ends_at`: nullable active window
+- `is_active`
+- `is_stackable`
+- `priority`
+- `created_by_user_id`
+- timestamps and soft deletes
+
+Relationship rules:
+
+- Qualifying category/item define what a customer must buy.
+- Reward category/item define what can be discounted or granted for free.
+- If both category and item are null for a percentage/fixed offer, the offer applies to the whole order in the later calculation slice.
+- `priority` gives the later calculation slice a deterministic order.
+- `is_stackable` controls whether the later calculation slice may combine this offer with another offer.
+
+## Admin UI
+
+The admin Offers page should:
+
+- Show offer image, name, type, benefit, qualifying target, date window, status, and actions.
+- Use modal create/edit forms.
+- Use flatpickr for start/end datetime inputs.
+- Use category and item dropdowns for qualifying and reward targets.
+- Use the existing media picker/dropzone pattern for featured image selection.
+- Keep validation server-side with normal Blade redirects.
+
+## API
+
+Expose active offers to the client app:
+
+- `GET /api/guest/offers`
+- `GET /api/me/offers`
+
+Both endpoints should return only offers where:
+
+- `is_active = true`
+- `starts_at` is null or in the past
+- `ends_at` is null or in the future
+
+The response should include IDs, display fields, rule fields, related category/item summaries, and featured image URL.
+
+## Tests
+
+Feature tests should cover:
+
+- Admin can render the Offers page.
+- Admin can create an offer with a featured image.
+- Admin can update an offer and replace/remove its image.
+- Admin can delete an offer.
+- Validation rejects incomplete free-item/buy-X/spend-X offers.
+- Public API returns only currently active offers and includes featured image data.

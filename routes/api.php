@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\OrderItemController;
 use App\Http\Controllers\Api\OrderReferralRewardController;
 use App\Http\Controllers\Api\OrderRewardController;
+use App\Http\Controllers\Api\OfferController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PushSubscriptionController;
 use App\Http\Controllers\Api\ReferralCodeController;
@@ -40,6 +41,7 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::prefix('guest')->group(function () {
     Route::middleware('throttle:guest-menu')->get('/menu', GuestMenuController::class);
     Route::middleware('throttle:guest-delivery-windows')->get('/delivery-windows/today', DeliveryWindowTodayController::class);
+    Route::get('/offers', [OfferController::class, 'index']);
     Route::middleware('throttle:guest-customer')->post('/customers', [GuestCustomerController::class, 'store']);
     Route::middleware('throttle:guest-order')->post('/orders', [GuestOrderController::class, 'store']);
     Route::middleware('throttle:guest-order-lookup')->get('/orders/{number}', [GuestOrderController::class, 'show']);
@@ -57,6 +59,7 @@ Route::middleware('auth:sanctum')->group(function () {
 // Customer self-service routes — identity resolved from the token, never from a route parameter
 Route::middleware(['auth:sanctum', 'customer'])->prefix('me')->group(function () {
     Route::get('/rewards', [CustomerRewardController::class, 'me']);
+    Route::get('/offers', [OfferController::class, 'index']);
     Route::get('/referral-code', [ReferralCodeController::class, 'show']);
     Route::get('/delivery-windows/today', DeliveryWindowTodayController::class);
     Route::post('/orders', [CustomerOrderController::class, 'store']);
