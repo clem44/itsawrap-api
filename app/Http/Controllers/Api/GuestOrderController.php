@@ -44,6 +44,19 @@ class GuestOrderController extends Controller
                     new OA\Property(property: 'delivery_longitude', type: 'number', nullable: true, example: -63.0686),
                     new OA\Property(property: 'delivery_instructions', type: 'string', nullable: true, example: 'Call on arrival'),
                     new OA\Property(
+                        property: 'participants',
+                        type: 'array',
+                        nullable: true,
+                        items: new OA\Items(
+                            required: ['client_id', 'name'],
+                            properties: [
+                                new OA\Property(property: 'client_id', type: 'string', example: 'person-0'),
+                                new OA\Property(property: 'name', type: 'string', example: 'Alex Carter'),
+                                new OA\Property(property: 'is_primary', type: 'boolean', example: true),
+                            ]
+                        )
+                    ),
+                    new OA\Property(
                         property: 'items',
                         type: 'array',
                         items: new OA\Items(
@@ -52,6 +65,7 @@ class GuestOrderController extends Controller
                                 new OA\Property(property: 'item_id', type: 'integer', example: 1),
                                 new OA\Property(property: 'price', type: 'number', example: 12.50),
                                 new OA\Property(property: 'quantity', type: 'integer', example: 1),
+                                new OA\Property(property: 'participant_client_id', type: 'string', nullable: true, example: 'person-0'),
                                 new OA\Property(property: 'comment', type: 'string', nullable: true),
                                 new OA\Property(
                                     property: 'options',
@@ -140,7 +154,7 @@ class GuestOrderController extends Controller
                 $query->whereNull('guest_access_token_expires_at')
                     ->orWhere('guest_access_token_expires_at', '>', now());
             })
-            ->with(['customer', 'status', 'delivery.deliveryWindow', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option'])
+            ->with(['customer', 'status', 'delivery.deliveryWindow', 'participants', 'orderItems.participant', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option'])
             ->first();
 
         if ($order === null) {
@@ -155,7 +169,7 @@ class GuestOrderController extends Controller
      */
     private function guestOrderPayload(Order $order, bool $includeLookup = false, bool $includeCreationFields = false): array
     {
-        $order->loadMissing(['customer', 'status', 'delivery.deliveryWindow', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option']);
+        $order->loadMissing(['customer', 'status', 'delivery.deliveryWindow', 'participants', 'orderItems.participant', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option']);
 
         $payload = [
             'number' => $order->number,
@@ -172,6 +186,7 @@ class GuestOrderController extends Controller
             'placed_at' => $order->placed_at?->toISOString(),
             'is_delivery' => $order->is_delivery,
             'delivery' => $this->deliveryPayload($order, $includeCreationFields),
+            'participants' => $this->participantsPayload($order, $includeCreationFields),
             'order_items' => $this->orderItemsPayload($order, $includeCreationFields),
             'created_at' => $order->created_at?->toISOString(),
             'updated_at' => $order->updated_at?->toISOString(),
@@ -197,6 +212,59 @@ class GuestOrderController extends Controller
         }
 
         return $payload;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function participantsPayload(Order $order, bool $includeCreationFields = false): array
+    {
+        $subtotals = $this->participantSubtotals($order);
+
+        return $order->participants->map(function ($participant) use ($includeCreationFields, $subtotals): array {
+            $payload = [
+                'name' => $participant->name,
+                'is_primary' => $participant->is_primary,
+                'subtotal' => $subtotals[$participant->id] ?? 0.0,
+            ];
+
+            if ($includeCreationFields) {
+                $payload = [
+                    'id' => $participant->id,
+                    'client_id' => $participant->client_id,
+                    'order_id' => $participant->order_id,
+                ] + $payload;
+            }
+
+            return $payload;
+        })->values()->all();
+    }
+
+    /**
+     * @return array<int, float>
+     */
+    private function participantSubtotals(Order $order): array
+    {
+        $subtotals = [];
+
+        foreach ($order->orderItems as $orderItem) {
+            if ($orderItem->order_participant_id === null) {
+                continue;
+            }
+
+            $subtotals[$orderItem->order_participant_id] = ($subtotals[$orderItem->order_participant_id] ?? 0)
+                + $this->orderItemLineTotal($orderItem);
+        }
+
+        return array_map(fn (float $subtotal): float => round($subtotal, 2), $subtotals);
+    }
+
+    private function orderItemLineTotal($orderItem): float
+    {
+        $optionsTotal = $orderItem->orderItemOptions
+            ->sum(fn ($option): float => (float) $option->price * max(1, (int) ($option->qty ?? 1)));
+
+        return ((float) $orderItem->price + $optionsTotal) * max(1, (int) $orderItem->quantity);
     }
 
     /**
@@ -245,6 +313,7 @@ class GuestOrderController extends Controller
     {
         return $order->orderItems->map(function ($orderItem) use ($includeCreationFields): array {
             $payload = [
+                'participant' => $this->orderItemParticipantPayload($orderItem, $includeCreationFields),
                 'item' => $orderItem->item !== null ? [
                     'name' => $orderItem->item->name,
                 ] : null,
@@ -274,6 +343,7 @@ class GuestOrderController extends Controller
             if ($includeCreationFields) {
                 $payload = [
                     'id' => $orderItem->id,
+                    'order_participant_id' => $orderItem->order_participant_id,
                     'item_id' => $orderItem->item_id,
                 ] + $payload;
 
@@ -286,5 +356,29 @@ class GuestOrderController extends Controller
 
             return $payload;
         })->values()->all();
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function orderItemParticipantPayload($orderItem, bool $includeCreationFields = false): ?array
+    {
+        if ($orderItem->participant === null) {
+            return null;
+        }
+
+        $payload = [
+            'name' => $orderItem->participant->name,
+            'is_primary' => $orderItem->participant->is_primary,
+        ];
+
+        if ($includeCreationFields) {
+            $payload = [
+                'id' => $orderItem->participant->id,
+                'client_id' => $orderItem->participant->client_id,
+            ] + $payload;
+        }
+
+        return $payload;
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\Guest;
 
+use App\Http\Requests\Api\Concerns\ValidatesOrderParticipants;
 use App\Models\Customer;
 use App\Models\Item;
 use App\Models\OptionValue;
@@ -10,6 +11,8 @@ use Illuminate\Validation\Validator;
 
 class StoreGuestOrderRequest extends FormRequest
 {
+    use ValidatesOrderParticipants;
+
     public function authorize(): bool
     {
         return true;
@@ -34,10 +37,12 @@ class StoreGuestOrderRequest extends FormRequest
             'delivery_longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'delivery_instructions' => ['nullable', 'string', 'max:1000'],
             'idempotency_key' => ['nullable', 'string', 'max:100'],
+            ...$this->participantRules(),
             'items' => ['required', 'array', 'min:1', 'max:25'],
             'items.*.item_id' => ['required', 'integer', 'exists:items,id'],
             'items.*.price' => ['required', 'numeric', 'min:0', 'max:9999.99'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:20'],
+            ...$this->itemParticipantRules(),
             'items.*.comment' => ['nullable', 'string', 'max:255'],
             'items.*.options' => ['nullable', 'array', 'max:30'],
             'items.*.options.*.option_value_id' => ['required', 'integer', 'exists:option_values,id'],
@@ -81,6 +86,7 @@ class StoreGuestOrderRequest extends FormRequest
 
                 $totalQuantity = 0;
                 $totalOptions = 0;
+                $this->validateParticipantAssignments($validator);
 
                 foreach ($this->input('items', []) as $index => $item) {
                     $itemModel = Item::query()->find($item['item_id'] ?? null);

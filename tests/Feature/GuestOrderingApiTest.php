@@ -10,6 +10,7 @@ use App\Models\Item;
 use App\Models\Option;
 use App\Models\OptionValue;
 use App\Models\Order;
+use App\Models\OrderParticipant;
 use App\Models\PushSubscription;
 use App\Models\Status;
 use App\Models\User;
@@ -136,6 +137,111 @@ class GuestOrderingApiTest extends TestCase
             return $job->data['type'] === 'web_order_created'
                 && $job->data['source'] === 'guest-web';
         });
+    }
+
+    public function test_guest_order_can_store_group_participants_and_assign_items(): void
+    {
+        Status::query()->create(['name' => 'pending']);
+        $category = Category::query()->create(['name' => 'Wraps', 'sort_order' => 1]);
+        $wrap = Item::query()->create(['name' => 'Chicken Wrap', 'category_id' => $category->id, 'cost' => 12.50, 'active' => true]);
+        $bowl = Item::query()->create(['name' => 'Rice Bowl', 'category_id' => $category->id, 'cost' => 9.00, 'active' => true]);
+        $customer = Customer::query()->create(['name' => 'Alex Carter', 'source' => 'guest-web']);
+
+        $created = $this->postJson('/api/guest/orders', [
+            'customer_id' => $customer->id,
+            'subtotal' => 21.50,
+            'service_charge' => 0,
+            'total' => 21.50,
+            'is_delivery' => false,
+            'participants' => [
+                ['client_id' => 'person-0', 'name' => 'Alex Carter', 'is_primary' => true],
+                ['client_id' => 'person-1', 'name' => 'Jamie', 'is_primary' => false],
+            ],
+            'items' => [
+                [
+                    'item_id' => $wrap->id,
+                    'price' => 12.50,
+                    'quantity' => 1,
+                    'participant_client_id' => 'person-0',
+                ],
+                [
+                    'item_id' => $bowl->id,
+                    'price' => 9.00,
+                    'quantity' => 1,
+                    'participant_client_id' => 'person-1',
+                ],
+            ],
+        ])->assertCreated()
+            ->assertJsonPath('participants.0.name', 'Alex Carter')
+            ->assertJsonPath('participants.0.is_primary', true)
+            ->assertJsonPath('participants.0.subtotal', 12.5)
+            ->assertJsonPath('participants.1.name', 'Jamie')
+            ->assertJsonPath('participants.1.subtotal', 9)
+            ->assertJsonPath('order_items.0.participant.name', 'Alex Carter')
+            ->assertJsonPath('order_items.1.participant.name', 'Jamie');
+
+        $alex = OrderParticipant::query()
+            ->where('order_id', $created->json('id'))
+            ->where('client_id', 'person-0')
+            ->firstOrFail();
+
+        $jamie = OrderParticipant::query()
+            ->where('order_id', $created->json('id'))
+            ->where('client_id', 'person-1')
+            ->firstOrFail();
+
+        $this->assertTrue($alex->is_primary);
+        $this->assertFalse($jamie->is_primary);
+
+        $this->assertDatabaseHas('order_items', [
+            'order_id' => $created->json('id'),
+            'order_participant_id' => $alex->id,
+            'item_id' => $wrap->id,
+        ]);
+
+        $this->assertDatabaseHas('order_items', [
+            'order_id' => $created->json('id'),
+            'order_participant_id' => $jamie->id,
+            'item_id' => $bowl->id,
+        ]);
+
+        $this->getJson('/api/guest/orders/'.$created->json('number').'?token='.$created->json('lookup.token'))
+            ->assertOk()
+            ->assertJsonPath('participants.0.name', 'Alex Carter')
+            ->assertJsonPath('participants.1.name', 'Jamie')
+            ->assertJsonPath('order_items.0.participant.name', 'Alex Carter')
+            ->assertJsonPath('order_items.1.participant.name', 'Jamie')
+            ->assertJsonMissingPath('participants.0.id')
+            ->assertJsonMissingPath('order_items.0.participant.id');
+    }
+
+    public function test_guest_order_rejects_items_assigned_to_unknown_participants(): void
+    {
+        Status::query()->create(['name' => 'pending']);
+        $category = Category::query()->create(['name' => 'Wraps', 'sort_order' => 1]);
+        $item = Item::query()->create(['name' => 'Chicken Wrap', 'category_id' => $category->id, 'cost' => 12.50, 'active' => true]);
+        $customer = Customer::query()->create(['name' => 'Guest Customer', 'source' => 'guest-web']);
+
+        $this->postJson('/api/guest/orders', [
+            'customer_id' => $customer->id,
+            'subtotal' => 12.50,
+            'service_charge' => 0,
+            'total' => 12.50,
+            'is_delivery' => false,
+            'participants' => [
+                ['client_id' => 'person-0', 'name' => 'Alex Carter', 'is_primary' => true],
+            ],
+            'items' => [
+                [
+                    'item_id' => $item->id,
+                    'price' => 12.50,
+                    'quantity' => 1,
+                    'participant_client_id' => 'person-1',
+                ],
+            ],
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['items.0.participant_client_id']);
     }
 
     public function test_guest_order_replays_existing_order_for_matching_idempotency_key(): void

@@ -174,10 +174,34 @@ use OpenApi\Attributes as OA;
     ]
 )]
 #[OA\Schema(
+    schema: 'OrderParticipant',
+    properties: [
+        new OA\Property(property: 'id', type: 'integer', example: 1),
+        new OA\Property(property: 'order_id', type: 'integer', example: 1),
+        new OA\Property(property: 'client_id', type: 'string', nullable: true, example: 'person-0'),
+        new OA\Property(property: 'name', type: 'string', example: 'Alex Carter'),
+        new OA\Property(property: 'is_primary', type: 'boolean', example: true),
+        new OA\Property(property: 'sort_order', type: 'integer', example: 0),
+        new OA\Property(property: 'subtotal', type: 'number', format: 'float', nullable: true, example: 12.50),
+        new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),
+        new OA\Property(property: 'updated_at', type: 'string', format: 'date-time'),
+    ]
+)]
+#[OA\Schema(
+    schema: 'GuestOrderParticipant',
+    properties: [
+        new OA\Property(property: 'name', type: 'string', example: 'Alex Carter'),
+        new OA\Property(property: 'is_primary', type: 'boolean', example: true),
+        new OA\Property(property: 'subtotal', type: 'number', format: 'float', example: 12.50),
+    ]
+)]
+#[OA\Schema(
     schema: 'OrderItem',
     properties: [
         new OA\Property(property: 'id', type: 'integer', example: 1),
         new OA\Property(property: 'order_id', type: 'integer', example: 1),
+        new OA\Property(property: 'order_participant_id', type: 'integer', nullable: true, example: 1),
+        new OA\Property(property: 'participant', ref: '#/components/schemas/OrderParticipant', nullable: true),
         new OA\Property(property: 'item_id', type: 'integer', example: 1),
         new OA\Property(property: 'quantity', type: 'integer', example: 2),
         new OA\Property(property: 'is_reward_item', type: 'boolean', example: false),
@@ -217,6 +241,11 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'comments', type: 'string', nullable: true),
         new OA\Property(property: 'placed_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'is_delivery', type: 'boolean', example: false),
+        new OA\Property(
+            property: 'participants',
+            type: 'array',
+            items: new OA\Items(ref: '#/components/schemas/GuestOrderParticipant')
+        ),
         new OA\Property(property: 'delivery', type: 'object', nullable: true, properties: [
             new OA\Property(property: 'delivery_date', type: 'string', format: 'date', example: '2026-08-31'),
             new OA\Property(property: 'window_start_at', type: 'string', format: 'date-time'),
@@ -234,6 +263,10 @@ use OpenApi\Attributes as OA;
                 properties: [
                     new OA\Property(property: 'item', type: 'object', nullable: true, properties: [
                         new OA\Property(property: 'name', type: 'string', example: 'Chicken Wrap'),
+                    ]),
+                    new OA\Property(property: 'participant', type: 'object', nullable: true, properties: [
+                        new OA\Property(property: 'name', type: 'string', example: 'Alex Carter'),
+                        new OA\Property(property: 'is_primary', type: 'boolean', example: true),
                     ]),
                     new OA\Property(property: 'price', type: 'string', example: '12.50'),
                     new OA\Property(property: 'quantity', type: 'integer', example: 1),

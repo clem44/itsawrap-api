@@ -31,7 +31,7 @@ class OrderCreationService
             $existingOrder = Order::query()
                 ->where('source', $source)
                 ->where('idempotency_key', $idempotencyKey)
-                ->with(['customer', 'status', 'delivery.deliveryWindow', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option'])
+                ->with(['customer', 'status', 'delivery.deliveryWindow', 'participants', 'orderItems.participant', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option'])
                 ->first();
 
             if ($existingOrder !== null) {
@@ -48,6 +48,7 @@ class OrderCreationService
         $lockKey = "{$source}-order:".sha1((string) ($idempotencyKey ?? json_encode([
             'customer_id' => $customerId,
             'total' => $validated['total'],
+            'participants' => $validated['participants'] ?? [],
             'items' => $validated['items'],
         ], JSON_THROW_ON_ERROR)));
 
@@ -91,8 +92,11 @@ class OrderCreationService
                     'guest_access_token_expires_at' => $guestLookupToken !== null ? now()->addDays(self::GUEST_LOOKUP_TOKEN_TTL_DAYS) : null,
                 ]);
 
+                $participantIdsByClientId = $this->createParticipants($order, $validated['participants'] ?? []);
+
                 foreach ($validated['items'] as $itemData) {
                     $orderItem = $order->orderItems()->create([
+                        'order_participant_id' => $this->participantIdForItem($participantIdsByClientId, $itemData),
                         'item_id' => $itemData['item_id'],
                         'price' => $itemData['price'],
                         'quantity' => $itemData['quantity'],
@@ -133,7 +137,7 @@ class OrderCreationService
 
         $this->posPushNotifier->webOrderCreated($order);
 
-        return $order->load(['customer', 'status', 'delivery.deliveryWindow', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option']);
+        return $order->load(['customer', 'status', 'delivery.deliveryWindow', 'participants', 'orderItems.participant', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option']);
     }
 
     /**
@@ -146,5 +150,64 @@ class OrderCreationService
         } while (Order::query()->where('number', $number)->exists());
 
         return $number;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $participants
+     * @return array<string, int>
+     */
+    private function createParticipants(Order $order, array $participants): array
+    {
+        if ($participants === []) {
+            return [];
+        }
+
+        $primaryClientId = $this->primaryParticipantClientId($participants);
+        $participantIdsByClientId = [];
+
+        foreach (array_values($participants) as $index => $participantData) {
+            $clientId = (string) $participantData['client_id'];
+            $participant = $order->participants()->create([
+                'client_id' => $clientId,
+                'name' => trim((string) $participantData['name']),
+                'is_primary' => $clientId === $primaryClientId,
+                'sort_order' => $index,
+            ]);
+
+            $participantIdsByClientId[$clientId] = $participant->id;
+        }
+
+        return $participantIdsByClientId;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $participants
+     */
+    private function primaryParticipantClientId(array $participants): ?string
+    {
+        $participants = array_values($participants);
+
+        foreach ($participants as $participantData) {
+            if (filter_var($participantData['is_primary'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+                return (string) $participantData['client_id'];
+            }
+        }
+
+        return isset($participants[0]['client_id']) ? (string) $participants[0]['client_id'] : null;
+    }
+
+    /**
+     * @param  array<string, int>  $participantIdsByClientId
+     * @param  array<string, mixed>  $itemData
+     */
+    private function participantIdForItem(array $participantIdsByClientId, array $itemData): ?int
+    {
+        $clientId = $itemData['participant_client_id'] ?? null;
+
+        if ($clientId === null) {
+            return null;
+        }
+
+        return $participantIdsByClientId[(string) $clientId] ?? null;
     }
 }

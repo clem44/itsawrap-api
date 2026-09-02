@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Category;
 use App\Models\Customer;
 use App\Models\Item;
+use App\Models\OrderParticipant;
 use App\Models\RewardProgram;
 use App\Models\Status;
 use App\Models\User;
@@ -124,6 +125,68 @@ class CustomerAuthApiTest extends TestCase
         $this->assertNotNull($number);
         $this->assertNotSame('', $number);
         $this->assertDatabaseHas('orders', ['id' => $response->json('id'), 'number' => $number]);
+    }
+
+    public function test_me_orders_store_group_participants_on_the_authenticated_customers_order(): void
+    {
+        Status::query()->create(['name' => 'pending']);
+        $category = Category::query()->create(['name' => 'Wraps', 'sort_order' => 1]);
+        $wrap = Item::query()->create(['name' => 'Chicken Wrap', 'category_id' => $category->id, 'cost' => 12.50, 'active' => true]);
+        $bowl = Item::query()->create(['name' => 'Rice Bowl', 'category_id' => $category->id, 'cost' => 9.00, 'active' => true]);
+
+        Sanctum::actingAs($this->makeCustomerUser());
+
+        $response = $this->postJson('/api/me/orders', [
+            'subtotal' => 21.50,
+            'service_charge' => 0,
+            'total' => 21.50,
+            'is_delivery' => false,
+            'participants' => [
+                ['client_id' => 'person-0', 'name' => 'Alex Carter', 'is_primary' => true],
+                ['client_id' => 'person-1', 'name' => 'Jamie'],
+            ],
+            'items' => [
+                [
+                    'item_id' => $wrap->id,
+                    'price' => 12.50,
+                    'quantity' => 1,
+                    'participant_client_id' => 'person-0',
+                ],
+                [
+                    'item_id' => $bowl->id,
+                    'price' => 9.00,
+                    'quantity' => 1,
+                    'participant_client_id' => 'person-1',
+                ],
+            ],
+        ]);
+
+        $response
+            ->assertCreated()
+            ->assertJsonPath('participants.0.name', 'Alex Carter')
+            ->assertJsonPath('participants.0.is_primary', true)
+            ->assertJsonPath('participants.1.name', 'Jamie')
+            ->assertJsonPath('order_items.0.participant.name', 'Alex Carter')
+            ->assertJsonPath('order_items.1.participant.name', 'Jamie');
+
+        $this->assertDatabaseCount('customers', 1);
+
+        $alex = OrderParticipant::query()
+            ->where('order_id', $response->json('id'))
+            ->where('client_id', 'person-0')
+            ->firstOrFail();
+
+        $this->assertTrue($alex->is_primary);
+        $this->assertDatabaseHas('orders', [
+            'id' => $response->json('id'),
+            'customer_id' => Customer::query()->value('id'),
+            'source' => 'web-customer',
+        ]);
+        $this->assertDatabaseHas('order_items', [
+            'order_id' => $response->json('id'),
+            'order_participant_id' => $alex->id,
+            'item_id' => $wrap->id,
+        ]);
     }
 
     public function test_a_staff_token_cannot_access_customer_self_service_routes(): void

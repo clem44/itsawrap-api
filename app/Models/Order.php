@@ -75,6 +75,11 @@ class Order extends Model
         return $this->hasMany(OrderItem::class);
     }
 
+    public function participants(): HasMany
+    {
+        return $this->hasMany(OrderParticipant::class)->orderBy('sort_order');
+    }
+
     public function rewardLedgerEntries(): HasMany
     {
         return $this->hasMany(RewardLedgerEntry::class);

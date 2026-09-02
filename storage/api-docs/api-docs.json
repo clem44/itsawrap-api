@@ -1347,6 +1347,224 @@
                 ]
             }
         },
+        "/me/orders": {
+            "post": {
+                "tags": [
+                    "Customer",
+                    "Orders"
+                ],
+                "summary": "Create an order for the authenticated customer",
+                "description": "Create a customer web order for the authenticated customer. Optional participants allow group-order item assignment while rewards remain attached to the primary customer record.",
+                "operationId": "6de67ab0744c9c301b0e989a34f1dae4",
+                "parameters": [
+                    {
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "description": "Optional key used to safely replay the same customer order creation request.",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 100
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "subtotal",
+                                    "total",
+                                    "is_delivery",
+                                    "items"
+                                ],
+                                "properties": {
+                                    "number": {
+                                        "type": "string",
+                                        "example": "IAW-000123",
+                                        "nullable": true
+                                    },
+                                    "subtotal": {
+                                        "type": "number",
+                                        "example": 21.5
+                                    },
+                                    "service_charge": {
+                                        "type": "number",
+                                        "example": 0,
+                                        "nullable": true
+                                    },
+                                    "total": {
+                                        "type": "number",
+                                        "example": 21.5
+                                    },
+                                    "comments": {
+                                        "type": "string",
+                                        "example": "No onions",
+                                        "nullable": true
+                                    },
+                                    "is_delivery": {
+                                        "type": "boolean",
+                                        "example": false
+                                    },
+                                    "delivery_window_id": {
+                                        "type": "integer",
+                                        "example": 5,
+                                        "nullable": true
+                                    },
+                                    "delivery_address": {
+                                        "type": "string",
+                                        "example": "123 Main Road, The Valley",
+                                        "nullable": true
+                                    },
+                                    "delivery_latitude": {
+                                        "type": "number",
+                                        "example": 18.2208,
+                                        "nullable": true
+                                    },
+                                    "delivery_longitude": {
+                                        "type": "number",
+                                        "example": -63.0686,
+                                        "nullable": true
+                                    },
+                                    "delivery_instructions": {
+                                        "type": "string",
+                                        "example": "Call on arrival",
+                                        "nullable": true
+                                    },
+                                    "participants": {
+                                        "type": "array",
+                                        "items": {
+                                            "required": [
+                                                "client_id",
+                                                "name"
+                                            ],
+                                            "properties": {
+                                                "client_id": {
+                                                    "type": "string",
+                                                    "example": "person-0"
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "Alex Carter"
+                                                },
+                                                "is_primary": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "nullable": true
+                                    },
+                                    "items": {
+                                        "type": "array",
+                                        "items": {
+                                            "required": [
+                                                "item_id",
+                                                "price",
+                                                "quantity"
+                                            ],
+                                            "properties": {
+                                                "item_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "price": {
+                                                    "type": "number",
+                                                    "example": 12.5
+                                                },
+                                                "quantity": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "participant_client_id": {
+                                                    "type": "string",
+                                                    "example": "person-0",
+                                                    "nullable": true
+                                                },
+                                                "comment": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "options": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "option_value_id": {
+                                                                "type": "integer",
+                                                                "example": 2
+                                                            },
+                                                            "price": {
+                                                                "type": "number",
+                                                                "example": 1,
+                                                                "nullable": true
+                                                            },
+                                                            "qty": {
+                                                                "type": "integer",
+                                                                "example": 1,
+                                                                "nullable": true
+                                                            },
+                                                            "parent_option_value_id": {
+                                                                "type": "integer",
+                                                                "nullable": true
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    },
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Customer order created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Order"
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "Existing customer order replayed by idempotency key",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Order"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Not a customer token"
+                    },
+                    "409": {
+                        "description": "Duplicate order is already being processed"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/me/rewards": {
             "get": {
                 "tags": [
@@ -1555,6 +1773,31 @@
                                         "example": "Call on arrival",
                                         "nullable": true
                                     },
+                                    "participants": {
+                                        "type": "array",
+                                        "items": {
+                                            "required": [
+                                                "client_id",
+                                                "name"
+                                            ],
+                                            "properties": {
+                                                "client_id": {
+                                                    "type": "string",
+                                                    "example": "person-0"
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "Alex Carter"
+                                                },
+                                                "is_primary": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "nullable": true
+                                    },
                                     "items": {
                                         "type": "array",
                                         "items": {
@@ -1575,6 +1818,11 @@
                                                 "quantity": {
                                                     "type": "integer",
                                                     "example": 1
+                                                },
+                                                "participant_client_id": {
+                                                    "type": "string",
+                                                    "example": "person-0",
+                                                    "nullable": true
                                                 },
                                                 "comment": {
                                                     "type": "string",
@@ -6843,6 +7091,68 @@
                 },
                 "type": "object"
             },
+            "OrderParticipant": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "order_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "client_id": {
+                        "type": "string",
+                        "example": "person-0",
+                        "nullable": true
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Alex Carter"
+                    },
+                    "is_primary": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "sort_order": {
+                        "type": "integer",
+                        "example": 0
+                    },
+                    "subtotal": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 12.5,
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "GuestOrderParticipant": {
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "example": "Alex Carter"
+                    },
+                    "is_primary": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "subtotal": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 12.5
+                    }
+                },
+                "type": "object"
+            },
             "OrderItem": {
                 "properties": {
                     "id": {
@@ -6852,6 +7162,19 @@
                     "order_id": {
                         "type": "integer",
                         "example": 1
+                    },
+                    "order_participant_id": {
+                        "type": "integer",
+                        "example": 1,
+                        "nullable": true
+                    },
+                    "participant": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/OrderParticipant"
+                            }
+                        ],
+                        "nullable": true
                     },
                     "item_id": {
                         "type": "integer",
@@ -6989,6 +7312,12 @@
                         "type": "boolean",
                         "example": false
                     },
+                    "participants": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/GuestOrderParticipant"
+                        }
+                    },
                     "delivery": {
                         "properties": {
                             "delivery_date": {
@@ -7038,6 +7367,20 @@
                                         "name": {
                                             "type": "string",
                                             "example": "Chicken Wrap"
+                                        }
+                                    },
+                                    "type": "object",
+                                    "nullable": true
+                                },
+                                "participant": {
+                                    "properties": {
+                                        "name": {
+                                            "type": "string",
+                                            "example": "Alex Carter"
+                                        },
+                                        "is_primary": {
+                                            "type": "boolean",
+                                            "example": true
                                         }
                                     },
                                     "type": "object",
@@ -7884,6 +8227,10 @@
         {
             "name": "Cash Sessions",
             "description": "Cash Sessions"
+        },
+        {
+            "name": "Customer",
+            "description": "Customer"
         },
         {
             "name": "Delivery",

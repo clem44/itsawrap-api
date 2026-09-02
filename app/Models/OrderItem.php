@@ -13,6 +13,7 @@ class OrderItem extends Model
 
     protected $fillable = [
         'order_id',
+        'order_participant_id',
         'item_id',
         'price',
         'quantity',
@@ -28,6 +29,7 @@ class OrderItem extends Model
     protected function casts(): array
     {
         return [
+            'order_participant_id' => 'integer',
             'price' => 'decimal:2',
             'quantity' => 'integer',
             'is_reward_item' => 'boolean',
@@ -38,6 +40,11 @@ class OrderItem extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
+    }
+
+    public function participant(): BelongsTo
+    {
+        return $this->belongsTo(OrderParticipant::class, 'order_participant_id');
     }
 
     public function item(): BelongsTo

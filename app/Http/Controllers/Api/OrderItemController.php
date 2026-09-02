@@ -28,7 +28,7 @@ class OrderItemController extends Controller
     )]
     public function index(Request $request): JsonResponse
     {
-        $query = OrderItem::with(['item', 'orderItemOptions.optionValue']);
+        $query = OrderItem::with(['participant', 'item', 'orderItemOptions.optionValue']);
 
         if ($request->has('order_id')) {
             $query->where('order_id', $request->order_id);
@@ -153,7 +153,7 @@ class OrderItemController extends Controller
         }
 
         return response()->json(
-            $orderItem->load(['item', 'orderItemOptions.optionValue']),
+            $orderItem->load(['participant', 'item', 'orderItemOptions.optionValue']),
             201
         );
     }
@@ -175,7 +175,7 @@ class OrderItemController extends Controller
     )]
     public function show(OrderItem $orderItem): JsonResponse
     {
-        return response()->json($orderItem->load(['item', 'orderItemOptions.optionValue']));
+        return response()->json($orderItem->load(['participant', 'item', 'orderItemOptions.optionValue']));
     }
 
     #[OA\Put(
@@ -214,7 +214,7 @@ class OrderItemController extends Controller
 
         $orderItem->update($validated);
 
-        return response()->json($orderItem->load(['item', 'orderItemOptions.optionValue']));
+        return response()->json($orderItem->load(['participant', 'item', 'orderItemOptions.optionValue']));
     }
 
     #[OA\Delete(
