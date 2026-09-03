@@ -422,12 +422,19 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'id', type: 'integer', example: 1),
         new OA\Property(property: 'name', type: 'string', example: 'Get 10% off Rice Bowls'),
         new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Limited time rice bowl discount.'),
-        new OA\Property(property: 'offer_type', type: 'string', enum: ['percentage_discount', 'fixed_discount', 'buy_x_get_y', 'spend_x_get_y'], example: 'percentage_discount'),
-        new OA\Property(property: 'discount_type', type: 'string', enum: ['percent', 'fixed_amount', 'free_item'], example: 'percent'),
+        new OA\Property(property: 'offer_type', type: 'string', enum: ['percentage_discount', 'fixed_discount', 'buy_x_get_y', 'spend_x_get_y', 'bundle_fixed_price'], example: 'percentage_discount'),
+        new OA\Property(property: 'discount_type', type: 'string', enum: ['percent', 'fixed_amount', 'free_item', 'fixed_price'], example: 'percent'),
         new OA\Property(property: 'discount_value', type: 'number', format: 'float', nullable: true, example: 10),
         new OA\Property(property: 'minimum_subtotal', type: 'number', format: 'float', nullable: true, example: 20),
         new OA\Property(property: 'required_quantity', type: 'integer', nullable: true, example: 6),
         new OA\Property(property: 'reward_quantity', type: 'integer', nullable: true, example: 1),
+        new OA\Property(property: 'bundle_items', type: 'array', items: new OA\Items(
+            properties: [
+                new OA\Property(property: 'id', type: 'integer', example: 10),
+                new OA\Property(property: 'name', type: 'string', example: 'Chicken Wrap'),
+            ],
+            type: 'object'
+        )),
         new OA\Property(property: 'starts_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'ends_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'is_stackable', type: 'boolean', example: false),

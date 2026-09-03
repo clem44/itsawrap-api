@@ -97,6 +97,8 @@ class OfferController extends Controller
             'qualifying_item_id' => ['nullable', 'integer', 'exists:items,id'],
             'reward_category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'reward_item_id' => ['nullable', 'integer', 'exists:items,id'],
+            'bundle_item_ids' => ['nullable', 'array'],
+            'bundle_item_ids.*' => ['integer', 'distinct', 'exists:items,id'],
             'minimum_subtotal' => ['nullable', 'numeric', 'min:0', 'max:99999.99'],
             'required_quantity' => ['nullable', 'integer', 'min:1', 'max:999'],
             'reward_quantity' => ['nullable', 'integer', 'min:1', 'max:999'],
@@ -109,15 +111,25 @@ class OfferController extends Controller
         ]);
 
         $validator->after(function ($validator) use ($request) {
-            if (in_array($request->input('discount_type'), [Offer::DISCOUNT_PERCENT, Offer::DISCOUNT_FIXED_AMOUNT], true) && ! $request->filled('discount_value')) {
-                $validator->errors()->add('discount_value', 'Discount value is required for percentage and fixed amount offers.');
+            if (in_array($request->input('discount_type'), [Offer::DISCOUNT_PERCENT, Offer::DISCOUNT_FIXED_AMOUNT, Offer::DISCOUNT_FIXED_PRICE], true) && ! $request->filled('discount_value')) {
+                $validator->errors()->add('discount_value', 'Discount value is required for percentage, fixed amount, and fixed price offers.');
             }
 
             if ($request->input('discount_type') === Offer::DISCOUNT_PERCENT && (float) $request->input('discount_value', 0) > 100) {
                 $validator->errors()->add('discount_value', 'Percentage discounts cannot exceed 100.');
             }
 
-            if (in_array($request->input('offer_type'), [Offer::TYPE_BUY_X_GET_Y, Offer::TYPE_SPEND_X_GET_Y], true)) {
+            if ($request->input('offer_type') === Offer::TYPE_BUNDLE_FIXED_PRICE) {
+                if ($request->input('discount_type') !== Offer::DISCOUNT_FIXED_PRICE) {
+                    $validator->errors()->add('discount_type', 'Bundle fixed price offers must use the fixed price discount type.');
+                }
+
+                if (count($request->input('bundle_item_ids', [])) < 2) {
+                    $validator->errors()->add('bundle_item_ids', 'Select at least two bundle items for a fixed price bundle.');
+                }
+            }
+
+            if (in_array($request->input('offer_type'), [Offer::TYPE_BUY_X_GET_Y, Offer::TYPE_SPEND_X_GET_Y], true) && $request->input('discount_type') === Offer::DISCOUNT_FREE_ITEM) {
                 if (! $request->filled('reward_category_id') && ! $request->filled('reward_item_id')) {
                     $validator->errors()->add('reward_item_id', 'A reward category or reward item is required for free-item offers.');
                 }
@@ -138,6 +150,7 @@ class OfferController extends Controller
 
         $validated = $validator->validate();
         $validated['priority'] = $validated['priority'] ?? 0;
+        $validated['bundle_item_ids'] = array_values($validated['bundle_item_ids'] ?? []);
 
         unset($validated['media_id']);
 

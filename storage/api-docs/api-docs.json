@@ -7862,7 +7862,8 @@
                             "percentage_discount",
                             "fixed_discount",
                             "buy_x_get_y",
-                            "spend_x_get_y"
+                            "spend_x_get_y",
+                            "bundle_fixed_price"
                         ],
                         "example": "percentage_discount"
                     },
@@ -7871,7 +7872,8 @@
                         "enum": [
                             "percent",
                             "fixed_amount",
-                            "free_item"
+                            "free_item",
+                            "fixed_price"
                         ],
                         "example": "percent"
                     },
@@ -7896,6 +7898,22 @@
                         "type": "integer",
                         "example": 1,
                         "nullable": true
+                    },
+                    "bundle_items": {
+                        "type": "array",
+                        "items": {
+                            "properties": {
+                                "id": {
+                                    "type": "integer",
+                                    "example": 10
+                                },
+                                "name": {
+                                    "type": "string",
+                                    "example": "Chicken Wrap"
+                                }
+                            },
+                            "type": "object"
+                        }
                     },
                     "starts_at": {
                         "type": "string",

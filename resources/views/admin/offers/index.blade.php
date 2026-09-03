@@ -9,14 +9,35 @@
         \App\Models\Offer::TYPE_FIXED_DISCOUNT => 'Fixed Discount',
         \App\Models\Offer::TYPE_BUY_X_GET_Y => 'Buy X, Get Y',
         \App\Models\Offer::TYPE_SPEND_X_GET_Y => 'Spend X, Get Y',
+        \App\Models\Offer::TYPE_BUNDLE_FIXED_PRICE => 'Bundle Fixed Price',
     ];
 
     $discountTypeLabels = [
         \App\Models\Offer::DISCOUNT_PERCENT => 'Percent',
         \App\Models\Offer::DISCOUNT_FIXED_AMOUNT => 'Fixed Amount',
         \App\Models\Offer::DISCOUNT_FREE_ITEM => 'Free Item',
+        \App\Models\Offer::DISCOUNT_FIXED_PRICE => 'Fixed Price',
     ];
 @endphp
+
+@push('styles')
+<style>
+    .offer-modal-select {
+        background-color: rgba(255, 255, 255, 0.05);
+        color: #ffffff;
+    }
+
+    .offer-modal-select option {
+        background-color: #ffffff;
+        color: var(--color-ink);
+    }
+
+    .offer-modal-select option:checked {
+        background-color: var(--color-cream);
+        color: var(--color-forest);
+    }
+</style>
+@endpush
 
 @push('scripts')
 <script>
@@ -37,6 +58,7 @@
             qualifying_item_id: '{{ old('form_action') ? old('qualifying_item_id', '') : '' }}',
             reward_category_id: '{{ old('form_action') ? old('reward_category_id', '') : '' }}',
             reward_item_id: '{{ old('form_action') ? old('reward_item_id', '') : '' }}',
+            bundle_item_ids: @js(old('form_action') ? array_map('strval', (array) old('bundle_item_ids', [])) : []),
             minimum_subtotal: '{{ old('form_action') ? old('minimum_subtotal', '') : '' }}',
             required_quantity: '{{ old('form_action') ? old('required_quantity', '') : '' }}',
             reward_quantity: '{{ old('form_action') ? old('reward_quantity', '') : '' }}',
@@ -78,6 +100,7 @@
                 qualifying_item_id: '',
                 reward_category_id: '',
                 reward_item_id: '',
+                bundle_item_ids: [],
                 minimum_subtotal: '',
                 required_quantity: '',
                 reward_quantity: '',
@@ -107,6 +130,7 @@
                 qualifying_item_id: offer.qualifying_item_id ? String(offer.qualifying_item_id) : '',
                 reward_category_id: offer.reward_category_id ? String(offer.reward_category_id) : '',
                 reward_item_id: offer.reward_item_id ? String(offer.reward_item_id) : '',
+                bundle_item_ids: (offer.bundle_item_ids || []).map((id) => String(id)),
                 minimum_subtotal: offer.minimum_subtotal || '',
                 required_quantity: offer.required_quantity || '',
                 reward_quantity: offer.reward_quantity || '',
@@ -180,10 +204,14 @@
                 @forelse($offers as $offer)
                     @php
                         $primaryMedia = $offer->firstMedia(\App\Models\Offer::IMAGE_TAG);
-                        $qualifyingTarget = $offer->qualifyingItem?->name ?? $offer->qualifyingCategory?->name ?? 'Whole order';
+                        $bundleItems = $offer->bundle_item_ids ? $items->whereIn('id', $offer->bundle_item_ids)->pluck('name')->implode(' + ') : '';
+                        $qualifyingTarget = $offer->offer_type === \App\Models\Offer::TYPE_BUNDLE_FIXED_PRICE
+                            ? ($bundleItems ?: 'Bundle items')
+                            : ($offer->qualifyingItem?->name ?? $offer->qualifyingCategory?->name ?? 'Whole order');
                         $benefit = match ($offer->discount_type) {
                             \App\Models\Offer::DISCOUNT_PERCENT => rtrim(rtrim((string) $offer->discount_value, '0'), '.') . '% off',
                             \App\Models\Offer::DISCOUNT_FIXED_AMOUNT => '$' . number_format((float) $offer->discount_value, 2) . ' off',
+                            \App\Models\Offer::DISCOUNT_FIXED_PRICE => '$' . number_format((float) $offer->discount_value, 2) . ' bundle price',
                             default => ($offer->reward_quantity ?? 1) . ' free ' . ($offer->rewardItem?->name ?? $offer->rewardCategory?->name ?? 'item'),
                         };
                     @endphp
@@ -241,6 +269,7 @@
                                         'qualifying_item_id' => $offer->qualifying_item_id,
                                         'reward_category_id' => $offer->reward_category_id,
                                         'reward_item_id' => $offer->reward_item_id,
+                                        'bundle_item_ids' => $offer->bundle_item_ids ?? [],
                                         'minimum_subtotal' => $offer->minimum_subtotal,
                                         'required_quantity' => $offer->required_quantity,
                                         'reward_quantity' => $offer->reward_quantity,
@@ -351,7 +380,7 @@
                                 <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                                     <div>
                                         <label class="mb-2 block text-sm font-medium text-white/80">Offer Type</label>
-                                        <select name="offer_type" class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('offer_type') border-red-500 @enderror" v-model="offer.offer_type" required>
+                                        <select name="offer_type" class="offer-modal-select w-full rounded-lg border border-white/20 px-4 py-2.5 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('offer_type') border-red-500 @enderror" v-model="offer.offer_type" required>
                                             @foreach($offerTypeLabels as $value => $label)
                                                 <option value="{{ $value }}">{{ $label }}</option>
                                             @endforeach
@@ -360,7 +389,7 @@
                                     </div>
                                     <div>
                                         <label class="mb-2 block text-sm font-medium text-white/80">Discount Type</label>
-                                        <select name="discount_type" class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('discount_type') border-red-500 @enderror" v-model="offer.discount_type" required>
+                                        <select name="discount_type" class="offer-modal-select w-full rounded-lg border border-white/20 px-4 py-2.5 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('discount_type') border-red-500 @enderror" v-model="offer.discount_type" required>
                                             @foreach($discountTypeLabels as $value => $label)
                                                 <option value="{{ $value }}">{{ $label }}</option>
                                             @endforeach
@@ -369,15 +398,27 @@
                                     </div>
                                     <div>
                                         <label class="mb-2 block text-sm font-medium text-white/80">Discount Value</label>
-                                        <input type="number" step="0.01" name="discount_value" class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('discount_value') border-red-500 @enderror" v-model="offer.discount_value">
+                                        <input type="number" step="0.01" name="discount_value" class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('discount_value') border-red-500 @enderror" v-model="offer.discount_value" placeholder="10, 5.00, or 14.00">
                                         @error('discount_value')<p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>@enderror
                                     </div>
+                                </div>
+
+                                <div>
+                                    <label class="mb-2 block text-sm font-medium text-white/80">Bundle Items</label>
+                                    <select name="bundle_item_ids[]" class="offer-modal-select min-h-32 w-full rounded-lg border border-white/20 px-4 py-2.5 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('bundle_item_ids') border-red-500 @enderror" v-model="offer.bundle_item_ids" multiple>
+                                        @foreach($items as $item)
+                                            <option value="{{ $item->id }}">{{ $item->name }}{{ $item->category ? ' - '.$item->category->name : '' }}</option>
+                                        @endforeach
+                                    </select>
+                                    <p class="mt-1.5 text-xs text-white/60">Use this for fixed-price bundles such as Wrap + Fries + Drink for $14.</p>
+                                    @error('bundle_item_ids')<p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>@enderror
+                                    @error('bundle_item_ids.*')<p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>@enderror
                                 </div>
 
                                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                                     <div>
                                         <label class="mb-2 block text-sm font-medium text-white/80">Qualifying Category</label>
-                                        <select name="qualifying_category_id" class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('qualifying_category_id') border-red-500 @enderror" v-model="offer.qualifying_category_id">
+                                        <select name="qualifying_category_id" class="offer-modal-select w-full rounded-lg border border-white/20 px-4 py-2.5 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('qualifying_category_id') border-red-500 @enderror" v-model="offer.qualifying_category_id">
                                             <option value="">Any category</option>
                                             @foreach($categories as $category)
                                                 <option value="{{ $category->id }}">{{ $category->name }}</option>
@@ -387,7 +428,7 @@
                                     </div>
                                     <div>
                                         <label class="mb-2 block text-sm font-medium text-white/80">Qualifying Item</label>
-                                        <select name="qualifying_item_id" class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('qualifying_item_id') border-red-500 @enderror" v-model="offer.qualifying_item_id">
+                                        <select name="qualifying_item_id" class="offer-modal-select w-full rounded-lg border border-white/20 px-4 py-2.5 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('qualifying_item_id') border-red-500 @enderror" v-model="offer.qualifying_item_id">
                                             <option value="">Any item</option>
                                             @foreach($items as $item)
                                                 <option value="{{ $item->id }}">{{ $item->name }}{{ $item->category ? ' - '.$item->category->name : '' }}</option>
@@ -400,7 +441,7 @@
                                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                                     <div>
                                         <label class="mb-2 block text-sm font-medium text-white/80">Reward Category</label>
-                                        <select name="reward_category_id" class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('reward_category_id') border-red-500 @enderror" v-model="offer.reward_category_id">
+                                        <select name="reward_category_id" class="offer-modal-select w-full rounded-lg border border-white/20 px-4 py-2.5 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('reward_category_id') border-red-500 @enderror" v-model="offer.reward_category_id">
                                             <option value="">No reward category</option>
                                             @foreach($categories as $category)
                                                 <option value="{{ $category->id }}">{{ $category->name }}</option>
@@ -410,7 +451,7 @@
                                     </div>
                                     <div>
                                         <label class="mb-2 block text-sm font-medium text-white/80">Reward Item</label>
-                                        <select name="reward_item_id" class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('reward_item_id') border-red-500 @enderror" v-model="offer.reward_item_id">
+                                        <select name="reward_item_id" class="offer-modal-select w-full rounded-lg border border-white/20 px-4 py-2.5 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('reward_item_id') border-red-500 @enderror" v-model="offer.reward_item_id">
                                             <option value="">No reward item</option>
                                             @foreach($items as $item)
                                                 <option value="{{ $item->id }}">{{ $item->name }}{{ $item->category ? ' - '.$item->category->name : '' }}</option>

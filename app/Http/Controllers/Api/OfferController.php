@@ -85,6 +85,7 @@ class OfferController extends Controller
             'minimum_subtotal' => $offer->minimum_subtotal,
             'required_quantity' => $offer->required_quantity,
             'reward_quantity' => $offer->reward_quantity,
+            'bundle_items' => $this->presentBundleItems($offer),
             'starts_at' => $offer->starts_at?->toISOString(),
             'ends_at' => $offer->ends_at?->toISOString(),
             'is_stackable' => $offer->is_stackable,
@@ -110,5 +111,27 @@ class OfferController extends Controller
             'id' => $model->id,
             'name' => $model->name,
         ];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function presentBundleItems(Offer $offer): array
+    {
+        $itemIds = $offer->bundle_item_ids ?? [];
+
+        if ($itemIds === []) {
+            return [];
+        }
+
+        $positions = array_flip($itemIds);
+
+        return \App\Models\Item::query()
+            ->whereIn('id', $itemIds)
+            ->get(['id', 'name'])
+            ->sortBy(fn ($item) => $positions[$item->id] ?? PHP_INT_MAX)
+            ->map(fn ($item) => $this->presentRelated($item))
+            ->values()
+            ->all();
     }
 }

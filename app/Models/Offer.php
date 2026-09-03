@@ -22,11 +22,15 @@ class Offer extends Model
 
     public const TYPE_SPEND_X_GET_Y = 'spend_x_get_y';
 
+    public const TYPE_BUNDLE_FIXED_PRICE = 'bundle_fixed_price';
+
     public const DISCOUNT_PERCENT = 'percent';
 
     public const DISCOUNT_FIXED_AMOUNT = 'fixed_amount';
 
     public const DISCOUNT_FREE_ITEM = 'free_item';
+
+    public const DISCOUNT_FIXED_PRICE = 'fixed_price';
 
     public const IMAGE_TAG = 'primary_image';
 
@@ -40,6 +44,7 @@ class Offer extends Model
         'qualifying_item_id',
         'reward_category_id',
         'reward_item_id',
+        'bundle_item_ids',
         'minimum_subtotal',
         'required_quantity',
         'reward_quantity',
@@ -56,6 +61,7 @@ class Offer extends Model
         return [
             'discount_value' => 'decimal:2',
             'minimum_subtotal' => 'decimal:2',
+            'bundle_item_ids' => 'array',
             'required_quantity' => 'integer',
             'reward_quantity' => 'integer',
             'starts_at' => 'datetime',
@@ -73,6 +79,7 @@ class Offer extends Model
             self::TYPE_FIXED_DISCOUNT,
             self::TYPE_BUY_X_GET_Y,
             self::TYPE_SPEND_X_GET_Y,
+            self::TYPE_BUNDLE_FIXED_PRICE,
         ];
     }
 
@@ -82,6 +89,7 @@ class Offer extends Model
             self::DISCOUNT_PERCENT,
             self::DISCOUNT_FIXED_AMOUNT,
             self::DISCOUNT_FREE_ITEM,
+            self::DISCOUNT_FIXED_PRICE,
         ];
     }
 

@@ -423,12 +423,14 @@ Cart preview, automatic discount calculation, free item injection, and order-lev
 - `name`
 - `description`
 - `offer_type`: `percentage_discount`, `fixed_discount`, `buy_x_get_y`, `spend_x_get_y`
-- `discount_type`: `percent`, `fixed_amount`, `free_item`
+- `offer_type`: also supports `bundle_fixed_price` for combinations such as `Wrap + Fries + Drink for $14`
+- `discount_type`: `percent`, `fixed_amount`, `free_item`, `fixed_price`
 - `discount_value`: nullable decimal for percent/fixed offers
 - `qualifying_category_id`: nullable category target
 - `qualifying_item_id`: nullable item target
 - `reward_category_id`: nullable category for free-item rewards
 - `reward_item_id`: nullable item for free-item rewards
+- `bundle_item_ids`: nullable JSON list of item IDs for fixed-price bundle offers
 - `minimum_subtotal`: nullable decimal for spend threshold offers
 - `required_quantity`: nullable integer for buy-X rules
 - `reward_quantity`: nullable integer for free-item rules
@@ -443,6 +445,7 @@ Relationship rules:
 
 - Qualifying category/item define what a customer must buy.
 - Reward category/item define what can be discounted or granted for free.
+- Bundle item IDs define the included items when the offer is a fixed-price bundle.
 - If both category and item are null for a percentage/fixed offer, the offer applies to the whole order in the later calculation slice.
 - `priority` gives the later calculation slice a deterministic order.
 - `is_stackable` controls whether the later calculation slice may combine this offer with another offer.

@@ -151,6 +151,51 @@ class OfferFeatureTest extends TestCase
             ->assertSessionHasErrors(['required_quantity', 'reward_item_id', 'reward_quantity']);
     }
 
+    public function test_admin_can_create_fixed_price_bundle_without_reward_item(): void
+    {
+        $admin = $this->makeAdmin();
+        $category = Category::query()->create(['name' => 'Combos']);
+        $wrap = Item::query()->create(['name' => 'Chicken Wrap', 'category_id' => $category->id, 'cost' => 10, 'active' => true]);
+        $fries = Item::query()->create(['name' => 'Fries', 'category_id' => $category->id, 'cost' => 4, 'active' => true]);
+        $drink = Item::query()->create(['name' => 'Drink', 'category_id' => $category->id, 'cost' => 3, 'active' => true]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.offers.store'), [
+                'name' => 'Wrap + Fries + Drink for $14',
+                'offer_type' => Offer::TYPE_BUNDLE_FIXED_PRICE,
+                'discount_type' => Offer::DISCOUNT_FIXED_PRICE,
+                'discount_value' => '14.00',
+                'bundle_item_ids' => [$wrap->id, $fries->id, $drink->id],
+                'is_active' => 'on',
+            ])
+            ->assertRedirect(route('admin.offers.index'));
+
+        $offer = Offer::query()->where('name', 'Wrap + Fries + Drink for $14')->firstOrFail();
+
+        $this->assertSame(Offer::TYPE_BUNDLE_FIXED_PRICE, $offer->offer_type);
+        $this->assertSame(Offer::DISCOUNT_FIXED_PRICE, $offer->discount_type);
+        $this->assertSame([$wrap->id, $fries->id, $drink->id], $offer->bundle_item_ids);
+        $this->assertNull($offer->reward_item_id);
+        $this->assertNull($offer->reward_category_id);
+    }
+
+    public function test_fixed_price_bundle_requires_bundle_items_and_fixed_price_discount_type(): void
+    {
+        $category = Category::query()->create(['name' => 'Combos']);
+        $wrap = Item::query()->create(['name' => 'Chicken Wrap', 'category_id' => $category->id, 'cost' => 10, 'active' => true]);
+
+        $this->actingAs($this->makeAdmin())
+            ->post(route('admin.offers.store'), [
+                'name' => 'Incomplete Bundle',
+                'offer_type' => Offer::TYPE_BUNDLE_FIXED_PRICE,
+                'discount_type' => Offer::DISCOUNT_FIXED_AMOUNT,
+                'discount_value' => '14.00',
+                'bundle_item_ids' => [$wrap->id],
+                'is_active' => 'on',
+            ])
+            ->assertSessionHasErrors(['discount_type', 'bundle_item_ids']);
+    }
+
     public function test_guest_offers_endpoint_returns_only_current_active_offers(): void
     {
         $category = Category::query()->create(['name' => 'Rice Bowls']);
@@ -175,6 +220,28 @@ class OfferFeatureTest extends TestCase
         ]);
         $active->syncMedia($media, Offer::IMAGE_TAG);
 
+        $wrap = Item::query()->create([
+            'name' => 'Chicken Wrap',
+            'category_id' => $category->id,
+            'cost' => 10.00,
+            'active' => true,
+        ]);
+        $drink = Item::query()->create([
+            'name' => 'Drink',
+            'category_id' => $category->id,
+            'cost' => 3.00,
+            'active' => true,
+        ]);
+        Offer::query()->create([
+            'name' => 'Wrap + Drink for $11',
+            'offer_type' => Offer::TYPE_BUNDLE_FIXED_PRICE,
+            'discount_type' => Offer::DISCOUNT_FIXED_PRICE,
+            'discount_value' => 11,
+            'bundle_item_ids' => [$wrap->id, $drink->id],
+            'is_active' => true,
+            'priority' => 8,
+        ]);
+
         Offer::query()->create([
             'name' => 'Inactive Offer',
             'offer_type' => Offer::TYPE_FIXED_DISCOUNT,
@@ -194,11 +261,14 @@ class OfferFeatureTest extends TestCase
 
         $this->getJson('/api/guest/offers')
             ->assertOk()
-            ->assertJsonCount(1, 'offers')
+            ->assertJsonCount(2, 'offers')
             ->assertJsonPath('offers.0.name', 'Get 10% off Rice Bowls')
             ->assertJsonPath('offers.0.qualifying_category.name', 'Rice Bowls')
             ->assertJsonPath('offers.0.qualifying_item.name', 'Chicken Rice Bowl')
-            ->assertJsonPath('offers.0.featured_image_url', fn (?string $url) => filled($url));
+            ->assertJsonPath('offers.0.featured_image_url', fn (?string $url) => filled($url))
+            ->assertJsonPath('offers.1.name', 'Wrap + Drink for $11')
+            ->assertJsonPath('offers.1.bundle_items.0.name', 'Chicken Wrap')
+            ->assertJsonPath('offers.1.bundle_items.1.name', 'Drink');
     }
 
     public function test_customer_offers_endpoint_matches_guest_active_offers(): void
