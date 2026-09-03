@@ -13,6 +13,8 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'icon', type: 'string', nullable: true, example: 'wrap-icon'),
         new OA\Property(property: 'color', type: 'string', nullable: true, example: '#FF5733'),
         new OA\Property(property: 'sort_order', type: 'integer', example: 1),
+        new OA\Property(property: 'primary_image_url', type: 'string', nullable: true, example: 'https://itsawrap.ai/storage/media-library/wraps.jpg'),
+        new OA\Property(property: 'primary_media', ref: '#/components/schemas/PrimaryMedia', nullable: true),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),
         new OA\Property(property: 'updated_at', type: 'string', format: 'date-time'),
     ]
@@ -28,8 +30,25 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'active', type: 'boolean', example: true),
         new OA\Property(property: 'image_path', type: 'string', nullable: true),
         new OA\Property(property: 'short_code', type: 'string', nullable: true),
+        new OA\Property(property: 'primary_image_url', type: 'string', nullable: true, example: 'https://itsawrap.ai/storage/media-library/chicken-wrap.jpg'),
+        new OA\Property(property: 'primary_media', ref: '#/components/schemas/PrimaryMedia', nullable: true),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),
         new OA\Property(property: 'updated_at', type: 'string', format: 'date-time'),
+    ]
+)]
+#[OA\Schema(
+    schema: 'PrimaryMedia',
+    properties: [
+        new OA\Property(property: 'id', type: 'integer', example: 10),
+        new OA\Property(property: 'basename', type: 'string', example: 'chicken-wrap.jpg'),
+        new OA\Property(property: 'filename', type: 'string', example: 'chicken-wrap'),
+        new OA\Property(property: 'extension', type: 'string', example: 'jpg'),
+        new OA\Property(property: 'mime_type', type: 'string', example: 'image/jpeg'),
+        new OA\Property(property: 'aggregate_type', type: 'string', example: 'image'),
+        new OA\Property(property: 'size', type: 'integer', nullable: true, example: 35248),
+        new OA\Property(property: 'url', type: 'string', nullable: true, example: 'https://itsawrap.ai/storage/media-library/chicken-wrap.jpg'),
+        new OA\Property(property: 'preview_url', type: 'string', nullable: true, example: 'https://itsawrap.ai/storage/media-library/chicken-wrap.jpg'),
+        new OA\Property(property: 'alt', type: 'string', nullable: true, example: 'Chicken wrap on a plate'),
     ]
 )]
 #[OA\Schema(

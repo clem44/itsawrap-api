@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Category;
 use App\Models\Item;
 use App\Models\ItemOption;
 use App\Models\ItemOptionValue;
@@ -36,14 +37,16 @@ class ItemController extends Controller
     )]
     public function index(Request $request): JsonResponse
     {
-        $query = Item::with([
-            'category',
-            'taxes',
-            'itemOptions.option',
-            'itemOptions.itemOptionValues.optionValue',
-            'itemOptions.itemOptionValues.optionDependency.childOption.option',
-            'itemOptions.itemOptionValues.optionDependency.childOption.itemOptionValues.optionValue',
-        ]);
+        $query = Item::query()
+            ->withMedia(Item::IMAGE_TAG)
+            ->with([
+                'category' => fn ($query) => $query->withMedia(Category::IMAGE_TAG),
+                'taxes',
+                'itemOptions.option',
+                'itemOptions.itemOptionValues.optionValue',
+                'itemOptions.itemOptionValues.optionDependency.childOption.option',
+                'itemOptions.itemOptionValues.optionDependency.childOption.itemOptionValues.optionValue',
+            ]);
 
         if ($request->has('category_id')) {
             $query->where('category_id', $request->category_id);
@@ -53,7 +56,13 @@ class ItemController extends Controller
             $query->where('active', $request->boolean('active'));
         }
 
-        return response()->json($query->get());
+        $items = $query->get()
+            ->each(function (Item $item): void {
+                $item->includePrimaryImageMedia();
+                $item->category?->includePrimaryImageMedia();
+            });
+
+        return response()->json($items);
     }
 
     #[OA\Post(
@@ -102,7 +111,12 @@ class ItemController extends Controller
             $item->taxes()->sync($request->tax_ids);
         }
 
-        return response()->json($item->load(['category', 'taxes']), 201);
+        $item->loadMedia(Item::IMAGE_TAG);
+        $item->load(['category' => fn ($query) => $query->withMedia(Category::IMAGE_TAG), 'taxes']);
+        $item->includePrimaryImageMedia();
+        $item->category?->includePrimaryImageMedia();
+
+        return response()->json($item, 201);
     }
 
     #[OA\Get(
@@ -122,16 +136,20 @@ class ItemController extends Controller
     )]
     public function show(Item $item): JsonResponse
     {
-        return response()->json(
-            $item->load([
-                'category',
+        $item
+            ->loadMedia(Item::IMAGE_TAG)
+            ->load([
+                'category' => fn ($query) => $query->withMedia(Category::IMAGE_TAG),
                 'taxes',
                 'itemOptions.option',
                 'itemOptions.itemOptionValues.optionValue',
                 'itemOptions.itemOptionValues.optionDependency.childOption.option',
                 'itemOptions.itemOptionValues.optionDependency.childOption.itemOptionValues.optionValue',
-            ])
-        );
+            ]);
+        $item->includePrimaryImageMedia();
+        $item->category?->includePrimaryImageMedia();
+
+        return response()->json($item);
     }
 
     #[OA\Put(
@@ -183,7 +201,12 @@ class ItemController extends Controller
             $item->taxes()->sync($request->tax_ids);
         }
 
-        return response()->json($item->load(['category', 'taxes']));
+        $item->loadMedia(Item::IMAGE_TAG);
+        $item->load(['category' => fn ($query) => $query->withMedia(Category::IMAGE_TAG), 'taxes']);
+        $item->includePrimaryImageMedia();
+        $item->category?->includePrimaryImageMedia();
+
+        return response()->json($item);
     }
 
     #[OA\Delete(

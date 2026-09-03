@@ -13,13 +13,16 @@ class GuestMenuController extends Controller
     {
         $categories = Category::query()
             ->whereHas('items', fn ($query) => $query->where('active', true))
+            ->withMedia(Category::IMAGE_TAG)
             ->orderBy('sort_order')
             ->orderBy('name')
-            ->get();
+            ->get()
+            ->each->includePrimaryImageMedia();
 
         $items = Item::query()
+            ->withMedia(Item::IMAGE_TAG)
             ->with([
-                'category',
+                'category' => fn ($query) => $query->withMedia(Category::IMAGE_TAG),
                 'taxes',
                 'itemOptions.option',
                 'itemOptions.itemOptionValues.optionValue',
@@ -28,7 +31,11 @@ class GuestMenuController extends Controller
             ])
             ->where('active', true)
             ->orderBy('name')
-            ->get();
+            ->get()
+            ->each(function (Item $item): void {
+                $item->includePrimaryImageMedia();
+                $item->category?->includePrimaryImageMedia();
+            });
 
         return response()->json([
             'categories' => $categories,

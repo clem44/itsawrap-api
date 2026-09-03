@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\Item;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use OpenApi\Attributes as OA;
@@ -30,7 +31,13 @@ class CategoryController extends Controller
     )]
     public function index(): JsonResponse
     {
-        return response()->json(Category::orderBy('sort_order')->get());
+        $categories = Category::query()
+            ->withMedia(Category::IMAGE_TAG)
+            ->orderBy('sort_order')
+            ->get()
+            ->each->includePrimaryImageMedia();
+
+        return response()->json($categories);
     }
 
     #[OA\Post(
@@ -73,6 +80,8 @@ class CategoryController extends Controller
         ]);
 
         $category = Category::create($validated);
+        $category->loadMedia(Category::IMAGE_TAG);
+        $category->includePrimaryImageMedia();
 
         return response()->json($category, 201);
     }
@@ -98,7 +107,14 @@ class CategoryController extends Controller
     )]
     public function show(Category $category): JsonResponse
     {
-        return response()->json($category->load('items'));
+        $category->loadMedia(Category::IMAGE_TAG);
+        $category->load([
+            'items' => fn ($query) => $query->withMedia(Item::IMAGE_TAG),
+        ]);
+        $category->includePrimaryImageMedia();
+        $category->items->each->includePrimaryImageMedia();
+
+        return response()->json($category);
     }
 
     #[OA\Put(
@@ -144,6 +160,8 @@ class CategoryController extends Controller
         ]);
 
         $category->update($validated);
+        $category->loadMedia(Category::IMAGE_TAG);
+        $category->includePrimaryImageMedia();
 
         return response()->json($category);
     }

@@ -6598,6 +6598,19 @@
                         "type": "integer",
                         "example": 1
                     },
+                    "primary_image_url": {
+                        "type": "string",
+                        "example": "https://itsawrap.ai/storage/media-library/wraps.jpg",
+                        "nullable": true
+                    },
+                    "primary_media": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/PrimaryMedia"
+                            }
+                        ],
+                        "nullable": true
+                    },
                     "created_at": {
                         "type": "string",
                         "format": "date-time"
@@ -6644,6 +6657,19 @@
                         "type": "string",
                         "nullable": true
                     },
+                    "primary_image_url": {
+                        "type": "string",
+                        "example": "https://itsawrap.ai/storage/media-library/chicken-wrap.jpg",
+                        "nullable": true
+                    },
+                    "primary_media": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/PrimaryMedia"
+                            }
+                        ],
+                        "nullable": true
+                    },
                     "created_at": {
                         "type": "string",
                         "format": "date-time"
@@ -6651,6 +6677,55 @@
                     "updated_at": {
                         "type": "string",
                         "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "PrimaryMedia": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 10
+                    },
+                    "basename": {
+                        "type": "string",
+                        "example": "chicken-wrap.jpg"
+                    },
+                    "filename": {
+                        "type": "string",
+                        "example": "chicken-wrap"
+                    },
+                    "extension": {
+                        "type": "string",
+                        "example": "jpg"
+                    },
+                    "mime_type": {
+                        "type": "string",
+                        "example": "image/jpeg"
+                    },
+                    "aggregate_type": {
+                        "type": "string",
+                        "example": "image"
+                    },
+                    "size": {
+                        "type": "integer",
+                        "example": 35248,
+                        "nullable": true
+                    },
+                    "url": {
+                        "type": "string",
+                        "example": "https://itsawrap.ai/storage/media-library/chicken-wrap.jpg",
+                        "nullable": true
+                    },
+                    "preview_url": {
+                        "type": "string",
+                        "example": "https://itsawrap.ai/storage/media-library/chicken-wrap.jpg",
+                        "nullable": true
+                    },
+                    "alt": {
+                        "type": "string",
+                        "example": "Chicken wrap on a plate",
+                        "nullable": true
                     }
                 },
                 "type": "object"
