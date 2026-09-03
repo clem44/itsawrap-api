@@ -104,6 +104,7 @@ class MediaLibraryInstance {
             activeTab: 'details',
             loading: false,
             error: '',
+            dragging: false,
             upload: null,
             pagination: {
                 current_page: 1,
@@ -113,9 +114,11 @@ class MediaLibraryInstance {
         };
 
         this.searchTimer = null;
+        this.dragDepth = 0;
         this.fileInput = document.createElement('input');
         this.fileInput.type = 'file';
         this.fileInput.accept = this.options.accept.includes('image') ? 'image/*' : '';
+        this.fileInput.multiple = true;
         this.fileInput.tabIndex = -1;
         this.fileInput.setAttribute('aria-hidden', 'true');
         this.fileInput.style.position = 'fixed';
@@ -123,7 +126,7 @@ class MediaLibraryInstance {
         this.fileInput.style.width = '1px';
         this.fileInput.style.height = '1px';
         this.fileInput.style.opacity = '0';
-        this.fileInput.addEventListener('change', () => this.uploadSelectedFiles());
+        this.fileInput.addEventListener('change', () => this.uploadFiles(this.fileInput.files));
         document.body.appendChild(this.fileInput);
 
         this.element.classList.add('media-library');
@@ -219,6 +222,57 @@ class MediaLibraryInstance {
 
             this.updateAlt(event.target.value);
         });
+
+        this.element.addEventListener('dragenter', (event) => {
+            if (!this.eventHasFiles(event)) {
+                return;
+            }
+
+            event.preventDefault();
+            this.dragDepth += 1;
+
+            if (!this.state.dragging) {
+                this.state.dragging = true;
+                this.render();
+            }
+        });
+
+        this.element.addEventListener('dragover', (event) => {
+            if (!this.eventHasFiles(event)) {
+                return;
+            }
+
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'copy';
+        });
+
+        this.element.addEventListener('dragleave', (event) => {
+            if (!this.eventHasFiles(event)) {
+                return;
+            }
+
+            this.dragDepth = Math.max(0, this.dragDepth - 1);
+
+            if (this.dragDepth === 0 && this.state.dragging) {
+                this.state.dragging = false;
+                this.render();
+            }
+        });
+
+        this.element.addEventListener('drop', (event) => {
+            if (!this.eventHasFiles(event)) {
+                return;
+            }
+
+            event.preventDefault();
+            this.dragDepth = 0;
+            this.state.dragging = false;
+            this.uploadFiles(event.dataTransfer.files);
+        });
+    }
+
+    eventHasFiles(event) {
+        return Array.from(event.dataTransfer?.types || []).includes('Files');
     }
 
     selectedFile() {
@@ -293,78 +347,111 @@ class MediaLibraryInstance {
         }
     }
 
-    uploadSelectedFiles() {
-        const [file] = Array.from(this.fileInput.files || []);
+    async uploadFiles(fileList) {
+        const files = Array.from(fileList || []).filter((file) => file instanceof File);
 
-        if (!file) {
+        if (files.length === 0) {
             return;
         }
 
-        const form = new FormData();
-        form.append('file', file);
-
-        const request = new XMLHttpRequest();
         this.state.upload = {
-            name: file.name,
+            name: files[0].name,
             progress: 0,
+            total: files.length,
+            completed: 0,
             error: '',
         };
         this.render();
 
-        request.upload.addEventListener('progress', (event) => {
-            if (!event.lengthComputable) {
-                return;
-            }
+        const uploaded = [];
 
+        for (const file of files) {
             this.state.upload = {
                 ...this.state.upload,
-                progress: Math.round((event.loaded / event.total) * 100),
+                name: file.name,
+                progress: 0,
             };
-            this.renderUploadProgress();
-        });
-
-        request.addEventListener('load', () => {
-            let payload = {};
+            this.render();
 
             try {
-                payload = JSON.parse(request.responseText || '{}');
-            } catch {
-                payload = {};
-            }
+                const media = await this.uploadFile(file);
 
-            if (request.status < 200 || request.status >= 300) {
+                if (media) {
+                    uploaded.push(media);
+                    this.state.files = [media, ...this.state.files.filter((entry) => entry.id !== media.id)];
+                }
+            } catch (error) {
                 this.state.upload = {
                     ...this.state.upload,
-                    error: payload.message || 'Upload failed.',
+                    error: error.message || 'Upload failed.',
                 };
                 this.render();
                 return;
             }
 
-            const file = payload.data;
-
-            if (file) {
-                this.state.files = [file, ...this.state.files.filter((entry) => entry.id !== file.id)];
-                this.state.selectedIds = [Number(file.id)];
-            }
-
-            this.state.upload = null;
-            this.render();
-        });
-
-        request.addEventListener('error', () => {
             this.state.upload = {
                 ...this.state.upload,
-                error: 'Upload failed. Check the file and try again.',
+                completed: this.state.upload.completed + 1,
+                progress: 100,
             };
-            this.render();
-        });
+            this.renderUploadProgress();
+        }
 
-        request.open('POST', this.options.uploadEndpoint);
-        request.setRequestHeader('X-CSRF-TOKEN', csrfToken());
-        request.setRequestHeader('Accept', 'application/json');
-        request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-        request.send(form);
+        if (uploaded.length > 0) {
+            const uploadedIds = uploaded.map((file) => Number(file.id));
+            this.state.selectedIds = this.options.multiple ? uploadedIds : [uploadedIds[uploadedIds.length - 1]];
+        }
+
+        this.state.upload = null;
+        this.render();
+    }
+
+    uploadFile(file) {
+        return new Promise((resolve, reject) => {
+            const form = new FormData();
+            form.append('file', file);
+
+            const request = new XMLHttpRequest();
+
+            request.upload.addEventListener('progress', (event) => {
+                if (!event.lengthComputable) {
+                    return;
+                }
+
+                this.state.upload = {
+                    ...this.state.upload,
+                    progress: Math.round((event.loaded / event.total) * 100),
+                };
+                this.renderUploadProgress();
+            });
+
+            request.addEventListener('load', () => {
+                let payload = {};
+
+                try {
+                    payload = JSON.parse(request.responseText || '{}');
+                } catch {
+                    payload = {};
+                }
+
+                if (request.status < 200 || request.status >= 300) {
+                    reject(new Error(payload.message || `Upload failed for ${file.name}.`));
+                    return;
+                }
+
+                resolve(payload.data || null);
+            });
+
+            request.addEventListener('error', () => {
+                reject(new Error(`Upload failed for ${file.name}. Check the file and try again.`));
+            });
+
+            request.open('POST', this.options.uploadEndpoint);
+            request.setRequestHeader('X-CSRF-TOKEN', csrfToken());
+            request.setRequestHeader('Accept', 'application/json');
+            request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            request.send(form);
+        });
     }
 
     async updateAlt(alt) {
@@ -448,11 +535,13 @@ class MediaLibraryInstance {
     render() {
         const modeClass = this.options.mode === 'picker' ? 'media-library--picker' : 'media-library--embedded';
         const detailClass = this.state.detailsOpen ? 'has-details' : 'details-collapsed';
-        this.element.className = `media-library ${modeClass} ${detailClass}`;
+        const draggingClass = this.state.dragging ? 'is-dragging' : '';
+        this.element.className = `media-library ${modeClass} ${detailClass} ${draggingClass}`.trim();
         this.element.style.setProperty('--media-library-height', this.options.height);
         this.element.innerHTML = `
             <div class="media-library__shell">
                 ${this.renderToolbar()}
+                ${this.renderDropOverlay()}
                 <div class="media-library__body">
                     <div class="media-library__content">
                         ${this.renderAlert()}
@@ -465,6 +554,18 @@ class MediaLibraryInstance {
             </div>
         `;
         this.renderUploadProgress();
+    }
+
+    renderDropOverlay() {
+        return `
+            <div class="media-library__drop-overlay" aria-hidden="${this.state.dragging ? 'false' : 'true'}">
+                <div class="media-library__drop-card">
+                    <span>${icon('upload')}</span>
+                    <strong>Drop files to upload</strong>
+                    <small>Multiple files will upload one after another.</small>
+                </div>
+            </div>
+        `;
     }
 
     renderToolbar() {
@@ -709,13 +810,22 @@ class MediaLibraryInstance {
                 <div class="media-library__upload-file">
                     <span class="media-library__upload-icon">${icon('image')}</span>
                     <div>
-                        <div class="media-library__upload-title">Uploading 1 file... ${escapeHtml(this.state.upload.name)}</div>
+                        <div class="media-library__upload-title">${escapeHtml(this.uploadTitle())}</div>
                         ${this.state.upload.error ? `<div class="media-library__upload-error">${escapeHtml(this.state.upload.error)}</div>` : '<div class="media-library__upload-track"><span data-media-upload-progress style="width: ' + this.state.upload.progress + '%"></span></div>'}
                     </div>
                     <span class="media-library__upload-percent" data-media-upload-percent>${this.state.upload.progress}%</span>
                 </div>
             </div>
         `;
+    }
+
+    uploadTitle() {
+        const total = Number(this.state.upload?.total || 1);
+        const completed = Number(this.state.upload?.completed || 0);
+        const current = Math.min(completed + 1, total);
+        const label = total === 1 ? 'Uploading 1 file' : `Uploading ${current} of ${total} files`;
+
+        return `${label}... ${this.state.upload?.name || ''}`;
     }
 }
 
