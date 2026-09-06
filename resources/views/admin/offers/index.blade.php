@@ -58,7 +58,7 @@
             qualifying_item_id: '{{ old('form_action') ? old('qualifying_item_id', '') : '' }}',
             reward_category_id: '{{ old('form_action') ? old('reward_category_id', '') : '' }}',
             reward_item_id: '{{ old('form_action') ? old('reward_item_id', '') : '' }}',
-            bundle_item_ids: @js(old('form_action') ? array_map('strval', (array) old('bundle_item_ids', [])) : []),
+            bundle_id: '{{ old('form_action') ? old('bundle_id', '') : '' }}',
             minimum_subtotal: '{{ old('form_action') ? old('minimum_subtotal', '') : '' }}',
             required_quantity: '{{ old('form_action') ? old('required_quantity', '') : '' }}',
             reward_quantity: '{{ old('form_action') ? old('reward_quantity', '') : '' }}',
@@ -100,7 +100,7 @@
                 qualifying_item_id: '',
                 reward_category_id: '',
                 reward_item_id: '',
-                bundle_item_ids: [],
+                bundle_id: '',
                 minimum_subtotal: '',
                 required_quantity: '',
                 reward_quantity: '',
@@ -130,7 +130,7 @@
                 qualifying_item_id: offer.qualifying_item_id ? String(offer.qualifying_item_id) : '',
                 reward_category_id: offer.reward_category_id ? String(offer.reward_category_id) : '',
                 reward_item_id: offer.reward_item_id ? String(offer.reward_item_id) : '',
-                bundle_item_ids: (offer.bundle_item_ids || []).map((id) => String(id)),
+                bundle_id: offer.bundle_id ? String(offer.bundle_id) : '',
                 minimum_subtotal: offer.minimum_subtotal || '',
                 required_quantity: offer.required_quantity || '',
                 reward_quantity: offer.reward_quantity || '',
@@ -203,10 +203,11 @@
             <tbody>
                 @forelse($offers as $offer)
                     @php
-                        $primaryMedia = $offer->firstMedia(\App\Models\Offer::IMAGE_TAG);
-                        $bundleItems = $offer->bundle_item_ids ? $items->whereIn('id', $offer->bundle_item_ids)->pluck('name')->implode(' + ') : '';
+                        $offerMedia = $offer->firstMedia(\App\Models\Offer::IMAGE_TAG);
+                        $bundleMedia = $offer->bundle?->firstMedia(\App\Models\Bundle::IMAGE_TAG);
+                        $primaryMedia = $offerMedia ?: $bundleMedia;
                         $qualifyingTarget = $offer->offer_type === \App\Models\Offer::TYPE_BUNDLE_FIXED_PRICE
-                            ? ($bundleItems ?: 'Bundle items')
+                            ? ($offer->bundle?->name ?? 'Bundle')
                             : ($offer->qualifyingItem?->name ?? $offer->qualifyingCategory?->name ?? 'Whole order');
                         $benefit = match ($offer->discount_type) {
                             \App\Models\Offer::DISCOUNT_PERCENT => rtrim(rtrim((string) $offer->discount_value, '0'), '.') . '% off',
@@ -269,7 +270,7 @@
                                         'qualifying_item_id' => $offer->qualifying_item_id,
                                         'reward_category_id' => $offer->reward_category_id,
                                         'reward_item_id' => $offer->reward_item_id,
-                                        'bundle_item_ids' => $offer->bundle_item_ids ?? [],
+                                        'bundle_id' => $offer->bundle_id,
                                         'minimum_subtotal' => $offer->minimum_subtotal,
                                         'required_quantity' => $offer->required_quantity,
                                         'reward_quantity' => $offer->reward_quantity,
@@ -278,8 +279,8 @@
                                         'is_active' => $offer->is_active,
                                         'is_stackable' => $offer->is_stackable,
                                         'priority' => $offer->priority,
-                                        'media_id' => $primaryMedia?->id,
-                                        'primary_media' => $primaryMedia ? $mediaPresenter->present($primaryMedia) : null,
+                                        'media_id' => $offerMedia?->id,
+                                        'primary_media' => $offerMedia ? $mediaPresenter->present($offerMedia) : null,
                                     ]))"
                                 >
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -404,15 +405,17 @@
                                 </div>
 
                                 <div>
-                                    <label class="mb-2 block text-sm font-medium text-white/80">Bundle Items</label>
-                                    <select name="bundle_item_ids[]" class="offer-modal-select min-h-32 w-full rounded-lg border border-white/20 px-4 py-2.5 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('bundle_item_ids') border-red-500 @enderror" v-model="offer.bundle_item_ids" multiple>
-                                        @foreach($items as $item)
-                                            <option value="{{ $item->id }}">{{ $item->name }}{{ $item->category ? ' - '.$item->category->name : '' }}</option>
+                                    <label class="mb-2 block text-sm font-medium text-white/80">Bundle</label>
+                                    <select name="bundle_id" class="offer-modal-select w-full rounded-lg border border-white/20 px-4 py-2.5 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('bundle_id') border-red-500 @enderror" v-model="offer.bundle_id">
+                                        <option value="">No bundle</option>
+                                        @foreach($bundles as $bundle)
+                                            <option value="{{ $bundle->id }}">
+                                                {{ $bundle->name }}{{ $bundle->is_active ? '' : ' - inactive' }}
+                                            </option>
                                         @endforeach
                                     </select>
-                                    <p class="mt-1.5 text-xs text-white/60">Use this for fixed-price bundles such as Wrap + Fries + Drink for $14.</p>
-                                    @error('bundle_item_ids')<p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>@enderror
-                                    @error('bundle_item_ids.*')<p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>@enderror
+                                    <p class="mt-1.5 text-xs text-white/60">Required for fixed-price bundle offers. Build reusable bundles from Data > Bundles.</p>
+                                    @error('bundle_id')<p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>@enderror
                                 </div>
 
                                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">

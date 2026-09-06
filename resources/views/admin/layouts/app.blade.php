@@ -10,6 +10,7 @@
         'admin.options.*',
         'admin.branches.*',
         'admin.customers.*',
+        'admin.bundles.*',
         'admin.media-library.*'
     );
     $deliveryMenuOpen = request()->routeIs(
@@ -89,6 +90,7 @@
                             <a href="{{ route('admin.tips.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.tips.*') ? 'active' : '' }}"><span class="sidebar-label">Tips</span></a>
                             <a href="{{ route('admin.payments.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.payments.*') ? 'active' : '' }}"><span class="sidebar-label">Payments</span></a>
                             <a href="{{ route('admin.items.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.items.*') ? 'active' : '' }}"><span class="sidebar-label">Items</span></a>
+                            <a href="{{ route('admin.bundles.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.bundles.*') ? 'active' : '' }}"><span class="sidebar-label">Bundles</span></a>
                             <a href="{{ route('admin.options.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.options.*') ? 'active' : '' }}"><span class="sidebar-label">Options</span></a>
                             <a href="{{ route('admin.categories.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}"><span class="sidebar-label">Categories</span></a>
                             <a href="{{ route('admin.branches.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.branches.*') ? 'active' : '' }}"><span class="sidebar-label">Branches</span></a>
@@ -213,6 +215,7 @@
                             <a href="{{ route('admin.tips.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.tips.*') ? 'active' : '' }}">Tips</a>
                             <a href="{{ route('admin.payments.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.payments.*') ? 'active' : '' }}">Payments</a>
                             <a href="{{ route('admin.items.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.items.*') ? 'active' : '' }}">Items</a>
+                            <a href="{{ route('admin.bundles.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.bundles.*') ? 'active' : '' }}">Bundles</a>
                             <a href="{{ route('admin.options.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.options.*') ? 'active' : '' }}">Options</a>
                             <a href="{{ route('admin.categories.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">Categories</a>
                             <a href="{{ route('admin.branches.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.branches.*') ? 'active' : '' }}">Branches</a>

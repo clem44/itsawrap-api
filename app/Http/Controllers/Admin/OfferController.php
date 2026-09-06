@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Bundle;
 use App\Models\Category;
 use App\Models\Item;
 use App\Models\Offer;
@@ -19,7 +20,13 @@ class OfferController extends Controller
     public function index(MediaLibraryPresenter $mediaPresenter): View
     {
         $offers = Offer::query()
-            ->with(['qualifyingCategory', 'qualifyingItem', 'rewardCategory', 'rewardItem'])
+            ->with([
+                'qualifyingCategory',
+                'qualifyingItem',
+                'rewardCategory',
+                'rewardItem',
+                'bundle' => fn ($query) => $query->withMedia(Bundle::IMAGE_TAG)->with('bundleItems.item.category'),
+            ])
             ->withMedia(Offer::IMAGE_TAG)
             ->orderByDesc('is_active')
             ->orderByDesc('priority')
@@ -37,6 +44,14 @@ class OfferController extends Controller
             ->orderBy('name')
             ->get();
 
+        $bundles = Bundle::query()
+            ->withMedia(Bundle::IMAGE_TAG)
+            ->with('bundleItems.item.category')
+            ->orderByDesc('is_active')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+
         $oldMedia = null;
 
         if (old('form_action') && old('media_id')) {
@@ -44,7 +59,7 @@ class OfferController extends Controller
             $oldMedia = $media ? $mediaPresenter->present($media) : null;
         }
 
-        return view('admin.offers.index', compact('offers', 'categories', 'items', 'mediaPresenter', 'oldMedia'));
+        return view('admin.offers.index', compact('offers', 'categories', 'items', 'bundles', 'mediaPresenter', 'oldMedia'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -97,8 +112,7 @@ class OfferController extends Controller
             'qualifying_item_id' => ['nullable', 'integer', 'exists:items,id'],
             'reward_category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'reward_item_id' => ['nullable', 'integer', 'exists:items,id'],
-            'bundle_item_ids' => ['nullable', 'array'],
-            'bundle_item_ids.*' => ['integer', 'distinct', 'exists:items,id'],
+            'bundle_id' => ['nullable', 'integer', 'exists:bundles,id'],
             'minimum_subtotal' => ['nullable', 'numeric', 'min:0', 'max:99999.99'],
             'required_quantity' => ['nullable', 'integer', 'min:1', 'max:999'],
             'reward_quantity' => ['nullable', 'integer', 'min:1', 'max:999'],
@@ -124,8 +138,19 @@ class OfferController extends Controller
                     $validator->errors()->add('discount_type', 'Bundle fixed price offers must use the fixed price discount type.');
                 }
 
-                if (count($request->input('bundle_item_ids', [])) < 2) {
-                    $validator->errors()->add('bundle_item_ids', 'Select at least two bundle items for a fixed price bundle.');
+                if (! $request->filled('bundle_id')) {
+                    $validator->errors()->add('bundle_id', 'Select a bundle for a fixed price bundle offer.');
+                }
+
+                if ($request->boolean('is_active') && $request->filled('bundle_id')) {
+                    $bundleAvailable = Bundle::query()
+                        ->whereKey($request->integer('bundle_id'))
+                        ->availableForOrdering()
+                        ->exists();
+
+                    if (! $bundleAvailable) {
+                        $validator->errors()->add('bundle_id', 'Active fixed price bundle offers must use an active bundle with available items.');
+                    }
                 }
             }
 
@@ -150,7 +175,6 @@ class OfferController extends Controller
 
         $validated = $validator->validate();
         $validated['priority'] = $validated['priority'] ?? 0;
-        $validated['bundle_item_ids'] = array_values($validated['bundle_item_ids'] ?? []);
 
         unset($validated['media_id']);
 

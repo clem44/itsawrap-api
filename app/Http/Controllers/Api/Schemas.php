@@ -417,6 +417,52 @@ use OpenApi\Attributes as OA;
     ]
 )]
 #[OA\Schema(
+    schema: 'Bundle',
+    properties: [
+        new OA\Property(property: 'id', type: 'integer', example: 1),
+        new OA\Property(property: 'name', type: 'string', example: 'Wrap + Fries + Drink'),
+        new OA\Property(property: 'description', type: 'string', nullable: true, example: 'A complete lunch bundle.'),
+        new OA\Property(property: 'starts_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'ends_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'is_active', type: 'boolean', example: true),
+        new OA\Property(property: 'sort_order', type: 'integer', example: 1),
+        new OA\Property(property: 'featured_image_url', type: 'string', nullable: true, example: 'https://itsawrap.ai/storage/media-library/wrap-bundle.jpg'),
+        new OA\Property(property: 'items', type: 'array', items: new OA\Items(ref: '#/components/schemas/BundleItem')),
+    ]
+)]
+#[OA\Schema(
+    schema: 'BundleItem',
+    properties: [
+        new OA\Property(property: 'id', type: 'integer', example: 10),
+        new OA\Property(property: 'item_id', type: 'integer', example: 5),
+        new OA\Property(property: 'name', type: 'string', nullable: true, example: 'Chicken Wrap'),
+        new OA\Property(property: 'item_name', type: 'string', nullable: true, example: 'Chicken Wrap'),
+        new OA\Property(property: 'category', type: 'object', nullable: true, properties: [
+            new OA\Property(property: 'id', type: 'integer', example: 1),
+            new OA\Property(property: 'name', type: 'string', example: 'Wraps'),
+        ]),
+        new OA\Property(property: 'quantity', type: 'integer', example: 1),
+        new OA\Property(property: 'sort_order', type: 'integer', example: 0),
+        new OA\Property(property: 'unit_price', type: 'number', format: 'float', nullable: true, example: 10),
+        new OA\Property(property: 'price_override', type: 'number', format: 'float', nullable: true, example: 9),
+        new OA\Property(property: 'label_override', type: 'string', nullable: true, example: 'Half wrap'),
+        new OA\Property(property: 'option_values', type: 'array', items: new OA\Items(
+            properties: [
+                new OA\Property(property: 'id', type: 'integer', example: 100),
+                new OA\Property(property: 'item_option_id', type: 'integer', example: 20),
+                new OA\Property(property: 'option_id', type: 'integer', nullable: true, example: 3),
+                new OA\Property(property: 'option_name', type: 'string', nullable: true, example: 'Sauce'),
+                new OA\Property(property: 'option_value_id', type: 'integer', example: 30),
+                new OA\Property(property: 'name', type: 'string', nullable: true, example: 'BBQ'),
+                new OA\Property(property: 'quantity', type: 'integer', example: 1),
+                new OA\Property(property: 'parent_option_value_id', type: 'integer', nullable: true, example: null),
+                new OA\Property(property: 'price_override', type: 'number', format: 'float', nullable: true, example: null),
+            ],
+            type: 'object'
+        )),
+    ]
+)]
+#[OA\Schema(
     schema: 'Offer',
     properties: [
         new OA\Property(property: 'id', type: 'integer', example: 1),
@@ -428,10 +474,13 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'minimum_subtotal', type: 'number', format: 'float', nullable: true, example: 20),
         new OA\Property(property: 'required_quantity', type: 'integer', nullable: true, example: 6),
         new OA\Property(property: 'reward_quantity', type: 'integer', nullable: true, example: 1),
+        new OA\Property(property: 'bundle', ref: '#/components/schemas/Bundle', nullable: true),
         new OA\Property(property: 'bundle_items', type: 'array', items: new OA\Items(
             properties: [
                 new OA\Property(property: 'id', type: 'integer', example: 10),
+                new OA\Property(property: 'item_id', type: 'integer', example: 5),
                 new OA\Property(property: 'name', type: 'string', example: 'Chicken Wrap'),
+                new OA\Property(property: 'quantity', type: 'integer', example: 1),
             ],
             type: 'object'
         )),

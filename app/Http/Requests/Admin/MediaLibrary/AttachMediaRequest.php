@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin\MediaLibrary;
 
+use App\Models\Bundle;
 use App\Models\Item;
 use App\Models\Offer;
 use Illuminate\Foundation\Http\FormRequest;
@@ -27,6 +28,7 @@ class AttachMediaRequest extends FormRequest
     public function allowedTypes(): array
     {
         return [
+            Bundle::class,
             Item::class,
             Offer::class,
         ];

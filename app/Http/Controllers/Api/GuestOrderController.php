@@ -29,7 +29,7 @@ class GuestOrderController extends Controller
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ['customer_id', 'subtotal', 'total', 'is_delivery', 'items'],
+                required: ['customer_id', 'subtotal', 'total', 'is_delivery'],
                 properties: [
                     new OA\Property(property: 'number', type: 'string', nullable: true, example: 'IAW-000123'),
                     new OA\Property(property: 'customer_id', type: 'integer', example: 1),
@@ -57,8 +57,23 @@ class GuestOrderController extends Controller
                         )
                     ),
                     new OA\Property(
+                        property: 'bundles',
+                        type: 'array',
+                        nullable: true,
+                        items: new OA\Items(
+                            required: ['bundle_id', 'quantity'],
+                            properties: [
+                                new OA\Property(property: 'bundle_id', type: 'integer', example: 3),
+                                new OA\Property(property: 'quantity', type: 'integer', example: 1),
+                                new OA\Property(property: 'participant_client_id', type: 'string', nullable: true, example: 'person-0'),
+                                new OA\Property(property: 'comment', type: 'string', nullable: true),
+                            ]
+                        )
+                    ),
+                    new OA\Property(
                         property: 'items',
                         type: 'array',
+                        nullable: true,
                         items: new OA\Items(
                             required: ['item_id', 'price', 'quantity'],
                             properties: [

@@ -416,6 +416,29 @@ Build the offer catalog foundation first:
 
 Cart preview, automatic discount calculation, free item injection, and order-level offer redemption records are a later slice. That later slice should be implemented only after the checkout payload and total-calculation rules are finalized.
 
+## New Objective: Bundles And Offer Integration
+
+Create a first-class Bundle model so admins can prebuild combinations of food items that client apps can render as a single ordering option. A Bundle is responsible for composition and display; an Offer is responsible for promotion rules.
+
+Bundle scope:
+
+- Create a `bundles` table and `Bundle` model.
+- Implement `Plank\Mediable\Mediable` on `Bundle`.
+- Use the existing admin media picker with the `primary_image` media tag for the bundle featured image.
+- Add admin Bundle CRUD in the backoffice.
+- Let admins choose the included food items, quantities, sort order, and optional per-bundle item overrides.
+- Expose active bundles to client apps so selecting a bundle can add its configured order items to the cart.
+
+Offer integration scope:
+
+- Replace the existing `offers.bundle_item_ids` JSON column with a nullable `offers.bundle_id` foreign key.
+- Update fixed-price bundle offers so they reference an actual Bundle instead of storing duplicated item IDs.
+- Update Offer validation so `bundle_fixed_price` offers require `bundle_id`, `discount_type = fixed_price`, and `discount_value`.
+- Keep Offer media as a promo-specific override, but allow client presentation to fall back to the related Bundle image when an Offer has no featured image.
+- Update admin Offer create/edit forms to select a Bundle for bundle fixed-price offers.
+- Update Offer API responses to include a `bundle` object with the bundle summary and included items.
+- Temporarily preserve a compatible `bundle_items` response field only if existing client apps still depend on it.
+
 ## Data Model
 
 `offers` should include:
@@ -430,7 +453,7 @@ Cart preview, automatic discount calculation, free item injection, and order-lev
 - `qualifying_item_id`: nullable item target
 - `reward_category_id`: nullable category for free-item rewards
 - `reward_item_id`: nullable item for free-item rewards
-- `bundle_item_ids`: nullable JSON list of item IDs for fixed-price bundle offers
+- `bundle_id`: nullable foreign key to `bundles` for fixed-price bundle offers
 - `minimum_subtotal`: nullable decimal for spend threshold offers
 - `required_quantity`: nullable integer for buy-X rules
 - `reward_quantity`: nullable integer for free-item rules
@@ -445,10 +468,33 @@ Relationship rules:
 
 - Qualifying category/item define what a customer must buy.
 - Reward category/item define what can be discounted or granted for free.
-- Bundle item IDs define the included items when the offer is a fixed-price bundle.
+- Bundle defines the included items when the offer is a fixed-price bundle.
 - If both category and item are null for a percentage/fixed offer, the offer applies to the whole order in the later calculation slice.
 - `priority` gives the later calculation slice a deterministic order.
 - `is_stackable` controls whether the later calculation slice may combine this offer with another offer.
+
+`bundles` should include:
+
+- `name`
+- `description`
+- `is_active`
+- `starts_at` and `ends_at`: nullable active window
+- `sort_order`
+- `created_by_user_id`
+- timestamps and optional soft deletes
+
+Bundle composition tables should include:
+
+- `bundle_items`: `bundle_id`, `item_id`, `quantity`, `sort_order`, nullable `price_override`, nullable `label_override`
+- `bundle_item_option_values`: `bundle_item_id`, `item_option_id`, `option_value_id`, `quantity`, nullable `parent_option_value_id`, nullable `price_override`
+
+Bundle relationship rules:
+
+- Bundle owns the reusable item combination.
+- Offer references Bundle when the promotion is a fixed-price bundle.
+- Bundle media is the reusable menu/customer image.
+- Offer media is campaign-specific artwork and should override Bundle media only for that Offer response.
+- Checkout/order expansion should use the Bundle as the source of truth and create normal order items and order item options.
 
 ## Admin UI
 
@@ -476,6 +522,26 @@ Both endpoints should return only offers where:
 
 The response should include IDs, display fields, rule fields, related category/item summaries, and featured image URL.
 
+For bundle fixed-price offers, the response should also include the related bundle:
+
+```json
+{
+  "bundle": {
+    "id": 1,
+    "name": "Wrap + Fries + Drink",
+    "description": "A complete lunch bundle.",
+    "featured_image_url": "/storage/media-library/wrap-bundle.jpg",
+    "items": [
+      {
+        "item_id": 10,
+        "name": "Chicken Wrap",
+        "quantity": 1
+      }
+    ]
+  }
+}
+```
+
 ## Tests
 
 Feature tests should cover:
@@ -485,4 +551,8 @@ Feature tests should cover:
 - Admin can update an offer and replace/remove its image.
 - Admin can delete an offer.
 - Validation rejects incomplete free-item/buy-X/spend-X offers.
+- Admin can create and update a Bundle with a featured image.
+- Admin can configure Bundle items and default option values.
+- Bundle fixed-price Offers require an existing Bundle instead of raw bundle item IDs.
 - Public API returns only currently active offers and includes featured image data.
+- Public API returns Bundle data for fixed-price bundle Offers.

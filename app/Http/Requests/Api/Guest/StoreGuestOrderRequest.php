@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\Guest;
 
 use App\Http\Requests\Api\Concerns\ValidatesOrderParticipants;
+use App\Models\Bundle;
 use App\Models\Customer;
 use App\Models\Item;
 use App\Models\OptionValue;
@@ -38,7 +39,7 @@ class StoreGuestOrderRequest extends FormRequest
             'delivery_instructions' => ['nullable', 'string', 'max:1000'],
             'idempotency_key' => ['nullable', 'string', 'max:100'],
             ...$this->participantRules(),
-            'items' => ['required', 'array', 'min:1', 'max:25'],
+            'items' => ['required_without:bundles', 'array', 'min:1', 'max:25'],
             'items.*.item_id' => ['required', 'integer', 'exists:items,id'],
             'items.*.price' => ['required', 'numeric', 'min:0', 'max:9999.99'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:20'],
@@ -49,6 +50,11 @@ class StoreGuestOrderRequest extends FormRequest
             'items.*.options.*.price' => ['nullable', 'numeric', 'min:0', 'max:9999.99'],
             'items.*.options.*.qty' => ['nullable', 'integer', 'min:1', 'max:20'],
             'items.*.options.*.parent_option_value_id' => ['nullable', 'integer', 'exists:option_values,id'],
+            'bundles' => ['nullable', 'array', 'max:10'],
+            'bundles.*.bundle_id' => ['required', 'integer', 'exists:bundles,id'],
+            'bundles.*.quantity' => ['required', 'integer', 'min:1', 'max:20'],
+            ...$this->bundleParticipantRules(),
+            'bundles.*.comment' => ['nullable', 'string', 'max:255'],
         ];
     }
 
@@ -104,6 +110,24 @@ class StoreGuestOrderRequest extends FormRequest
                                 $validator->errors()->add("items.$index.options.$optionIndex.parent_option_value_id", 'The selected parent option is invalid.');
                             }
                         }
+                    }
+                }
+
+                foreach ($this->input('bundles', []) as $index => $bundle) {
+                    $bundleModel = Bundle::query()
+                        ->availableForOrdering()
+                        ->with('bundleItems.optionValues')
+                        ->find($bundle['bundle_id'] ?? null);
+
+                    if ($bundleModel === null) {
+                        $validator->errors()->add("bundles.$index.bundle_id", 'The selected bundle is not available for guest ordering.');
+
+                        continue;
+                    }
+
+                    foreach ($bundleModel->bundleItems as $bundleItem) {
+                        $totalQuantity += $bundleItem->quantity * (int) ($bundle['quantity'] ?? 0);
+                        $totalOptions += $bundleItem->optionValues->count();
                     }
                 }
 

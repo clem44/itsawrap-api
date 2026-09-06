@@ -44,7 +44,7 @@ class Offer extends Model
         'qualifying_item_id',
         'reward_category_id',
         'reward_item_id',
-        'bundle_item_ids',
+        'bundle_id',
         'minimum_subtotal',
         'required_quantity',
         'reward_quantity',
@@ -61,7 +61,6 @@ class Offer extends Model
         return [
             'discount_value' => 'decimal:2',
             'minimum_subtotal' => 'decimal:2',
-            'bundle_item_ids' => 'array',
             'required_quantity' => 'integer',
             'reward_quantity' => 'integer',
             'starts_at' => 'datetime',
@@ -113,6 +112,11 @@ class Offer extends Model
         return $this->belongsTo(Item::class, 'reward_item_id');
     }
 
+    public function bundle(): BelongsTo
+    {
+        return $this->belongsTo(Bundle::class);
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by_user_id');
@@ -136,6 +140,7 @@ class Offer extends Model
 
     public function featuredImageUrl(): ?string
     {
-        return $this->firstMedia(self::IMAGE_TAG)?->getUrl();
+        return $this->firstMedia(self::IMAGE_TAG)?->getUrl()
+            ?? $this->bundle?->featuredImageUrl();
     }
 }

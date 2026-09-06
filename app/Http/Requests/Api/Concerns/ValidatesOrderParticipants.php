@@ -29,6 +29,16 @@ trait ValidatesOrderParticipants
         ];
     }
 
+    /**
+     * @return array<string, array<int, string>>
+     */
+    protected function bundleParticipantRules(): array
+    {
+        return [
+            'bundles.*.participant_client_id' => ['nullable', 'string', 'max:100'],
+        ];
+    }
+
     protected function validateParticipantAssignments(Validator $validator): void
     {
         $participants = $this->input('participants', []);
@@ -58,6 +68,16 @@ trait ValidatesOrderParticipants
                 $validator->errors()->add("items.$index.participant_client_id", 'Each item must identify the participant it belongs to.');
             } elseif (! in_array((string) $participantClientId, $participantClientIds, true)) {
                 $validator->errors()->add("items.$index.participant_client_id", 'The selected participant is invalid.');
+            }
+        }
+
+        foreach ($this->input('bundles', []) as $index => $bundle) {
+            $participantClientId = $bundle['participant_client_id'] ?? null;
+
+            if (blank($participantClientId)) {
+                $validator->errors()->add("bundles.$index.participant_client_id", 'Each bundle must identify the participant it belongs to.');
+            } elseif (! in_array((string) $participantClientId, $participantClientIds, true)) {
+                $validator->errors()->add("bundles.$index.participant_client_id", 'The selected participant is invalid.');
             }
         }
     }

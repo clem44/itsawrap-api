@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Bundle;
 use App\Models\Offer;
+use App\Support\Bundles\BundlePresenter;
 use Illuminate\Http\JsonResponse;
 use OpenApi\Attributes as OA;
 
@@ -55,16 +57,26 @@ class OfferController extends Controller
             new OA\Response(response: 401, description: 'Unauthenticated'),
         ]
     )]
-    public function index(): JsonResponse
+    public function index(BundlePresenter $bundlePresenter): JsonResponse
     {
         $offers = Offer::query()
             ->currentlyActive()
-            ->with(['qualifyingCategory', 'qualifyingItem', 'rewardCategory', 'rewardItem'])
+            ->where(function ($query): void {
+                $query->where('offer_type', '!=', Offer::TYPE_BUNDLE_FIXED_PRICE)
+                    ->orWhereHas('bundle', fn ($query) => $query->availableForOrdering());
+            })
+            ->with([
+                'qualifyingCategory',
+                'qualifyingItem',
+                'rewardCategory',
+                'rewardItem',
+                'bundle' => fn ($query) => $query->withMedia(Bundle::IMAGE_TAG)->with(Bundle::apiRelations()),
+            ])
             ->withMedia(Offer::IMAGE_TAG)
             ->orderByDesc('priority')
             ->orderBy('name')
             ->get()
-            ->map(fn (Offer $offer) => $this->present($offer))
+            ->map(fn (Offer $offer) => $this->present($offer, $bundlePresenter))
             ->values();
 
         return response()->json(['offers' => $offers]);
@@ -73,8 +85,11 @@ class OfferController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function present(Offer $offer): array
+    private function present(Offer $offer, BundlePresenter $bundlePresenter): array
     {
+        $bundle = $offer->bundle;
+        $presentedBundle = $bundle ? $bundlePresenter->present($bundle) : null;
+
         return [
             'id' => $offer->id,
             'name' => $offer->name,
@@ -85,7 +100,8 @@ class OfferController extends Controller
             'minimum_subtotal' => $offer->minimum_subtotal,
             'required_quantity' => $offer->required_quantity,
             'reward_quantity' => $offer->reward_quantity,
-            'bundle_items' => $this->presentBundleItems($offer),
+            'bundle' => $presentedBundle,
+            'bundle_items' => $presentedBundle['items'] ?? [],
             'starts_at' => $offer->starts_at?->toISOString(),
             'ends_at' => $offer->ends_at?->toISOString(),
             'is_stackable' => $offer->is_stackable,
@@ -111,27 +127,5 @@ class OfferController extends Controller
             'id' => $model->id,
             'name' => $model->name,
         ];
-    }
-
-    /**
-     * @return array<int, array<string, mixed>>
-     */
-    private function presentBundleItems(Offer $offer): array
-    {
-        $itemIds = $offer->bundle_item_ids ?? [];
-
-        if ($itemIds === []) {
-            return [];
-        }
-
-        $positions = array_flip($itemIds);
-
-        return \App\Models\Item::query()
-            ->whereIn('id', $itemIds)
-            ->get(['id', 'name'])
-            ->sortBy(fn ($item) => $positions[$item->id] ?? PHP_INT_MAX)
-            ->map(fn ($item) => $this->presentRelated($item))
-            ->values()
-            ->all();
     }
 }

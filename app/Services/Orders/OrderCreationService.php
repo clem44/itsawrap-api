@@ -18,6 +18,7 @@ class OrderCreationService
     public function __construct(
         private readonly PosPushNotifier $posPushNotifier,
         private readonly DeliveryScheduler $deliveryScheduler,
+        private readonly BundleOrderExpander $bundleOrderExpander,
     ) {}
 
     /**
@@ -44,6 +45,8 @@ class OrderCreationService
                 return $existingOrder;
             }
         }
+
+        $validated = $this->bundleOrderExpander->expand($validated);
 
         $lockKey = "{$source}-order:".sha1((string) ($idempotencyKey ?? json_encode([
             'customer_id' => $customerId,

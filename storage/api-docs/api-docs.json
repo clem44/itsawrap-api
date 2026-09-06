@@ -502,6 +502,112 @@
                 ]
             }
         },
+        "/guest/bundles": {
+            "get": {
+                "tags": [
+                    "Bundles"
+                ],
+                "summary": "List active bundles",
+                "description": "Returns currently active food bundles for customer ordering surfaces.",
+                "operationId": "c24389999ee7a3da19b70ff87a561795",
+                "responses": {
+                    "200": {
+                        "description": "List of active bundles",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "bundles": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Bundle"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/me/bundles": {
+            "get": {
+                "tags": [
+                    "Bundles"
+                ],
+                "summary": "List active bundles",
+                "description": "Returns currently active food bundles for signed-in customer ordering surfaces.",
+                "operationId": "c77c757f67d94d46057e0c63e5f36936",
+                "responses": {
+                    "200": {
+                        "description": "List of active bundles",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "bundles": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Bundle"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/bundles": {
+            "get": {
+                "tags": [
+                    "Bundles"
+                ],
+                "summary": "List active bundles",
+                "description": "Returns currently active food bundles for POS clients.",
+                "operationId": "51ab5d7f2c79924bf803b65bdddce1c0",
+                "responses": {
+                    "200": {
+                        "description": "List of active bundles",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "bundles": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Bundle"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/sessions": {
             "get": {
                 "tags": [
@@ -1376,8 +1482,7 @@
                                 "required": [
                                     "subtotal",
                                     "total",
-                                    "is_delivery",
-                                    "items"
+                                    "is_delivery"
                                 ],
                                 "properties": {
                                     "number": {
@@ -1457,6 +1562,36 @@
                                         },
                                         "nullable": true
                                     },
+                                    "bundles": {
+                                        "type": "array",
+                                        "items": {
+                                            "required": [
+                                                "bundle_id",
+                                                "quantity"
+                                            ],
+                                            "properties": {
+                                                "bundle_id": {
+                                                    "type": "integer",
+                                                    "example": 3
+                                                },
+                                                "quantity": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "participant_client_id": {
+                                                    "type": "string",
+                                                    "example": "person-0",
+                                                    "nullable": true
+                                                },
+                                                "comment": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "nullable": true
+                                    },
                                     "items": {
                                         "type": "array",
                                         "items": {
@@ -1516,7 +1651,8 @@
                                                 }
                                             },
                                             "type": "object"
-                                        }
+                                        },
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -1713,8 +1849,7 @@
                                     "customer_id",
                                     "subtotal",
                                     "total",
-                                    "is_delivery",
-                                    "items"
+                                    "is_delivery"
                                 ],
                                 "properties": {
                                     "number": {
@@ -1798,6 +1933,36 @@
                                         },
                                         "nullable": true
                                     },
+                                    "bundles": {
+                                        "type": "array",
+                                        "items": {
+                                            "required": [
+                                                "bundle_id",
+                                                "quantity"
+                                            ],
+                                            "properties": {
+                                                "bundle_id": {
+                                                    "type": "integer",
+                                                    "example": 3
+                                                },
+                                                "quantity": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "participant_client_id": {
+                                                    "type": "string",
+                                                    "example": "person-0",
+                                                    "nullable": true
+                                                },
+                                                "comment": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "nullable": true
+                                    },
                                     "items": {
                                         "type": "array",
                                         "items": {
@@ -1857,7 +2022,8 @@
                                                 }
                                             },
                                             "type": "object"
-                                        }
+                                        },
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -7841,6 +8007,165 @@
                 },
                 "type": "object"
             },
+            "Bundle": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Wrap + Fries + Drink"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "A complete lunch bundle.",
+                        "nullable": true
+                    },
+                    "starts_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "ends_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "is_active": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "sort_order": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "featured_image_url": {
+                        "type": "string",
+                        "example": "https://itsawrap.ai/storage/media-library/wrap-bundle.jpg",
+                        "nullable": true
+                    },
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/BundleItem"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "BundleItem": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 10
+                    },
+                    "item_id": {
+                        "type": "integer",
+                        "example": 5
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Chicken Wrap",
+                        "nullable": true
+                    },
+                    "item_name": {
+                        "type": "string",
+                        "example": "Chicken Wrap",
+                        "nullable": true
+                    },
+                    "category": {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "name": {
+                                "type": "string",
+                                "example": "Wraps"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "quantity": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "sort_order": {
+                        "type": "integer",
+                        "example": 0
+                    },
+                    "unit_price": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 10,
+                        "nullable": true
+                    },
+                    "price_override": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 9,
+                        "nullable": true
+                    },
+                    "label_override": {
+                        "type": "string",
+                        "example": "Half wrap",
+                        "nullable": true
+                    },
+                    "option_values": {
+                        "type": "array",
+                        "items": {
+                            "properties": {
+                                "id": {
+                                    "type": "integer",
+                                    "example": 100
+                                },
+                                "item_option_id": {
+                                    "type": "integer",
+                                    "example": 20
+                                },
+                                "option_id": {
+                                    "type": "integer",
+                                    "example": 3,
+                                    "nullable": true
+                                },
+                                "option_name": {
+                                    "type": "string",
+                                    "example": "Sauce",
+                                    "nullable": true
+                                },
+                                "option_value_id": {
+                                    "type": "integer",
+                                    "example": 30
+                                },
+                                "name": {
+                                    "type": "string",
+                                    "example": "BBQ",
+                                    "nullable": true
+                                },
+                                "quantity": {
+                                    "type": "integer",
+                                    "example": 1
+                                },
+                                "parent_option_value_id": {
+                                    "type": "integer",
+                                    "example": null,
+                                    "nullable": true
+                                },
+                                "price_override": {
+                                    "type": "number",
+                                    "format": "float",
+                                    "example": null,
+                                    "nullable": true
+                                }
+                            },
+                            "type": "object"
+                        }
+                    }
+                },
+                "type": "object"
+            },
             "Offer": {
                 "properties": {
                     "id": {
@@ -7899,6 +8224,14 @@
                         "example": 1,
                         "nullable": true
                     },
+                    "bundle": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/Bundle"
+                            }
+                        ],
+                        "nullable": true
+                    },
                     "bundle_items": {
                         "type": "array",
                         "items": {
@@ -7907,9 +8240,17 @@
                                     "type": "integer",
                                     "example": 10
                                 },
+                                "item_id": {
+                                    "type": "integer",
+                                    "example": 5
+                                },
                                 "name": {
                                     "type": "string",
                                     "example": "Chicken Wrap"
+                                },
+                                "quantity": {
+                                    "type": "integer",
+                                    "example": 1
                                 }
                             },
                             "type": "object"
@@ -8316,6 +8657,10 @@
         {
             "name": "Branches",
             "description": "Branch management"
+        },
+        {
+            "name": "Bundles",
+            "description": "Bundles"
         },
         {
             "name": "Cash Sessions",

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\ApiDocsController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\BranchController;
+use App\Http\Controllers\Admin\BundleController;
 use App\Http\Controllers\Admin\CashSessionController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CustomerController;
@@ -89,6 +90,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/reports', [ReportController::class, 'index'])->name('reports');
 
         // Rewards
+        Route::resource('bundles', BundleController::class, ['only' => ['index', 'store', 'update', 'destroy']]);
         Route::resource('offers', OfferController::class, ['only' => ['index', 'store', 'update', 'destroy']]);
         Route::get('/rewards', [RewardController::class, 'index'])->name('rewards.index');
         Route::post('/rewards', [RewardController::class, 'store'])->name('rewards.store');

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Bundle;
 use App\Models\Category;
 use App\Models\Customer;
 use App\Models\Item;
@@ -187,6 +188,38 @@ class CustomerAuthApiTest extends TestCase
             'order_participant_id' => $alex->id,
             'item_id' => $wrap->id,
         ]);
+    }
+
+    public function test_me_orders_can_expand_bundle_selection_into_order_items(): void
+    {
+        Status::query()->create(['name' => 'pending']);
+        $category = Category::query()->create(['name' => 'Combos', 'sort_order' => 1]);
+        $wrap = Item::query()->create(['name' => 'Chicken Wrap', 'category_id' => $category->id, 'cost' => 10.00, 'active' => true]);
+        $drink = Item::query()->create(['name' => 'Drink', 'category_id' => $category->id, 'cost' => 3.00, 'active' => true]);
+        $bundle = Bundle::query()->create(['name' => 'Wrap + Drink', 'is_active' => true]);
+        $bundle->bundleItems()->create(['item_id' => $wrap->id, 'quantity' => 1, 'sort_order' => 0]);
+        $bundle->bundleItems()->create(['item_id' => $drink->id, 'quantity' => 1, 'sort_order' => 1]);
+
+        Sanctum::actingAs($this->makeCustomerUser());
+
+        $response = $this->postJson('/api/me/orders', [
+            'subtotal' => 13.00,
+            'service_charge' => 0,
+            'total' => 13.00,
+            'is_delivery' => false,
+            'bundles' => [
+                [
+                    'bundle_id' => $bundle->id,
+                    'quantity' => 1,
+                ],
+            ],
+        ]);
+
+        $response
+            ->assertCreated()
+            ->assertJsonCount(2, 'order_items')
+            ->assertJsonPath('order_items.0.item_id', $wrap->id)
+            ->assertJsonPath('order_items.1.item_id', $drink->id);
     }
 
     public function test_a_staff_token_cannot_access_customer_self_service_routes(): void

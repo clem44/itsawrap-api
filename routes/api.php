@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BranchController;
+use App\Http\Controllers\Api\BundleController;
 use App\Http\Controllers\Api\CashSessionController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CustomerController;
@@ -41,6 +42,7 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::prefix('guest')->group(function () {
     Route::middleware('throttle:guest-menu')->get('/menu', GuestMenuController::class);
     Route::middleware('throttle:guest-delivery-windows')->get('/delivery-windows/today', DeliveryWindowTodayController::class);
+    Route::get('/bundles', [BundleController::class, 'index']);
     Route::get('/offers', [OfferController::class, 'index']);
     Route::middleware('throttle:guest-customer')->post('/customers', [GuestCustomerController::class, 'store']);
     Route::middleware('throttle:guest-order')->post('/orders', [GuestOrderController::class, 'store']);
@@ -60,6 +62,7 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware(['auth:sanctum', 'customer'])->prefix('me')->group(function () {
     Route::get('/rewards', [CustomerRewardController::class, 'me']);
     Route::get('/offers', [OfferController::class, 'index']);
+    Route::get('/bundles', [BundleController::class, 'index']);
     Route::get('/referral-code', [ReferralCodeController::class, 'show']);
     Route::get('/delivery-windows/today', DeliveryWindowTodayController::class);
     Route::post('/orders', [CustomerOrderController::class, 'store']);
@@ -73,6 +76,7 @@ Route::middleware(['auth:sanctum', 'staff'])->group(function () {
     Route::apiResource('categories', CategoryController::class);
     Route::post('/items/{item}/options', [ItemController::class, 'syncOptions']);
     Route::apiResource('items', ItemController::class);
+    Route::get('/bundles', [BundleController::class, 'index']);
     Route::apiResource('options', OptionController::class);
     Route::apiResource('option-values', OptionValueController::class);
     Route::apiResource('item-options', ItemOptionController::class);
