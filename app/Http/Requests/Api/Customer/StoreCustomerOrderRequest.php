@@ -43,6 +43,10 @@ class StoreCustomerOrderRequest extends FormRequest
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:20'],
             ...$this->itemParticipantRules(),
             'items.*.comment' => ['nullable', 'string', 'max:255'],
+            // Marks the line the customer is spending a reward on; the balance
+            // itself is checked server-side when the order is created.
+            'items.*.is_reward_item' => ['nullable', 'boolean'],
+            'items.*.reward_program_id' => ['nullable', 'integer', 'exists:reward_programs,id'],
             'items.*.options' => ['nullable', 'array', 'max:30'],
             'items.*.options.*.option_value_id' => ['required', 'integer', 'exists:option_values,id'],
             'items.*.options.*.price' => ['nullable', 'numeric', 'min:0', 'max:9999.99'],

@@ -33,7 +33,7 @@
                             </button>
                         </div>
 
-                        <div class="space-y-6 px-6 py-5 max-h-96 overflow-y-auto">
+                        <div class="space-y-6 px-6 py-5 overflow-y-auto">
                             <div v-if="showErrors && errorList.length" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                                 <p class="font-semibold mb-1">Please fix the following:</p>
                                 <ul class="list-disc pl-5 space-y-1">
@@ -115,7 +115,15 @@
                             <div>
                                 <label class="mb-2 block text-sm font-medium text-gray-900">Item Image</label>
                                 <input type="hidden" id="edit_item_media_id" name="media_id" v-model="item.media_id">
-                                <div class="media-picker-field" :class="fieldClass('media_id')">
+                                <div
+                                    class="media-picker-field media-picker-field--interactive"
+                                    :class="fieldClass('media_id')"
+                                    role="button"
+                                    tabindex="0"
+                                    @click="openMediaPicker"
+                                    @keydown.enter.prevent="openMediaPicker"
+                                    @keydown.space.prevent="openMediaPicker"
+                                >
                                     <div
                                         id="edit_item_media_preview"
                                         class="media-picker-field__preview"
@@ -144,21 +152,9 @@
                                         <button
                                             type="button"
                                             class="media-picker-field__button media-picker-field__button--secondary"
-                                            @click="clearMedia"
+                                            @click.stop="clearMedia"
                                         >
                                             Clear
-                                        </button>
-                                        <button
-                                            type="button"
-                                            class="media-picker-field__button"
-                                            data-media-picker-trigger
-                                            data-media-picker-target-input="edit_item_media_id"
-                                            data-media-picker-preview="edit_item_media_preview"
-                                            data-media-picker-label="edit_item_media_label"
-                                            data-media-picker-accept="image"
-                                            @media-picker:selected="selectMedia"
-                                        >
-                                            Choose
                                         </button>
                                     </div>
                                 </div>
@@ -284,9 +280,19 @@ export default {
             options.push(id);
         },
 
-        selectMedia(event) {
-            this.item.media_id = event.detail.media.id;
-            this.item.primary_media = event.detail.media;
+        openMediaPicker() {
+            window.MediaLibraryPicker?.open({
+                selectedMediaId: this.item.media_id || null,
+                accept: ['image'],
+                onSelect: (media) => {
+                    this.selectMedia(media);
+                },
+            });
+        },
+
+        selectMedia(media) {
+            this.item.media_id = media.id;
+            this.item.primary_media = media;
         },
 
         clearMedia() {

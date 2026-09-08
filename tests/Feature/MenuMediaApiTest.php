@@ -101,6 +101,67 @@ class MenuMediaApiTest extends TestCase
             ->assertJsonMissingPath('category.media');
     }
 
+    public function test_staff_item_create_attaches_primary_media_from_media_id(): void
+    {
+        $category = Category::query()->create(['name' => 'Wraps', 'sort_order' => 1]);
+        $media = $this->makeMedia('api-created-wrap.jpg');
+
+        Sanctum::actingAs($this->makeStaffUser());
+
+        $response = $this->postJson('/api/items', [
+            'name' => 'Created Wrap',
+            'description' => 'Created through the staff API',
+            'cost' => 10.50,
+            'category_id' => $category->id,
+            'active' => true,
+            'media_id' => $media->id,
+        ])
+            ->assertCreated()
+            ->assertJsonPath('primary_media.id', $media->id)
+            ->assertJsonPath('primary_media.basename', 'api-created-wrap.jpg')
+            ->assertJsonPath('primary_image_url', fn (?string $url) => filled($url))
+            ->assertJsonMissingPath('media');
+
+        $itemId = $response->json('id');
+
+        $this->assertDatabaseHas('mediables', [
+            'media_id' => $media->id,
+            'mediable_type' => Item::class,
+            'mediable_id' => $itemId,
+            'tag' => Item::IMAGE_TAG,
+        ]);
+    }
+
+    public function test_staff_item_update_attaches_primary_media_from_media_id(): void
+    {
+        $category = Category::query()->create(['name' => 'Wraps', 'sort_order' => 1]);
+        $item = Item::query()->create([
+            'name' => 'Chicken Wrap',
+            'category_id' => $category->id,
+            'cost' => 12.50,
+            'active' => true,
+        ]);
+        $media = $this->makeMedia('api-updated-wrap.jpg');
+
+        Sanctum::actingAs($this->makeStaffUser());
+
+        $this->putJson('/api/items/'.$item->id, [
+            'name' => 'Updated Wrap',
+            'media_id' => $media->id,
+        ])
+            ->assertOk()
+            ->assertJsonPath('primary_media.id', $media->id)
+            ->assertJsonPath('primary_media.basename', 'api-updated-wrap.jpg')
+            ->assertJsonMissingPath('media');
+
+        $this->assertDatabaseHas('mediables', [
+            'media_id' => $media->id,
+            'mediable_type' => Item::class,
+            'mediable_id' => $item->id,
+            'tag' => Item::IMAGE_TAG,
+        ]);
+    }
+
     private function makeMedia(string $name): Media
     {
         return MediaUploader::fromSource(UploadedFile::fake()->image($name, 200, 100))

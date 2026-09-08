@@ -9,6 +9,7 @@
             data-media-library-mode="picker"
             data-media-library-accept="image"
             data-media-library-selectable="true"
+            data-media-library-height="85vh"
         ></div>
     </div>
 </div>

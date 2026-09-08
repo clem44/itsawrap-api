@@ -93,19 +93,83 @@
             <!-- Order Items -->
             <div class="rounded-2xl p-6 bg-white border border-gray-200 shadow-sm">
                 <h2 class="text-lg font-semibold text-gray-900 mb-4">Order Items</h2>
-                <div class="space-y-3">
-                    @forelse($order->orderItems as $item)
-                        <div class="flex items-start justify-between p-3 rounded-lg bg-gray-50 border border-gray-200">
-                            <div class="flex-1">
-                                <p class="text-gray-900 font-medium">{{ $item->item?->name ?: 'Item' }}</p>
-                                <p class="text-sm text-gray-600">Qty: {{ $item->quantity }}</p>
-                                @if($item->notes)
-                                    <p class="text-sm text-gray-500 mt-1">Notes: {{ $item->notes }}</p>
-                                @endif
-                            </div>
-                            <div class="text-right">
-                                <p class="text-gray-900 font-semibold">${{ number_format($item->price * $item->quantity, 2) }}</p>
-                                <p class="text-xs text-gray-600">${{ number_format($item->price, 2) }} each</p>
+                @php
+                    // A group order is served per person so the kitchen can bag
+                    // it that way; a solo order keeps a single unlabelled list.
+                    $itemGroups = $order->participants->isNotEmpty()
+                        ? $order->participants->map(fn ($participant) => [
+                            'label' => $participant->name,
+                            'is_primary' => $participant->is_primary,
+                            'items' => $order->orderItems->where('order_participant_id', $participant->id),
+                        ])->push([
+                            'label' => 'Unassigned',
+                            'is_primary' => false,
+                            'items' => $order->orderItems->whereNull('order_participant_id'),
+                        ])->filter(fn (array $group) => $group['items']->isNotEmpty())
+                        : collect([['label' => null, 'is_primary' => false, 'items' => $order->orderItems]]);
+                @endphp
+
+                <div class="space-y-5">
+                    @forelse($itemGroups as $group)
+                        <div>
+                            @if($group['label'])
+                                <div class="flex items-center justify-between mb-2">
+                                    <p class="text-sm font-semibold uppercase tracking-wide text-gray-500">
+                                        {{ $group['label'] }}
+                                        @if($group['is_primary'])
+                                            <span class="ml-1 text-xs font-medium normal-case text-gray-400">· placed the order</span>
+                                        @endif
+                                    </p>
+                                    <p class="text-sm font-semibold text-gray-900">
+                                        ${{ number_format($group['items']->sum(fn ($item) => $item->lineTotal()), 2) }}
+                                    </p>
+                                </div>
+                            @endif
+
+                            <div class="space-y-3">
+                                @foreach($group['items'] as $item)
+                                    <div class="flex items-start justify-between p-3 rounded-lg bg-gray-50 border border-gray-200">
+                                        <div class="flex-1 pr-4">
+                                            <p class="text-gray-900 font-medium">{{ $item->item?->name ?: 'Item' }}</p>
+                                            <p class="text-sm text-gray-600">Qty: {{ $item->quantity }}</p>
+
+                                            {{-- The options are what the kitchen actually builds, and on
+                                                 an options-priced item they carry the whole cost. --}}
+                                            @if($item->orderItemOptions->isNotEmpty())
+                                                <ul class="mt-2 space-y-1">
+                                                    @foreach($item->orderItemOptions as $option)
+                                                        <li class="text-sm text-gray-600 flex justify-between gap-4">
+                                                            <span>
+                                                                @if($option->optionValue?->option?->name)
+                                                                    <span class="text-gray-400">{{ $option->optionValue->option->name }}:</span>
+                                                                @endif
+                                                                {{ $option->optionValue?->name ?: 'Option' }}
+                                                                @if(($option->qty ?? 1) > 1)
+                                                                    <span class="text-gray-400">x{{ $option->qty }}</span>
+                                                                @endif
+                                                            </span>
+                                                            @if((float) $option->price > 0)
+                                                                <span class="text-gray-500 whitespace-nowrap">
+                                                                    +${{ number_format($option->price * max(1, (int) ($option->qty ?? 1)), 2) }}
+                                                                </span>
+                                                            @endif
+                                                        </li>
+                                                    @endforeach
+                                                </ul>
+                                            @endif
+
+                                            @if($item->comment)
+                                                <p class="text-sm text-gray-500 mt-2">Notes: {{ $item->comment }}</p>
+                                            @endif
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-gray-900 font-semibold">${{ number_format($item->lineTotal(), 2) }}</p>
+                                            @if($item->quantity > 1)
+                                                <p class="text-xs text-gray-600">${{ number_format($item->lineTotal() / $item->quantity, 2) }} each</p>
+                                            @endif
+                                        </div>
+                                    </div>
+                                @endforeach
                             </div>
                         </div>
                     @empty

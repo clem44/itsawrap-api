@@ -2286,6 +2286,11 @@
                                         "type": "boolean",
                                         "example": true
                                     },
+                                    "media_id": {
+                                        "description": "Media library asset to attach as the primary image",
+                                        "type": "integer",
+                                        "nullable": true
+                                    },
                                     "image_path": {
                                         "type": "string",
                                         "nullable": true
@@ -2414,6 +2419,11 @@
                                     },
                                     "active": {
                                         "type": "boolean"
+                                    },
+                                    "media_id": {
+                                        "description": "Media library asset to attach as the primary image",
+                                        "type": "integer",
+                                        "nullable": true
                                     },
                                     "image_path": {
                                         "type": "string",
@@ -7378,6 +7388,10 @@
             },
             "GuestOrderParticipant": {
                 "properties": {
+                    "client_id": {
+                        "type": "string",
+                        "example": "person-0"
+                    },
                     "name": {
                         "type": "string",
                         "example": "Alex Carter"
@@ -8045,6 +8059,25 @@
                         "example": "https://itsawrap.ai/storage/media-library/wrap-bundle.jpg",
                         "nullable": true
                     },
+                    "regular_price": {
+                        "description": "What the bundle contents cost ordered individually.",
+                        "type": "number",
+                        "format": "float",
+                        "example": 18.5
+                    },
+                    "bundle_price": {
+                        "description": "Fixed price of the offer attached to this bundle, when one is live.",
+                        "type": "number",
+                        "format": "float",
+                        "example": 15,
+                        "nullable": true
+                    },
+                    "savings": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 3.5,
+                        "nullable": true
+                    },
                     "items": {
                         "type": "array",
                         "items": {
@@ -8113,6 +8146,12 @@
                         "example": "Half wrap",
                         "nullable": true
                     },
+                    "line_total": {
+                        "description": "Item cost plus its preset options, times quantity.",
+                        "type": "number",
+                        "format": "float",
+                        "example": 13
+                    },
                     "option_values": {
                         "type": "array",
                         "items": {
@@ -8124,6 +8163,12 @@
                                 "item_option_id": {
                                     "type": "integer",
                                     "example": 20
+                                },
+                                "item_option_value_id": {
+                                    "description": "The row tying this value to the item; needed to place it in a cart.",
+                                    "type": "integer",
+                                    "example": 1744,
+                                    "nullable": true
                                 },
                                 "option_id": {
                                     "type": "integer",
@@ -8158,6 +8203,12 @@
                                     "format": "float",
                                     "example": null,
                                     "nullable": true
+                                },
+                                "price": {
+                                    "description": "Effective price: the override when set, otherwise the item option value price.",
+                                    "type": "number",
+                                    "format": "float",
+                                    "example": 1.5
                                 }
                             },
                             "type": "object"

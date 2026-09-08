@@ -285,7 +285,7 @@ class MediaLibraryInstance {
                 ? this.state.selectedIds.filter((selectedId) => selectedId !== id)
                 : [...this.state.selectedIds, id];
         } else {
-            this.state.selectedIds = [id];
+            this.state.selectedIds = this.state.selectedIds.includes(id) ? [] : [id];
         }
 
         this.render();
@@ -760,7 +760,7 @@ class MediaLibraryInstance {
                 </div>
                 <label class="media-library__alt">
                     <span>Alt text</span>
-                    <textarea rows="3" data-media-alt-input>${escapeHtml(file.alt || '')}</textarea>
+                    <textarea rows="2" data-media-alt-input>${escapeHtml(file.alt || '')}</textarea>
                 </label>
                 <div class="media-library__footer-actions">
                     ${this.options.selectable ? `<button type="button" class="media-library__insert" data-media-action="insert">Insert</button>` : ''}
@@ -871,7 +871,7 @@ const picker = {
             ...options,
             mode: 'picker',
             selectable: true,
-            height: '693px',
+            height: mountPoint?.dataset.mediaLibraryHeight || '693px',
             endpoint: options.endpoint || mountPoint.dataset.mediaLibraryEndpoint,
             uploadEndpoint: options.uploadEndpoint || mountPoint.dataset.mediaLibraryUploadEndpoint,
             updateEndpointTemplate: options.updateEndpointTemplate || mountPoint.dataset.mediaLibraryUpdateEndpoint,

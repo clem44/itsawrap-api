@@ -2,6 +2,17 @@
 
 namespace App\Providers;
 
+use App\Models\Bundle;
+use App\Models\BundleItem;
+use App\Models\BundleItemOptionValue;
+use App\Models\Category;
+use App\Models\Item;
+use App\Models\ItemOption;
+use App\Models\ItemOptionValue;
+use App\Models\Offer;
+use App\Models\Option;
+use App\Models\OptionValue;
+use App\Observers\ConsumerCacheObserver;
 use App\Services\Push\KreaitFirebasePushNotificationSender;
 use App\Services\Push\PushNotificationSender;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -33,10 +44,34 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
+     * Models the storefront's cached menu, offer and bundle payloads are built
+     * from. Saving any of them clears those caches so the change is live on the
+     * next storefront request instead of waiting out its TTL.
+     *
+     * @var array<int, class-string<\Illuminate\Database\Eloquent\Model>>
+     */
+    private const CONSUMER_CACHE_MODELS = [
+        Bundle::class,
+        BundleItem::class,
+        BundleItemOptionValue::class,
+        Category::class,
+        Item::class,
+        ItemOption::class,
+        ItemOptionValue::class,
+        Offer::class,
+        Option::class,
+        OptionValue::class,
+    ];
+
+    /**
      * Bootstrap any application services.
      */
     public function boot(): void
     {
+        foreach (self::CONSUMER_CACHE_MODELS as $model) {
+            $model::observe(ConsumerCacheObserver::class);
+        }
+
         RateLimiter::for('guest-menu', function (Request $request): Limit {
             return Limit::perMinute(120)
                 ->by($request->ip())

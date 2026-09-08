@@ -333,22 +333,21 @@
             role="dialog"
             aria-modal="true"
         >
-            <div class="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div class="flex min-h-screen items-center justify-center p-4 text-center sm:p-6">
                 <div v-show="modalOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm" @click="closeModal()"></div>
-                <span class="hidden sm:inline-block sm:h-screen sm:align-middle" aria-hidden="true">&#8203;</span>
 
                 <div
                     v-show="modalOpen"
-                    class="relative inline-block w-full max-w-5xl transform overflow-hidden rounded-2xl bg-[var(--color-forest)] text-left align-bottom shadow-xl sm:my-8 sm:align-middle"
+                    class="relative inline-block max-h-[calc(100vh-2rem)] w-full max-w-5xl transform overflow-hidden rounded-2xl bg-[var(--color-forest)] text-left align-bottom shadow-xl sm:max-h-[calc(100vh-3rem)] sm:align-middle"
                     @click.stop
                 >
-                    <form method="POST" :action="modalAction">
+                    <form method="POST" :action="modalAction" class="flex max-h-[calc(100vh-2rem)] flex-col sm:max-h-[calc(100vh-3rem)]">
                         @csrf
                         <input v-if="modalMode === 'edit'" type="hidden" name="_method" value="PUT">
                         <input type="hidden" name="form_action" :value="modalMode">
                         <input type="hidden" name="edit_id" :value="offer.id">
 
-                        <div class="flex items-center justify-between border-b border-white/10 px-6 py-4">
+                        <div class="flex shrink-0 items-center justify-between border-b border-white/10 px-6 py-4">
                             <h2 id="offer-modal-title" class="text-xl font-semibold text-white" v-text="modalMode === 'edit' ? 'Edit Offer' : 'Create Offer'"></h2>
                             <button type="button" class="rounded-lg p-2 text-white/60 hover:bg-white/10 hover:text-white transition-colors" @click="closeModal()">
                                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -357,7 +356,8 @@
                             </button>
                         </div>
 
-                        <div class="grid grid-cols-1 gap-6 px-6 py-5 lg:grid-cols-7">
+                        <div class="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+                            <div class="grid grid-cols-1 gap-6 lg:grid-cols-7">
                             <div class="space-y-5 lg:col-span-5">
                                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                                     <div>
@@ -545,9 +545,10 @@
                                 <input type="hidden" name="media_id" v-model="offer.media_id">
                                 @error('media_id')<p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>@enderror
                             </div>
+                            </div>
                         </div>
 
-                        <div class="flex justify-end gap-3 border-t border-white/10 px-6 py-4">
+                        <div class="flex shrink-0 justify-end gap-3 border-t border-white/10 px-6 py-4">
                             <button type="button" class="rounded-lg border border-white/20 bg-transparent px-5 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition-colors" @click="closeModal()">
                                 Cancel
                             </button>

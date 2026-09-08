@@ -83,6 +83,17 @@
                 this.createItem.primary_media = null;
             },
 
+            openCreateMediaPicker() {
+                window.MediaLibraryPicker?.open({
+                    selectedMediaId: this.createItem.media_id || null,
+                    accept: ['image'],
+                    onSelect: (media) => {
+                        this.createItem.media_id = media.id;
+                        this.createItem.primary_media = media;
+                    },
+                });
+            },
+
             openEdit(item, selectedOptions) {
                 this.editItem = {
                     id: item.id,
@@ -729,7 +740,7 @@
                     </div>
 
                     <!-- Body -->
-                    <div class="space-y-6 px-6 py-5 max-h-96 overflow-y-auto">
+                    <div class="space-y-6 px-6 py-5 overflow-y-auto">
                         @if(old('form_action') === 'edit' && $errors->any())
                             <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                                 <p class="font-semibold mb-1">Please fix the following:</p>
@@ -864,12 +875,7 @@
                                     <button
                                         type="button"
                                         class="media-picker-field__button"
-                                        data-media-picker-trigger
-                                        data-media-picker-target-input="create_item_media_id"
-                                        data-media-picker-preview="create_item_media_preview"
-                                        data-media-picker-label="create_item_media_label"
-                                        data-media-picker-accept="image"
-                                        @media-picker:selected="createItem.media_id = $event.detail.media.id; createItem.primary_media = $event.detail.media"
+                                        @click="openCreateMediaPicker()"
                                     >
                                         Choose
                                     </button>
@@ -1111,6 +1117,11 @@
                                                 </svg>
                                                 <div class="flex-1 text-left">
                                                     <p class="text-sm font-medium text-gray-900" v-text="value.name"></p>
+                                                    <!-- Priced on the option but not attached to this item, so
+                                                         customers are not offered it. Saving attaches it. -->
+                                                    <p v-if="!value.attached" class="text-xs text-amber-600 mt-0.5">
+                                                        Not offered on this item — save to add it
+                                                    </p>
                                                 </div>
                                                 <div class="flex items-center gap-2">
                                                     <span class="text-xs text-gray-500">Price:</span>

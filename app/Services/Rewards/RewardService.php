@@ -181,7 +181,9 @@ class RewardService
                 'is_reward_item' => true,
                 'reward_program_id' => $program->id,
                 'reward_ledger_entry_id' => $entry->id,
-                'reward_discount_amount' => $orderItem->reward_discount_amount ?? ((float) $orderItem->price * $redeemedQuantity),
+                // The wrap's cost lives in its options, so the value given
+                // away is the whole line, not the 0.00 base price.
+                'reward_discount_amount' => $orderItem->reward_discount_amount ?? $orderItem->undiscountedLineTotal(),
                 'price' => 0,
             ]);
 

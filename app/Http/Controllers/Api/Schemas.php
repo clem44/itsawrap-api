@@ -209,6 +209,7 @@ use OpenApi\Attributes as OA;
 #[OA\Schema(
     schema: 'GuestOrderParticipant',
     properties: [
+        new OA\Property(property: 'client_id', type: 'string', example: 'person-0'),
         new OA\Property(property: 'name', type: 'string', example: 'Alex Carter'),
         new OA\Property(property: 'is_primary', type: 'boolean', example: true),
         new OA\Property(property: 'subtotal', type: 'number', format: 'float', example: 12.50),
@@ -427,6 +428,9 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'is_active', type: 'boolean', example: true),
         new OA\Property(property: 'sort_order', type: 'integer', example: 1),
         new OA\Property(property: 'featured_image_url', type: 'string', nullable: true, example: 'https://itsawrap.ai/storage/media-library/wrap-bundle.jpg'),
+        new OA\Property(property: 'regular_price', description: 'What the bundle contents cost ordered individually.', type: 'number', format: 'float', example: 18.50),
+        new OA\Property(property: 'bundle_price', description: 'Fixed price of the offer attached to this bundle, when one is live.', type: 'number', format: 'float', nullable: true, example: 15),
+        new OA\Property(property: 'savings', type: 'number', format: 'float', nullable: true, example: 3.50),
         new OA\Property(property: 'items', type: 'array', items: new OA\Items(ref: '#/components/schemas/BundleItem')),
     ]
 )]
@@ -446,10 +450,12 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'unit_price', type: 'number', format: 'float', nullable: true, example: 10),
         new OA\Property(property: 'price_override', type: 'number', format: 'float', nullable: true, example: 9),
         new OA\Property(property: 'label_override', type: 'string', nullable: true, example: 'Half wrap'),
+        new OA\Property(property: 'line_total', description: 'Item cost plus its preset options, times quantity.', type: 'number', format: 'float', example: 13),
         new OA\Property(property: 'option_values', type: 'array', items: new OA\Items(
             properties: [
                 new OA\Property(property: 'id', type: 'integer', example: 100),
                 new OA\Property(property: 'item_option_id', type: 'integer', example: 20),
+                new OA\Property(property: 'item_option_value_id', description: 'The row tying this value to the item; needed to place it in a cart.', type: 'integer', nullable: true, example: 1744),
                 new OA\Property(property: 'option_id', type: 'integer', nullable: true, example: 3),
                 new OA\Property(property: 'option_name', type: 'string', nullable: true, example: 'Sauce'),
                 new OA\Property(property: 'option_value_id', type: 'integer', example: 30),
@@ -457,6 +463,7 @@ use OpenApi\Attributes as OA;
                 new OA\Property(property: 'quantity', type: 'integer', example: 1),
                 new OA\Property(property: 'parent_option_value_id', type: 'integer', nullable: true, example: null),
                 new OA\Property(property: 'price_override', type: 'number', format: 'float', nullable: true, example: null),
+                new OA\Property(property: 'price', description: 'Effective price: the override when set, otherwise the item option value price.', type: 'number', format: 'float', example: 1.50),
             ],
             type: 'object'
         )),

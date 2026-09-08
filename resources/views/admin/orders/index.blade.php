@@ -70,8 +70,8 @@
                         </td>
                         <td>
                             @php
-                                $statusColor = match($order->status?->code ?? 'pending') {
-                                    'pending' => ['bg' => 'rgba(255, 193, 7, 0.2)', 'text' => '#FFC107'],
+                                $statusColor = match($order->status?->name ?? 'pending') {
+                                    'pending' => ['bg' => 'rgba(255, 193, 7, 0.2)', 'text' => '#A37b05'],
                                     'confirmed' => ['bg' => 'rgba(33, 150, 243, 0.2)', 'text' => '#2196F3'],
                                     'preparing' => ['bg' => 'rgba(156, 39, 176, 0.2)', 'text' => '#9C27B0'],
                                     'ready' => ['bg' => 'rgba(76, 175, 80, 0.2)', 'text' => '#4CAF50'],

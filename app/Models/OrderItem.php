@@ -37,6 +37,36 @@ class OrderItem extends Model
         ];
     }
 
+    /**
+     * What this line actually costs the customer: its base price plus the
+     * options attached to it, times the number ordered. An item built entirely
+     * from options — a wrap whose protein, sauce and side are all selections —
+     * carries a 0.00 base price, so leaving the options out reports it as free.
+     *
+     * A redeemed reward line costs nothing: the discount it gave away is kept
+     * on reward_discount_amount rather than being inferred from the price.
+     */
+    public function lineTotal(): float
+    {
+        if ($this->is_reward_item) {
+            return 0.0;
+        }
+
+        return $this->undiscountedLineTotal();
+    }
+
+    /**
+     * What the line would have cost had it been paid for — the value a reward
+     * redemption gives away.
+     */
+    public function undiscountedLineTotal(): float
+    {
+        $optionsTotal = $this->orderItemOptions
+            ->sum(fn (OrderItemOption $option): float => (float) $option->price * max(1, (int) ($option->qty ?? 1)));
+
+        return round(((float) $this->price + $optionsTotal) * max(1, (int) $this->quantity), 2);
+    }
+
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);

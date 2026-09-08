@@ -215,6 +215,42 @@ class GuestOrderingApiTest extends TestCase
             ->assertJsonMissingPath('order_items.0.participant.id');
     }
 
+    public function test_guest_order_lookup_identifies_participants_without_exposing_internal_ids(): void
+    {
+        $customer = Customer::query()->create(['name' => 'Guest', 'source' => 'guest-web']);
+        $category = Category::query()->create(['name' => 'Wraps', 'sort_order' => 1]);
+        $item = Item::query()->create(['name' => 'Spinach Wrap', 'category_id' => $category->id, 'cost' => 12, 'active' => true]);
+        Status::query()->create(['name' => 'pending']);
+
+        // Two people sharing a first name: only client_id tells them apart.
+        $created = $this->postJson('/api/guest/orders', [
+            'customer_id' => $customer->id,
+            'subtotal' => 24,
+            'total' => 24,
+            'is_delivery' => false,
+            'participants' => [
+                ['client_id' => 'person-0', 'name' => 'Sam', 'is_primary' => true],
+                ['client_id' => 'person-1', 'name' => 'Sam', 'is_primary' => false],
+            ],
+            'items' => [
+                ['item_id' => $item->id, 'price' => 12, 'quantity' => 1, 'participant_client_id' => 'person-0'],
+                ['item_id' => $item->id, 'price' => 12, 'quantity' => 1, 'participant_client_id' => 'person-1'],
+            ],
+        ])->assertCreated();
+
+        $response = $this->getJson('/api/guest/orders/'.$created->json('number').'?token='.$created->json('lookup.token'));
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('participants.0.client_id', 'person-0')
+            ->assertJsonPath('participants.1.client_id', 'person-1')
+            ->assertJsonPath('order_items.0.participant.client_id', 'person-0')
+            ->assertJsonPath('order_items.1.participant.client_id', 'person-1')
+            // The internal row ids stay private to the guest surface.
+            ->assertJsonMissingPath('participants.0.id')
+            ->assertJsonMissingPath('order_items.0.participant.id');
+    }
+
     public function test_guest_order_rejects_items_assigned_to_unknown_participants(): void
     {
         Status::query()->create(['name' => 'pending']);

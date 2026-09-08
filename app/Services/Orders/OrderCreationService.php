@@ -3,13 +3,17 @@
 namespace App\Services\Orders;
 
 use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\RewardProgram;
 use App\Models\Status;
 use App\Services\Delivery\DeliveryScheduler;
 use App\Services\Push\PosPushNotifier;
+use App\Services\Rewards\RewardService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class OrderCreationService
 {
@@ -19,6 +23,7 @@ class OrderCreationService
         private readonly PosPushNotifier $posPushNotifier,
         private readonly DeliveryScheduler $deliveryScheduler,
         private readonly BundleOrderExpander $bundleOrderExpander,
+        private readonly RewardService $rewards,
     ) {}
 
     /**
@@ -114,6 +119,10 @@ class OrderCreationService
                             'qty' => $optionData['qty'] ?? null,
                         ]);
                     }
+
+                    // Redeemed after the options exist, so the discount covers
+                    // the whole line rather than the item's bare base price.
+                    $this->redeemRewardOnItem($order, $orderItem, $itemData);
                 }
 
                 if ($order->is_delivery) {
@@ -141,6 +150,33 @@ class OrderCreationService
         $this->posPushNotifier->webOrderCreated($order);
 
         return $order->load(['customer', 'status', 'delivery.deliveryWindow', 'participants', 'orderItems.participant', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option']);
+    }
+
+    /**
+     * Spend a customer reward on the line the client marked, if it marked one.
+     *
+     * RewardService does the checking that matters — that the item is in the
+     * programme's reward category and that the customer actually has a reward
+     * to spend — and throws a validation error if not, which rolls the whole
+     * order back rather than letting a free item through unpaid for.
+     *
+     * @param  array<string, mixed>  $itemData
+     */
+    private function redeemRewardOnItem(Order $order, OrderItem $orderItem, array $itemData): void
+    {
+        if (! filter_var($itemData['is_reward_item'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            return;
+        }
+
+        $program = RewardProgram::query()->find($itemData['reward_program_id'] ?? null);
+
+        if ($program === null) {
+            throw ValidationException::withMessages([
+                'items' => 'A reward programme is required to redeem a reward.',
+            ]);
+        }
+
+        $this->rewards->redeemReward($order, $orderItem->refresh(), $program);
     }
 
     /**

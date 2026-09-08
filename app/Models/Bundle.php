@@ -84,7 +84,9 @@ class Bundle extends Model
     {
         return [
             'bundleItems.item.category',
+            'offers',
             'bundleItems.optionValues.itemOption.option',
+            'bundleItems.optionValues.itemOption.itemOptionValues',
             'bundleItems.optionValues.optionValue',
             'bundleItems.optionValues.parentOptionValue',
         ];

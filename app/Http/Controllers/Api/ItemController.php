@@ -81,6 +81,7 @@ class ItemController extends Controller
                     new OA\Property(property: 'cost', type: 'number', example: 9.99),
                     new OA\Property(property: 'category_id', type: 'integer', nullable: true),
                     new OA\Property(property: 'active', type: 'boolean', example: true),
+                    new OA\Property(property: 'media_id', type: 'integer', nullable: true, description: 'Media library asset to attach as the primary image'),
                     new OA\Property(property: 'image_path', type: 'string', nullable: true),
                     new OA\Property(property: 'short_code', type: 'string', nullable: true),
                     new OA\Property(property: 'tax_ids', type: 'array', items: new OA\Items(type: 'integer')),
@@ -101,11 +102,13 @@ class ItemController extends Controller
             'cost' => 'numeric|min:0',
             'category_id' => 'nullable|exists:categories,id',
             'active' => 'boolean',
+            'media_id' => 'nullable|integer|exists:media,id',
             'image_path' => 'nullable|string',
             'short_code' => 'nullable|string|max:255',
         ]);
 
         $item = Item::create($validated);
+        $this->syncPrimaryImage($item, $request);
 
         if ($request->has('tax_ids')) {
             $item->taxes()->sync($request->tax_ids);
@@ -170,6 +173,7 @@ class ItemController extends Controller
                     new OA\Property(property: 'cost', type: 'number'),
                     new OA\Property(property: 'category_id', type: 'integer', nullable: true),
                     new OA\Property(property: 'active', type: 'boolean'),
+                    new OA\Property(property: 'media_id', type: 'integer', nullable: true, description: 'Media library asset to attach as the primary image'),
                     new OA\Property(property: 'image_path', type: 'string', nullable: true),
                     new OA\Property(property: 'short_code', type: 'string', nullable: true),
                     new OA\Property(property: 'tax_ids', type: 'array', items: new OA\Items(type: 'integer')),
@@ -191,11 +195,13 @@ class ItemController extends Controller
             'cost' => 'numeric|min:0',
             'category_id' => 'nullable|exists:categories,id',
             'active' => 'boolean',
+            'media_id' => 'nullable|integer|exists:media,id',
             'image_path' => 'nullable|string',
             'short_code' => 'nullable|string|max:255',
         ]);
 
         $item->update($validated);
+        $this->syncPrimaryImage($item, $request);
 
         if ($request->has('tax_ids')) {
             $item->taxes()->sync($request->tax_ids);
@@ -207,6 +213,21 @@ class ItemController extends Controller
         $item->category?->includePrimaryImageMedia();
 
         return response()->json($item);
+    }
+
+    private function syncPrimaryImage(Item $item, Request $request): void
+    {
+        if (! $request->has('media_id')) {
+            return;
+        }
+
+        if ($request->filled('media_id')) {
+            $item->syncMedia((int) $request->input('media_id'), Item::IMAGE_TAG);
+
+            return;
+        }
+
+        $item->detachMediaTags(Item::IMAGE_TAG);
     }
 
     #[OA\Delete(

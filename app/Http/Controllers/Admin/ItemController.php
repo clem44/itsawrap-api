@@ -77,6 +77,13 @@ class ItemController extends Controller
                     return [
                         'id' => $ov->id,
                         'name' => $ov->name,
+                        // The modal lists every value the option owns so they can
+                        // be priced onto this item. Only the ones with an
+                        // item_option_values row are actually offered to
+                        // customers — without this flag an item whose values are
+                        // missing looks identically configured to one that has
+                        // them, because the price falls back to the option's own.
+                        'attached' => $itemOptionValue !== null,
                         'price' => $itemOptionValue?->price ?? $ov->price,
                         'optionDependencies' => (
                             ($itemOptionValue?->parentDependencies ?? collect())
@@ -180,17 +187,7 @@ class ItemController extends Controller
             $item->update($validated);
             $this->syncPrimaryImage($item, $request);
 
-            // Sync options
-            ItemOption::where('item_id', $item->id)->delete();
-            if (! empty($request->input('options'))) {
-                foreach (array_values($request->input('options')) as $index => $optionId) {
-                    $item->itemOptions()->create([
-                        'option_id' => $optionId,
-                        'sort_order' => $index + 1,
-                        'required' => false,
-                    ]);
-                }
-            }
+            $this->syncItemOptions($item, (array) $request->input('options', []));
             // dd($item, "item should be saved");
 
             return redirect()->route('admin.items.index')
@@ -337,12 +334,25 @@ class ItemController extends Controller
                         }
                     }
 
-                    // Create the dependency
-                    OptionDependency::create([
+                    // Create the dependency, then point the parent value at
+                    // it. The ordering API reads dependencies through that
+                    // back-reference (ItemOptionValue::optionDependency), so a
+                    // dependency without it exists in the database but never
+                    // reaches the customer's customiser.
+                    $dependency = OptionDependency::create([
                         'parent_option_value_id' => $parentItemOptionValue->id,
                         'child_option_id' => $itemOption->id,
                     ]);
+
+                    $parentItemOptionValue->update(['option_dependency_id' => $dependency->id]);
                 }
+
+                // Dependencies created before the back-reference was written
+                // are already present, so they never reach the branch above.
+                // Re-pointing the parent value on every save repairs those
+                // rows in place instead of making someone remove the
+                // dependency and add it again just to relink it.
+                $this->relinkDependency($parentItemOptionValue);
             }
         }
 
@@ -454,6 +464,77 @@ class ItemController extends Controller
         $itemOption->delete();
 
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * Bring an item's option groups in line with the ids the edit form posted.
+     *
+     * Deleting and recreating the groups would be simpler, but an ItemOption
+     * owns its ItemOptionValues — the per-item prices, stock flags and option
+     * dependencies — and those cascade away with it. Re-adding the group gives
+     * back an empty one, so saving an item for any reason (a name tweak, a
+     * photo) silently emptied its customiser. Groups the editor kept are
+     * therefore left alone and only their order is refreshed.
+     *
+     * Dependent groups are not represented in this list at all: they belong to
+     * the option-dependency editor, which creates them with type 'dependent'
+     * and removes them when their parent value is unlinked.
+     *
+     * @param  array<int, mixed>  $optionIds
+     */
+    /**
+     * Point an option value at the dependency that names it as parent, or
+     * clear the link when the last one has been removed.
+     *
+     * Ordering clients resolve dependencies through this column, so a value
+     * that is out of step with the option_dependencies table has a dependency
+     * the admin can see and the customiser cannot.
+     */
+    private function relinkDependency(ItemOptionValue $parentItemOptionValue): void
+    {
+        $dependencyId = OptionDependency::query()
+            ->where('parent_option_value_id', $parentItemOptionValue->id)
+            ->value('id');
+
+        if ($parentItemOptionValue->option_dependency_id !== $dependencyId) {
+            $parentItemOptionValue->update(['option_dependency_id' => $dependencyId]);
+        }
+    }
+
+    private function syncItemOptions(Item $item, array $optionIds): void
+    {
+        $optionIds = collect($optionIds)
+            ->map(fn ($id): int => (int) $id)
+            ->filter()
+            ->unique()
+            ->values();
+
+        $existing = $item->itemOptions()
+            ->whereNull('type')
+            ->get()
+            ->keyBy('option_id');
+
+        $existing
+            ->reject(fn (ItemOption $group): bool => $optionIds->contains($group->option_id))
+            ->each(fn (ItemOption $group) => $group->delete());
+
+        $optionIds->each(function (int $optionId, int $index) use ($item, $existing): void {
+            $group = $existing->get($optionId);
+
+            if ($group !== null) {
+                // Keep the group — and everything hanging off it — and just
+                // record where the editor moved it to.
+                $group->update(['sort_order' => $index + 1]);
+
+                return;
+            }
+
+            $item->itemOptions()->create([
+                'option_id' => $optionId,
+                'sort_order' => $index + 1,
+                'required' => false,
+            ]);
+        });
     }
 
     private function syncPrimaryImage(Item $item, Request $request): void

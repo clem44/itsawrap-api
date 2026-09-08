@@ -238,6 +238,10 @@ class GuestOrderController extends Controller
 
         return $order->participants->map(function ($participant) use ($includeCreationFields, $subtotals): array {
             $payload = [
+                // The caller-supplied client_id is safe to echo back and is the
+                // only identifier that tells two same-named people apart; the
+                // internal id stays hidden from guests.
+                'client_id' => $participant->client_id,
                 'name' => $participant->name,
                 'is_primary' => $participant->is_primary,
                 'subtotal' => $subtotals[$participant->id] ?? 0.0,
@@ -246,7 +250,6 @@ class GuestOrderController extends Controller
             if ($includeCreationFields) {
                 $payload = [
                     'id' => $participant->id,
-                    'client_id' => $participant->client_id,
                     'order_id' => $participant->order_id,
                 ] + $payload;
             }
@@ -276,10 +279,7 @@ class GuestOrderController extends Controller
 
     private function orderItemLineTotal($orderItem): float
     {
-        $optionsTotal = $orderItem->orderItemOptions
-            ->sum(fn ($option): float => (float) $option->price * max(1, (int) ($option->qty ?? 1)));
-
-        return ((float) $orderItem->price + $optionsTotal) * max(1, (int) $orderItem->quantity);
+        return $orderItem->lineTotal();
     }
 
     /**
@@ -335,6 +335,11 @@ class GuestOrderController extends Controller
                 'price' => $orderItem->price,
                 'quantity' => $orderItem->quantity,
                 'comment' => $orderItem->comment,
+                // A redeemed line costs nothing; the value it gave away is
+                // reported so the customer can see what the reward was worth.
+                'is_reward_item' => (bool) $orderItem->is_reward_item,
+                'reward_discount_amount' => $orderItem->reward_discount_amount,
+                'line_total' => $orderItem->lineTotal(),
                 'options' => $orderItem->orderItemOptions->map(function ($option) use ($includeCreationFields): array {
                     $optionPayload = [
                         'name' => $option->optionValue?->name,
@@ -383,6 +388,7 @@ class GuestOrderController extends Controller
         }
 
         $payload = [
+            'client_id' => $orderItem->participant->client_id,
             'name' => $orderItem->participant->name,
             'is_primary' => $orderItem->participant->is_primary,
         ];
@@ -390,7 +396,6 @@ class GuestOrderController extends Controller
         if ($includeCreationFields) {
             $payload = [
                 'id' => $orderItem->participant->id,
-                'client_id' => $orderItem->participant->client_id,
             ] + $payload;
         }
 
