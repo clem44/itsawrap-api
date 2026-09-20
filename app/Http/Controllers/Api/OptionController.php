@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Option;
+use App\Models\OptionValue;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use OpenApi\Attributes as OA;
@@ -24,10 +25,10 @@ class OptionController extends Controller
     public function index(): JsonResponse
     {
         $options = Option::query()
-            ->with('optionValues')
+            ->with(['optionValues' => fn ($query) => $query->withMedia(OptionValue::IMAGE_TAG)])
             ->withMedia(Option::IMAGE_TAG)
             ->get()
-            ->each->includePrimaryImageMedia();
+            ->each(fn (Option $option) => $this->includePrimaryMedia($option));
 
         return response()->json($options);
     }
@@ -54,6 +55,7 @@ class OptionController extends Controller
                             properties: [
                                 new OA\Property(property: 'name', type: 'string', example: 'Large'),
                                 new OA\Property(property: 'price', type: 'number', example: 2.00),
+                                new OA\Property(property: 'media_id', type: 'integer', nullable: true, description: 'Media library asset to attach as the primary image'),
                             ]
                         )
                     ),
@@ -76,6 +78,7 @@ class OptionController extends Controller
             'values' => 'array',
             'values.*.name' => 'required|string|max:255',
             'values.*.price' => 'numeric|min:0',
+            'values.*.media_id' => 'nullable|integer|exists:media,id',
         ]);
 
         $option = Option::create([
@@ -86,14 +89,17 @@ class OptionController extends Controller
         $this->syncPrimaryImage($option, $request);
 
         if (isset($validated['values'])) {
-            foreach ($validated['values'] as $value) {
-                $option->optionValues()->create($value);
+            foreach ($validated['values'] as $index => $value) {
+                unset($value['media_id']);
+
+                $optionValue = $option->optionValues()->create($value);
+                $this->syncPrimaryImage($optionValue, $request, "values.{$index}.media_id");
             }
         }
 
-        $option->load('optionValues');
+        $option->load(['optionValues' => fn ($query) => $query->withMedia(OptionValue::IMAGE_TAG)]);
         $option->loadMedia(Option::IMAGE_TAG);
-        $option->includePrimaryImageMedia();
+        $this->includePrimaryMedia($option);
 
         return response()->json($option, 201);
     }
@@ -115,9 +121,9 @@ class OptionController extends Controller
     )]
     public function show(Option $option): JsonResponse
     {
-        $option->load('optionValues');
+        $option->load(['optionValues' => fn ($query) => $query->withMedia(OptionValue::IMAGE_TAG)]);
         $option->loadMedia(Option::IMAGE_TAG);
-        $option->includePrimaryImageMedia();
+        $this->includePrimaryMedia($option);
 
         return response()->json($option);
     }
@@ -163,26 +169,32 @@ class OptionController extends Controller
         $option->update($validated);
         $this->syncPrimaryImage($option, $request);
 
-        $option->load('optionValues');
+        $option->load(['optionValues' => fn ($query) => $query->withMedia(OptionValue::IMAGE_TAG)]);
         $option->loadMedia(Option::IMAGE_TAG);
-        $option->includePrimaryImageMedia();
+        $this->includePrimaryMedia($option);
 
         return response()->json($option);
     }
 
-    private function syncPrimaryImage(Option $option, Request $request): void
+    private function syncPrimaryImage(Option|OptionValue $model, Request $request, string $key = 'media_id'): void
     {
-        if (! $request->has('media_id')) {
+        if (! $request->has($key)) {
             return;
         }
 
-        if ($request->filled('media_id')) {
-            $option->syncMedia((int) $request->input('media_id'), Option::IMAGE_TAG);
+        if ($request->filled($key)) {
+            $model->syncMedia((int) $request->input($key), $model::IMAGE_TAG);
 
             return;
         }
 
-        $option->detachMediaTags(Option::IMAGE_TAG);
+        $model->detachMediaTags($model::IMAGE_TAG);
+    }
+
+    private function includePrimaryMedia(Option $option): void
+    {
+        $option->includePrimaryImageMedia();
+        $option->optionValues->each->includePrimaryImageMedia();
     }
 
     #[OA\Delete(

@@ -25,12 +25,16 @@
             },
             createValue: {
                 name: '',
-                price: ''
+                price: '',
+                media_id: '',
+                primary_media: null
             },
             editValue: {
                 id: null,
                 name: '',
-                price: ''
+                price: '',
+                media_id: '',
+                primary_media: null
             },
             editAction: '{{ route('admin.options.update', ['option' => '__ID__']) }}',
 
@@ -99,7 +103,7 @@
 
             openCreateValue(option) {
                 this.selectedOption = option;
-                this.createValue = { name: '', price: '' };
+                this.createValue = { name: '', price: '', media_id: '', primary_media: null };
                 this.createValueOpen = true;
                 this.editValueOpen = false;
             },
@@ -114,7 +118,9 @@
                 this.editValue = {
                     id: value.id,
                     name: value.name || '',
-                    price: value.price || ''
+                    price: value.price || '',
+                    media_id: value.media_id || '',
+                    primary_media: value.primary_media || null
                 };
                 this.editValueOpen = true;
                 this.createValueOpen = false;
@@ -123,6 +129,23 @@
             closeEditValue() {
                 this.editValueOpen = false;
                 this.selectedOption = null;
+            },
+
+            clearCreateValueMedia() {
+                this.createValue.media_id = '';
+                this.createValue.primary_media = null;
+            },
+
+            openCreateValueMediaPicker() {
+                window.MediaLibraryPicker.open({
+                    selectedMediaId: this.createValue.primary_media ? this.createValue.primary_media.id : null,
+                    accept: ['image'],
+                    onSelect: (media) => {
+                        const selected = Array.isArray(media) ? media[0] : media;
+                        this.createValue.primary_media = selected;
+                        this.createValue.media_id = selected.id;
+                    },
+                });
             },
 
             getCreateValueAction() {
@@ -195,13 +218,17 @@
                         <td>
                             <div class="flex flex-wrap gap-2 items-center">
                                 @forelse($option->optionValues as $value)
+                                    @php($valueMedia = $value->firstMedia('primary_image'))
                                     <button
                                         type="button"
-                                        class="inline-block px-3 py-1 text-sm rounded-full hover:opacity-80 transition-opacity cursor-pointer"
+                                        class="inline-flex items-center gap-2 px-3 py-1 text-sm rounded-full hover:opacity-80 transition-opacity cursor-pointer"
                                         style="background: rgba(124, 154, 138, 0.2);"
-                                        @click.stop="openEditValue(@js($value), @js($option->only(['id', 'name'])))"
+                                        @click.stop="openEditValue(@js(array_merge($value->only(['id', 'name', 'price']), ['media_id' => $valueMedia?->id, 'primary_media' => $valueMedia ? $mediaPresenter->present($valueMedia) : null])), @js($option->only(['id', 'name'])))"
                                         title="Click to edit value"
                                     >
+                                        @if($valueMedia)
+                                            <img src="{{ $valueMedia->getUrl() }}" alt="{{ $valueMedia->alt ?: $value->name }}" class="h-5 w-5 rounded-full object-cover">
+                                        @endif
                                         {{ $value->name }}
                                         @if($value->price > 0)
                                             <span style="color: var(--color-ink); opacity: 0.7;">(+${{ number_format($value->price, 2) }})</span>
@@ -625,7 +652,7 @@
                 <!-- Modal panel -->
                 <div
                     v-show="createValueOpen"
-                    class="relative inline-block w-full max-w-lg transform overflow-hidden rounded-2xl bg-[var(--color-forest)] text-left align-bottom shadow-xl sm:my-8 sm:align-middle"
+                    class="relative inline-block w-full max-w-3xl transform overflow-hidden rounded-2xl bg-[var(--color-forest)] text-left align-bottom shadow-xl sm:my-8 sm:align-middle"
                     @click.stop
                 >
                 <form method="POST" :action="getCreateValueAction()">
@@ -643,41 +670,97 @@
                     </div>
 
                     <!-- Body -->
-                    <div class="space-y-5 px-6 py-5">
-                        <div class="text-sm text-white/60">
-                            For: <span class="font-semibold text-white" v-text="selectedOption?.name || ''"></span>
+                    <div class="grid grid-cols-1 gap-6 px-6 py-5 md:grid-cols-5">
+                        <div class="space-y-5 md:col-span-3">
+                            <div class="text-sm text-white/60">
+                                For: <span class="font-semibold text-white" v-text="selectedOption?.name || ''"></span>
+                            </div>
+
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-white/80">Value Name</label>
+                                <input
+                                    type="text"
+                                    name="name"
+                                    class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('name') border-red-500 @enderror"
+                                    placeholder="e.g. Small, Medium, Large"
+                                    v-model="createValue.name"
+                                    required
+                                >
+                                @if(old('form_action') === 'create_value')
+                                    @error('name')
+                                        <p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>
+                                    @enderror
+                                @endif
+                            </div>
+
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-white/80">Price (Optional)</label>
+                                <input
+                                    type="number"
+                                    name="price"
+                                    step="0.01"
+                                    min="0"
+                                    class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('price') border-red-500 @enderror"
+                                    placeholder="0.00"
+                                    v-model="createValue.price"
+                                >
+                                @if(old('form_action') === 'create_value')
+                                    @error('price')
+                                        <p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>
+                                    @enderror
+                                @endif
+                            </div>
                         </div>
 
-                        <div>
-                            <label class="mb-2 block text-sm font-medium text-white/80">Value Name</label>
-                            <input
-                                type="text"
-                                name="name"
-                                class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('name') border-red-500 @enderror"
-                                placeholder="e.g. Small, Medium, Large"
-                                v-model="createValue.name"
-                                required
-                            >
+                        <div class="md:col-span-2">
+                            <label class="mb-2 block text-sm font-medium text-white/80">Option Value Image</label>
+                            <div class="media-dropzone-wrap">
+                                <button
+                                    type="button"
+                                    class="media-dropzone"
+                                    :class="{ 'has-image': createValue.primary_media }"
+                                    @click="openCreateValueMediaPicker()"
+                                >
+                                    <span class="media-dropzone__image-wrap" v-if="createValue.primary_media">
+                                        <img v-if="createValue.primary_media.preview_url" :src="createValue.primary_media.preview_url" :alt="createValue.primary_media.alt || createValue.primary_media.basename">
+                                        <span class="media-dropzone__overlay">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                            </svg>
+                                            Replace image
+                                        </span>
+                                    </span>
+                                    <template v-else>
+                                        <span class="media-dropzone__icon">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l-5-5-5 5"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v12"></path>
+                                            </svg>
+                                        </span>
+                                        <span class="media-dropzone__title">Click to upload an image</span>
+                                        <span class="media-dropzone__hint">JPG, PNG, GIF or WEBP up to 10MB</span>
+                                    </template>
+                                </button>
+                                <button
+                                    type="button"
+                                    class="media-dropzone__remove"
+                                    v-if="createValue.primary_media"
+                                    @click.stop="clearCreateValueMedia()"
+                                    aria-label="Remove option value image"
+                                >
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="media-dropzone-status">
+                                <span v-if="createValue.primary_media" class="media-dropzone-status__name" v-text="createValue.primary_media.basename"></span>
+                                <span v-else class="media-dropzone-status__empty">No image uploaded</span>
+                            </div>
+                            <input type="hidden" name="media_id" v-model="createValue.media_id">
                             @if(old('form_action') === 'create_value')
-                                @error('name')
-                                    <p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>
-                                @enderror
-                            @endif
-                        </div>
-
-                        <div>
-                            <label class="mb-2 block text-sm font-medium text-white/80">Price (Optional)</label>
-                            <input
-                                type="number"
-                                name="price"
-                                step="0.01"
-                                min="0"
-                                class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('price') border-red-500 @enderror"
-                                placeholder="0.00"
-                                v-model="createValue.price"
-                            >
-                            @if(old('form_action') === 'create_value')
-                                @error('price')
+                                @error('media_id')
                                     <p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>
                                 @enderror
                             @endif

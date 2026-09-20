@@ -6,6 +6,7 @@ use App\Models\Bundle;
 use App\Models\Item;
 use App\Models\Offer;
 use App\Models\Option;
+use App\Models\OptionValue;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -33,6 +34,7 @@ class AttachMediaRequest extends FormRequest
             Item::class,
             Offer::class,
             Option::class,
+            OptionValue::class,
         ];
     }
 

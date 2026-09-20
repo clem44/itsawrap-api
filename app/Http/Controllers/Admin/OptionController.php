@@ -16,7 +16,7 @@ class OptionController extends Controller
     public function index(MediaLibraryPresenter $mediaPresenter): View
     {
         $options = Option::query()
-            ->with('optionValues')
+            ->with(['optionValues' => fn ($query) => $query->withMedia(OptionValue::IMAGE_TAG)])
             ->withCount('optionValues')
             ->withMedia(Option::IMAGE_TAG)
             ->orderBy('name')
@@ -89,10 +89,14 @@ class OptionController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'price' => 'nullable|numeric|min:0',
+            'media_id' => 'nullable|integer|exists:media,id',
         ]);
 
+        unset($validated['media_id']);
+
         $validated['option_id'] = $option->id;
-        OptionValue::create($validated);
+        $optionValue = OptionValue::create($validated);
+        $this->syncPrimaryImage($optionValue, $request);
 
         return redirect()->route('admin.options.index')
             ->with('success', 'Option value added successfully.');
@@ -103,6 +107,7 @@ class OptionController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'price' => 'nullable|numeric|min:0',
+            'media_id' => 'nullable|integer|exists:media,id',
         ]);
 
         if ($optionValue->option_id !== $option->id) {
@@ -110,7 +115,10 @@ class OptionController extends Controller
                 ->with('error', 'Option value does not belong to this option.');
         }
 
+        unset($validated['media_id']);
+
         $optionValue->update($validated);
+        $this->syncPrimaryImage($optionValue, $request);
 
         return redirect()->route('admin.options.index')
             ->with('success', 'Option value updated successfully.');
@@ -129,14 +137,14 @@ class OptionController extends Controller
             ->with('success', 'Option value deleted successfully.');
     }
 
-    private function syncPrimaryImage(Option $option, Request $request): void
+    private function syncPrimaryImage(Option|OptionValue $model, Request $request): void
     {
         if ($request->filled('media_id')) {
-            $option->syncMedia((int) $request->input('media_id'), Option::IMAGE_TAG);
+            $model->syncMedia((int) $request->input('media_id'), $model::IMAGE_TAG);
 
             return;
         }
 
-        $option->detachMediaTags(Option::IMAGE_TAG);
+        $model->detachMediaTags($model::IMAGE_TAG);
     }
 }

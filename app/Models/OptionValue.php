@@ -2,14 +2,16 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPrimaryImageMedia;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Plank\Mediable\Mediable;
 
 class OptionValue extends Model
 {
-    use HasFactory;
+    use HasFactory, HasPrimaryImageMedia, Mediable;
 
     protected $fillable = [
         'option_id',

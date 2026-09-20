@@ -71,6 +71,8 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'option_id', type: 'integer', example: 1),
         new OA\Property(property: 'name', type: 'string', example: 'Large'),
         new OA\Property(property: 'price', type: 'number', format: 'float', example: 2.00),
+        new OA\Property(property: 'primary_image_url', type: 'string', nullable: true, example: 'https://itsawrap.ai/storage/media-library/large.jpg'),
+        new OA\Property(property: 'primary_media', ref: '#/components/schemas/PrimaryMedia', nullable: true),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),
         new OA\Property(property: 'updated_at', type: 'string', format: 'date-time'),
     ]

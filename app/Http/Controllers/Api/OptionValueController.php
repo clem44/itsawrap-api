@@ -26,13 +26,18 @@ class OptionValueController extends Controller
     )]
     public function index(Request $request): JsonResponse
     {
-        $query = OptionValue::with('option');
+        $query = OptionValue::query()
+            ->with('option')
+            ->withMedia(OptionValue::IMAGE_TAG);
 
         if ($request->has('option_id')) {
             $query->where('option_id', $request->option_id);
         }
 
-        return response()->json($query->get());
+        $optionValues = $query->get()
+            ->each->includePrimaryImageMedia();
+
+        return response()->json($optionValues);
     }
 
     #[OA\Post(
@@ -49,6 +54,7 @@ class OptionValueController extends Controller
                     new OA\Property(property: 'option_id', type: 'integer', example: 1),
                     new OA\Property(property: 'name', type: 'string', example: 'Large'),
                     new OA\Property(property: 'price', type: 'number', example: 2.00),
+                    new OA\Property(property: 'media_id', type: 'integer', nullable: true, description: 'Media library asset to attach as the primary image'),
                 ]
             )
         ),
@@ -64,9 +70,15 @@ class OptionValueController extends Controller
             'option_id' => 'required|exists:options,id',
             'name' => 'required|string|max:255',
             'price' => 'numeric|min:0',
+            'media_id' => 'nullable|integer|exists:media,id',
         ]);
 
+        unset($validated['media_id']);
+
         $optionValue = OptionValue::create($validated);
+        $this->syncPrimaryImage($optionValue, $request);
+        $optionValue->loadMedia(OptionValue::IMAGE_TAG);
+        $optionValue->includePrimaryImageMedia();
 
         return response()->json($optionValue, 201);
     }
@@ -88,7 +100,11 @@ class OptionValueController extends Controller
     )]
     public function show(OptionValue $optionValue): JsonResponse
     {
-        return response()->json($optionValue->load('option'));
+        $optionValue->load('option');
+        $optionValue->loadMedia(OptionValue::IMAGE_TAG);
+        $optionValue->includePrimaryImageMedia();
+
+        return response()->json($optionValue);
     }
 
     #[OA\Put(
@@ -106,6 +122,7 @@ class OptionValueController extends Controller
                 properties: [
                     new OA\Property(property: 'name', type: 'string'),
                     new OA\Property(property: 'price', type: 'number'),
+                    new OA\Property(property: 'media_id', type: 'integer', nullable: true, description: 'Media library asset to attach as the primary image'),
                 ]
             )
         ),
@@ -121,11 +138,32 @@ class OptionValueController extends Controller
         $validated = $request->validate([
             'name' => 'string|max:255',
             'price' => 'numeric|min:0',
+            'media_id' => 'nullable|integer|exists:media,id',
         ]);
 
+        unset($validated['media_id']);
+
         $optionValue->update($validated);
+        $this->syncPrimaryImage($optionValue, $request);
+        $optionValue->loadMedia(OptionValue::IMAGE_TAG);
+        $optionValue->includePrimaryImageMedia();
 
         return response()->json($optionValue);
+    }
+
+    private function syncPrimaryImage(OptionValue $optionValue, Request $request): void
+    {
+        if (! $request->has('media_id')) {
+            return;
+        }
+
+        if ($request->filled('media_id')) {
+            $optionValue->syncMedia((int) $request->input('media_id'), OptionValue::IMAGE_TAG);
+
+            return;
+        }
+
+        $optionValue->detachMediaTags(OptionValue::IMAGE_TAG);
     }
 
     #[OA\Delete(

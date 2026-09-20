@@ -3400,6 +3400,11 @@
                                                 "price": {
                                                     "type": "number",
                                                     "example": 2
+                                                },
+                                                "media_id": {
+                                                    "description": "Media library asset to attach as the primary image",
+                                                    "type": "integer",
+                                                    "nullable": true
                                                 }
                                             },
                                             "type": "object"
@@ -3909,6 +3914,11 @@
                                     "price": {
                                         "type": "number",
                                         "example": 2
+                                    },
+                                    "media_id": {
+                                        "description": "Media library asset to attach as the primary image",
+                                        "type": "integer",
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -4013,6 +4023,11 @@
                                     },
                                     "price": {
                                         "type": "number"
+                                    },
+                                    "media_id": {
+                                        "description": "Media library asset to attach as the primary image",
+                                        "type": "integer",
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -6978,6 +6993,19 @@
                         "type": "number",
                         "format": "float",
                         "example": 2
+                    },
+                    "primary_image_url": {
+                        "type": "string",
+                        "example": "https://itsawrap.ai/storage/media-library/large.jpg",
+                        "nullable": true
+                    },
+                    "primary_media": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/PrimaryMedia"
+                            }
+                        ],
+                        "nullable": true
                     },
                     "created_at": {
                         "type": "string",

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Category;
 use App\Models\Item;
 use App\Models\Option;
+use App\Models\OptionValue;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -150,6 +151,95 @@ class AdminMediaLibraryTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_attach_media_to_allowed_option_value_tag(): void
+    {
+        $media = $this->makeMedia('attach-option-value.jpg');
+        $option = Option::query()->create(['name' => 'Protein']);
+        $optionValue = OptionValue::query()->create([
+            'option_id' => $option->id,
+            'name' => 'Chicken',
+            'price' => 3.00,
+        ]);
+
+        $this->actingAs($this->makeAdmin())
+            ->postJson(route('admin.media-library.attach'), [
+                'media_id' => $media->id,
+                'mediable_type' => OptionValue::class,
+                'mediable_id' => $optionValue->id,
+                'tag' => 'primary_image',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.id', $media->id);
+
+        $this->assertDatabaseHas('mediables', [
+            'media_id' => $media->id,
+            'mediable_type' => OptionValue::class,
+            'mediable_id' => $optionValue->id,
+            'tag' => 'primary_image',
+        ]);
+    }
+
+    public function test_option_value_create_and_update_sync_primary_image_media(): void
+    {
+        $admin = $this->makeAdmin();
+        $option = Option::query()->create(['name' => 'Protein']);
+        $firstMedia = $this->makeMedia('option-value-first.jpg');
+        $secondMedia = $this->makeMedia('option-value-second.jpg');
+
+        $this->actingAs($admin)
+            ->post(route('admin.option-values.store', $option), [
+                'name' => 'Chicken',
+                'price' => 3.00,
+                'media_id' => $firstMedia->id,
+            ])
+            ->assertRedirect(route('admin.options.index'));
+
+        $optionValue = OptionValue::query()->where('name', 'Chicken')->firstOrFail();
+
+        $this->assertDatabaseHas('mediables', [
+            'media_id' => $firstMedia->id,
+            'mediable_type' => OptionValue::class,
+            'mediable_id' => $optionValue->id,
+            'tag' => 'primary_image',
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.option-values.update', [$option, $optionValue]), [
+                'name' => 'Steak',
+                'price' => 4.00,
+                'media_id' => $secondMedia->id,
+            ])
+            ->assertRedirect(route('admin.options.index'));
+
+        $this->assertDatabaseMissing('mediables', [
+            'media_id' => $firstMedia->id,
+            'mediable_type' => OptionValue::class,
+            'mediable_id' => $optionValue->id,
+            'tag' => 'primary_image',
+        ]);
+
+        $this->assertDatabaseHas('mediables', [
+            'media_id' => $secondMedia->id,
+            'mediable_type' => OptionValue::class,
+            'mediable_id' => $optionValue->id,
+            'tag' => 'primary_image',
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.option-values.update', [$option, $optionValue]), [
+                'name' => 'Steak',
+                'price' => 4.00,
+            ])
+            ->assertRedirect(route('admin.options.index'));
+
+        $this->assertDatabaseMissing('mediables', [
+            'media_id' => $secondMedia->id,
+            'mediable_type' => OptionValue::class,
+            'mediable_id' => $optionValue->id,
+            'tag' => 'primary_image',
+        ]);
+    }
+
     public function test_option_create_and_update_sync_primary_image_media(): void
     {
         $admin = $this->makeAdmin();
@@ -222,14 +312,24 @@ class AdminMediaLibraryTest extends TestCase
         ]);
         $media = $this->makeMedia('option-index.jpg');
         $option->syncMedia($media, Option::IMAGE_TAG);
+        $valueMedia = $this->makeMedia('option-value-index.jpg');
+        $value = OptionValue::query()->create([
+            'option_id' => $option->id,
+            'name' => 'Chicken',
+            'price' => 3.00,
+        ]);
+        $value->syncMedia($valueMedia, OptionValue::IMAGE_TAG);
 
         $this->actingAs($this->makeAdmin())
             ->get(route('admin.options.index'))
             ->assertOk()
             ->assertSee('openCreateMediaPicker', false)
             ->assertSee('openEditMediaPicker', false)
+            ->assertSee('openCreateValueMediaPicker', false)
             ->assertSee('Option Image')
-            ->assertSee('option-index.jpg');
+            ->assertSee('Option Value Image')
+            ->assertSee('option-index.jpg')
+            ->assertSee('option-value-index.jpg');
     }
 
     public function test_item_create_and_update_sync_primary_image_media(): void
