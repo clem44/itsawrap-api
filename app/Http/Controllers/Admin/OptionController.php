@@ -5,22 +5,32 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Option;
 use App\Models\OptionValue;
+use App\Support\Media\MediaLibraryPresenter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Plank\Mediable\Media;
 
 class OptionController extends Controller
 {
-    public function index(): View
+    public function index(MediaLibraryPresenter $mediaPresenter): View
     {
         $options = Option::query()
             ->with('optionValues')
             ->withCount('optionValues')
+            ->withMedia(Option::IMAGE_TAG)
             ->orderBy('name')
             ->paginate(15)
             ->withQueryString();
 
-        return view('admin.options.index', compact('options'));
+        $oldMedia = null;
+
+        if (old('form_action') && old('media_id')) {
+            $media = Media::find(old('media_id'));
+            $oldMedia = $media ? $mediaPresenter->present($media) : null;
+        }
+
+        return view('admin.options.index', compact('options', 'mediaPresenter', 'oldMedia'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -29,9 +39,13 @@ class OptionController extends Controller
             'name' => 'required|string|max:255|unique:options,name',
             'title' => 'nullable|string|max:255',
             'description' => 'nullable|string',
+            'media_id' => 'nullable|integer|exists:media,id',
         ]);
 
-        Option::create($validated);
+        unset($validated['media_id']);
+
+        $option = Option::create($validated);
+        $this->syncPrimaryImage($option, $request);
 
         return redirect()->route('admin.options.index')
             ->with('success', 'Option created successfully.');
@@ -43,9 +57,13 @@ class OptionController extends Controller
             'name' => 'required|string|max:255|unique:options,name,'.$option->id,
             'title' => 'nullable|string|max:255',
             'description' => 'nullable|string',
+            'media_id' => 'nullable|integer|exists:media,id',
         ]);
 
+        unset($validated['media_id']);
+
         $option->update($validated);
+        $this->syncPrimaryImage($option, $request);
 
         return redirect()->route('admin.options.index')
             ->with('success', 'Option updated successfully.');
@@ -109,5 +127,16 @@ class OptionController extends Controller
 
         return redirect()->route('admin.options.index')
             ->with('success', 'Option value deleted successfully.');
+    }
+
+    private function syncPrimaryImage(Option $option, Request $request): void
+    {
+        if ($request->filled('media_id')) {
+            $option->syncMedia((int) $request->input('media_id'), Option::IMAGE_TAG);
+
+            return;
+        }
+
+        $option->detachMediaTags(Option::IMAGE_TAG);
     }
 }

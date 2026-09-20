@@ -5,6 +5,7 @@ namespace App\Http\Requests\Admin\MediaLibrary;
 use App\Models\Bundle;
 use App\Models\Item;
 use App\Models\Offer;
+use App\Models\Option;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -31,6 +32,7 @@ class AttachMediaRequest extends FormRequest
             Bundle::class,
             Item::class,
             Offer::class,
+            Option::class,
         ];
     }
 

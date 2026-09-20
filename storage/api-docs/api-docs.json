@@ -3384,6 +3384,11 @@
                                         "example": "Select the portion size for this item.",
                                         "nullable": true
                                     },
+                                    "media_id": {
+                                        "description": "Media library asset to attach as the primary image",
+                                        "type": "integer",
+                                        "nullable": true
+                                    },
                                     "values": {
                                         "type": "array",
                                         "items": {
@@ -3507,6 +3512,11 @@
                                     },
                                     "description": {
                                         "type": "string",
+                                        "nullable": true
+                                    },
+                                    "media_id": {
+                                        "description": "Media library asset to attach as the primary image",
+                                        "type": "integer",
                                         "nullable": true
                                     }
                                 },
@@ -6924,6 +6934,19 @@
                     "description": {
                         "type": "string",
                         "example": "Select the portion size for this item.",
+                        "nullable": true
+                    },
+                    "primary_image_url": {
+                        "type": "string",
+                        "example": "https://itsawrap.ai/storage/media-library/protein.jpg",
+                        "nullable": true
+                    },
+                    "primary_media": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/PrimaryMedia"
+                            }
+                        ],
                         "nullable": true
                     },
                     "created_at": {

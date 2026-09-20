@@ -58,6 +58,8 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'name', type: 'string', example: 'Size'),
         new OA\Property(property: 'title', type: 'string', nullable: true, example: 'Choose a size'),
         new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Select the portion size for this item.'),
+        new OA\Property(property: 'primary_image_url', type: 'string', nullable: true, example: 'https://itsawrap.ai/storage/media-library/protein.jpg'),
+        new OA\Property(property: 'primary_media', ref: '#/components/schemas/PrimaryMedia', nullable: true),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),
         new OA\Property(property: 'updated_at', type: 'string', format: 'date-time'),
     ]

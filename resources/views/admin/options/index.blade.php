@@ -8,6 +8,8 @@
     window.AdminVuePage = () => ({
             createOpen: {{ $errors->any() && old('form_action') === 'create' ? 'true' : 'false' }},
             editOpen: {{ $errors->any() && old('form_action') === 'edit' ? 'true' : 'false' }},
+            createMediaId: '{{ old('form_action') === 'create' ? old('media_id', '') : '' }}',
+            createMedia: @js(old('form_action') === 'create' ? $oldMedia : null),
             createValueOpen: false,
             editValueOpen: false,
             editValueErrors: @js(old('form_action') === 'edit_value' ? $errors->getMessages() : []),
@@ -17,7 +19,9 @@
                 id: {{ old('form_action') === 'edit' ? (old('edit_id') ?: 'null') : 'null' }},
                 name: @js(old('form_action') === 'edit' ? old('name', '') : ''),
                 title: @js(old('form_action') === 'edit' ? old('title', '') : ''),
-                description: @js(old('form_action') === 'edit' ? old('description', '') : '')
+                description: @js(old('form_action') === 'edit' ? old('description', '') : ''),
+                media_id: '{{ old('form_action') === 'edit' ? old('media_id', '') : '' }}',
+                primary_media: @js(old('form_action') === 'edit' ? $oldMedia : null)
             },
             createValue: {
                 name: '',
@@ -33,10 +37,29 @@
             openCreate() {
                 this.createOpen = true;
                 this.editOpen = false;
+                this.createMediaId = '';
+                this.createMedia = null;
             },
 
             closeCreate() {
                 this.createOpen = false;
+            },
+
+            clearCreateMedia() {
+                this.createMediaId = '';
+                this.createMedia = null;
+            },
+
+            openCreateMediaPicker() {
+                window.MediaLibraryPicker.open({
+                    selectedMediaId: this.createMedia ? this.createMedia.id : null,
+                    accept: ['image'],
+                    onSelect: (media) => {
+                        const selected = Array.isArray(media) ? media[0] : media;
+                        this.createMedia = selected;
+                        this.createMediaId = selected.id;
+                    },
+                });
             },
 
             openEdit(option) {
@@ -44,7 +67,9 @@
                     id: option.id,
                     name: option.name || '',
                     title: option.title || '',
-                    description: option.description || ''
+                    description: option.description || '',
+                    media_id: option.media_id || '',
+                    primary_media: option.primary_media || null
                 };
                 this.editAction = '{{ route('admin.options.update', ['option' => '__ID__']) }}'.replace('__ID__', option.id);
                 this.editOpen = true;
@@ -53,6 +78,23 @@
 
             closeEdit() {
                 this.editOpen = false;
+            },
+
+            clearEditMedia() {
+                this.editOption.media_id = '';
+                this.editOption.primary_media = null;
+            },
+
+            openEditMediaPicker() {
+                window.MediaLibraryPicker.open({
+                    selectedMediaId: this.editOption.primary_media ? this.editOption.primary_media.id : null,
+                    accept: ['image'],
+                    onSelect: (media) => {
+                        const selected = Array.isArray(media) ? media[0] : media;
+                        this.editOption.primary_media = selected;
+                        this.editOption.media_id = selected.id;
+                    },
+                });
             },
 
             openCreateValue(option) {
@@ -126,12 +168,19 @@
             </thead>
             <tbody>
                 @forelse($options as $option)
+                    @php($primaryMedia = $option->firstMedia('primary_image'))
                     <tr>
                         <td>
                             <div class="flex items-center gap-3">
-                                <div class="user-avatar" style="background: linear-gradient(135deg, rgba(124, 154, 138, 0.2) 0%, rgba(124, 154, 138, 0.6) 100%); color: var(--color-forest);">
-                                    {{ strtoupper(substr($option->name, 0, 2)) }}
-                                </div>
+                                @if($primaryMedia)
+                                    <div class="user-avatar overflow-hidden" style="background: var(--color-cream);">
+                                        <img src="{{ $primaryMedia->getUrl() }}" alt="{{ $primaryMedia->alt ?: $option->name }}" class="h-full w-full object-cover">
+                                    </div>
+                                @else
+                                    <div class="user-avatar" style="background: linear-gradient(135deg, rgba(124, 154, 138, 0.2) 0%, rgba(124, 154, 138, 0.6) 100%); color: var(--color-forest);">
+                                        {{ strtoupper(substr($option->name, 0, 2)) }}
+                                    </div>
+                                @endif
                                 <div>
                                     <div class="user-name">{{ $option->name }}</div>
                                     @if($option->title)
@@ -181,7 +230,7 @@
                                     type="button"
                                     class="action-btn edit"
                                     title="Edit Option"
-                                    @click.stop="openEdit(@js($option->only(['id', 'name', 'title', 'description'])))"
+                                    @click.stop="openEdit(@js(array_merge($option->only(['id', 'name', 'title', 'description']), ['media_id' => $primaryMedia?->id, 'primary_media' => $primaryMedia ? $mediaPresenter->present($primaryMedia) : null])))"
                                 >
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -248,7 +297,7 @@
                 <!-- Modal panel -->
                 <div
                     v-show="createOpen"
-                    class="relative inline-block w-full max-w-lg transform overflow-hidden rounded-2xl bg-[var(--color-forest)] text-left align-bottom shadow-xl sm:my-8 sm:align-middle"
+                    class="relative inline-block w-full max-w-3xl transform overflow-hidden rounded-2xl bg-[var(--color-forest)] text-left align-bottom shadow-xl sm:my-8 sm:align-middle"
                     @click.stop
                 >
                 <form method="POST" action="{{ route('admin.options.store') }}">
@@ -266,56 +315,112 @@
                     </div>
 
                     <!-- Body -->
-                    <div class="space-y-5 px-6 py-5">
-                        <div>
-                            <label class="mb-2 block text-sm font-medium text-white/80">Option Name</label>
-                            <input
-                                type="text"
-                                name="name"
-                                class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('name') border-red-500 @enderror"
-                                placeholder="e.g. Size, Dressing, Topping"
-                                value="{{ old('form_action') === 'create' ? old('name') : '' }}"
-                                required
-                            >
+                    <div class="grid grid-cols-1 gap-6 px-6 py-5 md:grid-cols-5">
+                        <div class="space-y-5 md:col-span-3">
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-white/80">Option Name</label>
+                                <input
+                                    type="text"
+                                    name="name"
+                                    class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('name') border-red-500 @enderror"
+                                    placeholder="e.g. Size, Dressing, Topping"
+                                    value="{{ old('form_action') === 'create' ? old('name') : '' }}"
+                                    required
+                                >
+                                @if(old('form_action') === 'create')
+                                    @error('name')
+                                        <p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>
+                                    @enderror
+                                @endif
+                            </div>
+
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-white/80">Title</label>
+                                <input
+                                    type="text"
+                                    name="title"
+                                    class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('title') border-red-500 @enderror"
+                                    placeholder="e.g. Choose your size"
+                                    value="{{ old('form_action') === 'create' ? old('title') : '' }}"
+                                >
+                                @if(old('form_action') === 'create')
+                                    @error('title')
+                                        <p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>
+                                    @enderror
+                                @endif
+                            </div>
+
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-white/80">Description</label>
+                                <textarea
+                                    name="description"
+                                    rows="3"
+                                    class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('description') border-red-500 @enderror"
+                                    placeholder="Optional helper text for this option"
+                                >{{ old('form_action') === 'create' ? old('description') : '' }}</textarea>
+                                @if(old('form_action') === 'create')
+                                    @error('description')
+                                        <p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>
+                                    @enderror
+                                @endif
+                            </div>
+
+                            <p class="text-sm text-white/60">You can add option values after creating the option.</p>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="mb-2 block text-sm font-medium text-white/80">Option Image</label>
+                            <div class="media-dropzone-wrap">
+                                <button
+                                    type="button"
+                                    class="media-dropzone"
+                                    :class="{ 'has-image': createMedia }"
+                                    @click="openCreateMediaPicker()"
+                                >
+                                    <span class="media-dropzone__image-wrap" v-if="createMedia">
+                                        <img v-if="createMedia.preview_url" :src="createMedia.preview_url" :alt="createMedia.alt || createMedia.basename">
+                                        <span class="media-dropzone__overlay">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                            </svg>
+                                            Replace image
+                                        </span>
+                                    </span>
+                                    <template v-else>
+                                        <span class="media-dropzone__icon">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l-5-5-5 5"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v12"></path>
+                                            </svg>
+                                        </span>
+                                        <span class="media-dropzone__title">Click to upload an image</span>
+                                        <span class="media-dropzone__hint">JPG, PNG, GIF or WEBP up to 10MB</span>
+                                    </template>
+                                </button>
+                                <button
+                                    type="button"
+                                    class="media-dropzone__remove"
+                                    v-if="createMedia"
+                                    @click.stop="clearCreateMedia()"
+                                    aria-label="Remove option image"
+                                >
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="media-dropzone-status">
+                                <span v-if="createMedia" class="media-dropzone-status__name" v-text="createMedia.basename"></span>
+                                <span v-else class="media-dropzone-status__empty">No image uploaded</span>
+                            </div>
+                            <input type="hidden" name="media_id" v-model="createMediaId">
                             @if(old('form_action') === 'create')
-                                @error('name')
+                                @error('media_id')
                                     <p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>
                                 @enderror
                             @endif
                         </div>
-
-                        <div>
-                            <label class="mb-2 block text-sm font-medium text-white/80">Title</label>
-                            <input
-                                type="text"
-                                name="title"
-                                class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('title') border-red-500 @enderror"
-                                placeholder="e.g. Choose your size"
-                                value="{{ old('form_action') === 'create' ? old('title') : '' }}"
-                            >
-                            @if(old('form_action') === 'create')
-                                @error('title')
-                                    <p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>
-                                @enderror
-                            @endif
-                        </div>
-
-                        <div>
-                            <label class="mb-2 block text-sm font-medium text-white/80">Description</label>
-                            <textarea
-                                name="description"
-                                rows="3"
-                                class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('description') border-red-500 @enderror"
-                                placeholder="Optional helper text for this option"
-                            >{{ old('form_action') === 'create' ? old('description') : '' }}</textarea>
-                            @if(old('form_action') === 'create')
-                                @error('description')
-                                    <p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>
-                                @enderror
-                            @endif
-                        </div>
-
-                        <p class="text-sm text-white/60">You can add option values after creating the option.</p>
                     </div>
 
                     <!-- Footer -->
@@ -357,7 +462,7 @@
                 <!-- Modal panel -->
                 <div
                     v-show="editOpen"
-                    class="relative inline-block w-full max-w-lg transform overflow-hidden rounded-2xl bg-[var(--color-forest)] text-left align-bottom shadow-xl sm:my-8 sm:align-middle"
+                    class="relative inline-block w-full max-w-3xl transform overflow-hidden rounded-2xl bg-[var(--color-forest)] text-left align-bottom shadow-xl sm:my-8 sm:align-middle"
                     @click.stop
                 >
                 <form method="POST" :action="getEditAction()">
@@ -377,48 +482,104 @@
                     </div>
 
                     <!-- Body -->
-                    <div class="space-y-5 px-6 py-5">
-                        <div>
-                            <label class="mb-2 block text-sm font-medium text-white/80">Option Name</label>
-                            <input
-                                type="text"
-                                name="name"
-                                class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('name') border-red-500 @enderror"
-                                v-model="editOption.name"
-                                required
-                            >
-                            @if(old('form_action') === 'edit')
-                                @error('name')
-                                    <p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>
-                                @enderror
-                            @endif
+                    <div class="grid grid-cols-1 gap-6 px-6 py-5 md:grid-cols-5">
+                        <div class="space-y-5 md:col-span-3">
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-white/80">Option Name</label>
+                                <input
+                                    type="text"
+                                    name="name"
+                                    class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('name') border-red-500 @enderror"
+                                    v-model="editOption.name"
+                                    required
+                                >
+                                @if(old('form_action') === 'edit')
+                                    @error('name')
+                                        <p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>
+                                    @enderror
+                                @endif
+                            </div>
+
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-white/80">Title</label>
+                                <input
+                                    type="text"
+                                    name="title"
+                                    class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('title') border-red-500 @enderror"
+                                    v-model="editOption.title"
+                                >
+                                @if(old('form_action') === 'edit')
+                                    @error('title')
+                                        <p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>
+                                    @enderror
+                                @endif
+                            </div>
+
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-white/80">Description</label>
+                                <textarea
+                                    name="description"
+                                    rows="3"
+                                    class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('description') border-red-500 @enderror"
+                                    v-model="editOption.description"
+                                ></textarea>
+                                @if(old('form_action') === 'edit')
+                                    @error('description')
+                                        <p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>
+                                    @enderror
+                                @endif
+                            </div>
                         </div>
 
-                        <div>
-                            <label class="mb-2 block text-sm font-medium text-white/80">Title</label>
-                            <input
-                                type="text"
-                                name="title"
-                                class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('title') border-red-500 @enderror"
-                                v-model="editOption.title"
-                            >
+                        <div class="md:col-span-2">
+                            <label class="mb-2 block text-sm font-medium text-white/80">Option Image</label>
+                            <div class="media-dropzone-wrap">
+                                <button
+                                    type="button"
+                                    class="media-dropzone"
+                                    :class="{ 'has-image': editOption.primary_media }"
+                                    @click="openEditMediaPicker()"
+                                >
+                                    <span class="media-dropzone__image-wrap" v-if="editOption.primary_media">
+                                        <img v-if="editOption.primary_media.preview_url" :src="editOption.primary_media.preview_url" :alt="editOption.primary_media.alt || editOption.primary_media.basename">
+                                        <span class="media-dropzone__overlay">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                            </svg>
+                                            Replace image
+                                        </span>
+                                    </span>
+                                    <template v-else>
+                                        <span class="media-dropzone__icon">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l-5-5-5 5"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v12"></path>
+                                            </svg>
+                                        </span>
+                                        <span class="media-dropzone__title">Click to upload an image</span>
+                                        <span class="media-dropzone__hint">JPG, PNG, GIF or WEBP up to 10MB</span>
+                                    </template>
+                                </button>
+                                <button
+                                    type="button"
+                                    class="media-dropzone__remove"
+                                    v-if="editOption.primary_media"
+                                    @click.stop="clearEditMedia()"
+                                    aria-label="Remove option image"
+                                >
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="media-dropzone-status">
+                                <span v-if="editOption.primary_media" class="media-dropzone-status__name" v-text="editOption.primary_media.basename"></span>
+                                <span v-else class="media-dropzone-status__empty">No image uploaded</span>
+                            </div>
+                            <input type="hidden" name="media_id" v-model="editOption.media_id">
                             @if(old('form_action') === 'edit')
-                                @error('title')
-                                    <p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>
-                                @enderror
-                            @endif
-                        </div>
-
-                        <div>
-                            <label class="mb-2 block text-sm font-medium text-white/80">Description</label>
-                            <textarea
-                                name="description"
-                                rows="3"
-                                class="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/40 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('description') border-red-500 @enderror"
-                                v-model="editOption.description"
-                            ></textarea>
-                            @if(old('form_action') === 'edit')
-                                @error('description')
+                                @error('media_id')
                                     <p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>
                                 @enderror
                             @endif
