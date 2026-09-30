@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             OptionSeeder::class,
             ItemsSeeder::class,
             BranchSeeder::class,
+            SliderSeeder::class,
         ]);
     }
 }

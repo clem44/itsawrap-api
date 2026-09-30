@@ -1,6 +1,8 @@
 import './bootstrap';
 import './plugins/media-library/media-library';
 import './plugins/media-library/Media-library.css';
+import './plugins/hero-slider/hero-slider-builder';
+import './plugins/hero-slider/hero-slider-builder.css';
 import { createApp } from 'vue';
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.css';

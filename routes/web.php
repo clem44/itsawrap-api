@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DeliveryController;
 use App\Http\Controllers\Admin\DeliveryWindowController;
 use App\Http\Controllers\Admin\DownloadController;
+use App\Http\Controllers\Admin\HeroSliderController;
 use App\Http\Controllers\Admin\ItemController;
 use App\Http\Controllers\Admin\MediaLibraryController;
 use App\Http\Controllers\Admin\OrderController;
@@ -114,6 +115,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::patch('/media-library/files/{media}', [MediaLibraryController::class, 'update'])->name('media-library.update');
         Route::delete('/media-library/files/{media}', [MediaLibraryController::class, 'destroy'])->name('media-library.destroy');
         Route::post('/media-library/attach', [MediaLibraryController::class, 'attach'])->name('media-library.attach');
+
+        // Hero Slider Builder
+        Route::get('/hero-sliders', [HeroSliderController::class, 'index'])->name('hero-sliders.index');
+        Route::put('/hero-sliders/{slider}', [HeroSliderController::class, 'update'])->name('hero-sliders.update');
 
         // Options management
         Route::resource('options', \App\Http\Controllers\Admin\OptionController::class);

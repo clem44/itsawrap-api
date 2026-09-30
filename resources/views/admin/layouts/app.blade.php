@@ -129,6 +129,12 @@
                         </svg>
                         <span class="sidebar-label">Rewards</span>
                     </a>
+                    <a href="{{ route('admin.hero-sliders.index') }}" class="sidebar-nav-link {{ request()->routeIs('admin.hero-sliders.*') ? 'active' : '' }}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5h16v12H4zM9 21h6M12 17v4M8 9l3 2-3 2z"></path>
+                        </svg>
+                        <span class="sidebar-label">Hero Slider</span>
+                    </a>
                     <a href="{{ route('admin.media-library.show') }}" class="sidebar-nav-link {{ request()->routeIs('admin.media-library.*') ? 'active' : '' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <rect x="3" y="3" width="18" height="18" rx="2" stroke-width="2"></rect>
@@ -253,6 +259,12 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v8m-4-4h8m-9 8h10a2 2 0 002-2V6a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                         </svg>
                         Rewards
+                    </a>
+                    <a href="{{ route('admin.hero-sliders.index') }}" class="sidebar-nav-link {{ request()->routeIs('admin.hero-sliders.*') ? 'active' : '' }}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5h16v12H4zM9 21h6M12 17v4M8 9l3 2-3 2z"></path>
+                        </svg>
+                        Hero Slider
                     </a>
                     <a href="{{ route('admin.media-library.show') }}" class="sidebar-nav-link {{ request()->routeIs('admin.media-library.*') ? 'active' : '' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

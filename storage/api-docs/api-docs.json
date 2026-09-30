@@ -2198,6 +2198,42 @@
                 }
             }
         },
+        "/guest/sliders/{slug}": {
+            "get": {
+                "tags": [
+                    "Guest Sliders"
+                ],
+                "summary": "Get a published slider",
+                "description": "Returns an active slider with its active slides in display order.",
+                "operationId": "09688bfd7d456bbc61d148e054b24c8c",
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "homepage-main"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Published slider",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Slider"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Slider not found"
+                    }
+                }
+            }
+        },
         "/items": {
             "get": {
                 "tags": [
@@ -8704,6 +8740,165 @@
                     }
                 },
                 "type": "object"
+            },
+            "SliderButton": {
+                "required": [
+                    "label",
+                    "url",
+                    "style",
+                    "sort_order"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "sort_order": {
+                        "type": "integer",
+                        "example": 0
+                    },
+                    "label": {
+                        "type": "string",
+                        "example": "Order Now"
+                    },
+                    "url": {
+                        "type": "string",
+                        "example": "/order"
+                    },
+                    "style": {
+                        "type": "string",
+                        "enum": [
+                            "solid",
+                            "outline"
+                        ],
+                        "example": "solid"
+                    }
+                },
+                "type": "object"
+            },
+            "Slide": {
+                "required": [
+                    "id",
+                    "sort_order",
+                    "heading",
+                    "text_alignment",
+                    "overlay_color",
+                    "overlay_opacity",
+                    "transition",
+                    "transition_ms",
+                    "buttons"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "sort_order": {
+                        "type": "integer",
+                        "example": 0
+                    },
+                    "is_active": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "badge": {
+                        "type": "string",
+                        "example": "Featured Special",
+                        "nullable": true
+                    },
+                    "heading": {
+                        "type": "string",
+                        "example": "Taste the Authentic Wrap"
+                    },
+                    "body": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "text_alignment": {
+                        "type": "string",
+                        "enum": [
+                            "left",
+                            "center",
+                            "right"
+                        ]
+                    },
+                    "overlay_color": {
+                        "type": "string",
+                        "example": "#000000"
+                    },
+                    "overlay_opacity": {
+                        "type": "integer",
+                        "example": 45
+                    },
+                    "transition": {
+                        "type": "string",
+                        "enum": [
+                            "fade",
+                            "slide-left",
+                            "slide-right"
+                        ]
+                    },
+                    "transition_ms": {
+                        "type": "integer",
+                        "example": 500
+                    },
+                    "media": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/PrimaryMedia"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "buttons": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SliderButton"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "Slider": {
+                "required": [
+                    "id",
+                    "name",
+                    "slug",
+                    "is_active",
+                    "autoplay",
+                    "autoplay_interval_ms",
+                    "slides"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Homepage Main Carousel"
+                    },
+                    "slug": {
+                        "type": "string",
+                        "example": "homepage-main"
+                    },
+                    "is_active": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "autoplay": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "autoplay_interval_ms": {
+                        "type": "integer",
+                        "example": 5000
+                    },
+                    "slides": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Slide"
+                        }
+                    }
+                },
+                "type": "object"
             }
         },
         "securitySchemes": {
@@ -8779,6 +8974,10 @@
         {
             "name": "Guest",
             "description": "Guest"
+        },
+        {
+            "name": "Guest Sliders",
+            "description": "Guest Sliders"
         },
         {
             "name": "Item Options",
