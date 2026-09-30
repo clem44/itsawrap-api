@@ -5,15 +5,13 @@
 
 @section('content')
     <div id="hero-slider-builder"></div>
-
-    <script id="hero-slider-data" type="application/json">{!! json_encode($slider, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
 @endsection
 
 @push('scripts')
     <script>
         window.addEventListener('load', () => {
             const root = document.getElementById('hero-slider-builder');
-            const slider = JSON.parse(document.getElementById('hero-slider-data').textContent);
+            const slider = {{ Illuminate\Support\Js::from($slider) }};
             const updateUrl = @json(route('admin.hero-sliders.update', $slider['id']));
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 

@@ -182,6 +182,21 @@ class HeroSliderFeatureTest extends TestCase
             ->assertSee('Hero Slider');
     }
 
+    public function test_builder_bootstrap_does_not_depend_on_a_json_script_inside_the_vue_root(): void
+    {
+        Slider::query()->create([
+            'name' => 'Homepage Main Carousel',
+            'slug' => 'homepage-main',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($this->makeAdmin())
+            ->get(route('admin.hero-sliders.index'))
+            ->assertOk()
+            ->assertDontSee("document.getElementById('hero-slider-data').textContent", false)
+            ->assertDontSee('id="hero-slider-data"', false);
+    }
+
     public function test_admin_slider_save_validates_button_limit_and_safe_urls(): void
     {
         $slider = Slider::query()->create([
