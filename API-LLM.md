@@ -94,6 +94,93 @@ These do not require Bearer auth.
 
 Returns active storefront menu data: categories, items, options, option values, taxes, media objects, dependencies, bundles/offers as supported by the presenter. Use this for guest ordering UI.
 
+### `GET /api/guest/sliders/{slug}`
+
+Returns one published hero slider by slug. This endpoint is public and does not require Bearer authentication.
+
+Behavior:
+
+- Only returns a slider when the slider itself is active.
+- Only active slides are included.
+- Slides and their buttons are ordered by `sort_order`, then by `id`.
+- Returns `404` when the slug is unknown or the matching slider is inactive.
+- Hero images use the `hero_image` media tag. `media` is `null` when a slide has no image.
+
+Example request:
+
+```http
+GET /api/guest/sliders/homepage-main
+```
+
+Example response:
+
+```json
+{
+  "id": 1,
+  "name": "Homepage Main Carousel",
+  "slug": "homepage-main",
+  "is_active": true,
+  "autoplay": true,
+  "autoplay_interval_ms": 5000,
+  "slides": [
+    {
+      "id": 10,
+      "sort_order": 0,
+      "is_active": true,
+      "badge": "Featured special",
+      "heading": "Taste the authentic wrap",
+      "body": "Fresh ingredients wrapped daily.",
+      "text_alignment": "left",
+      "overlay_color": "#000000",
+      "overlay_opacity": 45,
+      "transition": "fade",
+      "transition_ms": 500,
+      "media": {
+        "id": 25,
+        "basename": "hero-wrap.jpg",
+        "filename": "hero-wrap",
+        "extension": "jpg",
+        "mime_type": "image/jpeg",
+        "aggregate_type": "image",
+        "size": 240000,
+        "size_label": "234.38 KB",
+        "width": 1920,
+        "height": 1080,
+        "dimensions_label": "1920 x 1080 px",
+        "url": "https://example.test/storage/media-library/hero-wrap.jpg",
+        "preview_url": "https://example.test/storage/media-library/hero-wrap.jpg",
+        "alt": ""
+      },
+      "buttons": [
+        {
+          "id": 100,
+          "sort_order": 0,
+          "label": "Order Now",
+          "url": "/order",
+          "style": "solid"
+        },
+        {
+          "id": 101,
+          "sort_order": 1,
+          "label": "View Menu",
+          "url": "/menu",
+          "style": "outline"
+        }
+      ]
+    }
+  ]
+}
+```
+
+Supported slide values:
+
+- `text_alignment`: `left`, `center`, or `right`.
+- `transition`: `fade`, `slide-left`, or `slide-right`.
+- Button `style`: `solid` or `outline`.
+- Each slide supports at most two buttons.
+
+The admin builder uses session-authenticated web routes rather than Sanctum: `GET /admin/hero-sliders` loads the builder and `PUT /admin/hero-sliders/{slider}` replaces the slider document. These routes are CMS integration points and are not public API endpoints.
+
 ### `GET /api/guest/bundles`
 
 Returns currently active, orderable bundles.

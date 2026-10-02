@@ -461,7 +461,6 @@ class HeroSliderBuilderInstance {
         const count = this.slider.slides.length;
         this.element.classList.toggle('hsb--preview', this.previewMode);
         this.element.innerHTML = `
-            ${this.renderToolbar()}
             <div class="hsb__notice-slot" aria-live="polite">${this.noticeMarkup()}</div>
             <div class="hsb__workspace">
                 <section class="hsb__canvas" aria-label="Slider preview and slide deck">
@@ -490,23 +489,6 @@ class HeroSliderBuilderInstance {
                 </section>
                 ${this.renderInspector()}
             </div>`;
-    }
-
-    renderToolbar() {
-        return `
-            <header class="hsb__toolbar">
-                <div class="hsb__title-group">
-                    <div><h1>Hero Slider Builder</h1><span>/</span><input aria-label="Slider name" value="${escapeHtml(this.slider.name)}" data-hsb-field-disabled disabled></div>
-                    <p>Configure homepage carousel and hero slides</p>
-                </div>
-                <button type="button" class="hsb__status ${this.slider.is_active ? 'is-active' : ''}" data-hsb-action="toggle-slider-active" aria-pressed="${this.slider.is_active}">${this.slider.is_active ? 'Active' : 'Inactive'}</button>
-                <div class="hsb__toolbar-actions">
-                    ${this.dirty ? '<span class="hsb__unsaved">Unsaved changes</span>' : ''}
-                    <span class="hsb__preset"><small>Preset:</small> Desktop 16:9</span>
-                    <button type="button" class="hsb__button hsb__button--secondary" data-hsb-action="preview">${icon('eye')} ${this.previewMode ? 'Exit Preview' : 'Preview Mode'}</button>
-                    <button type="button" class="hsb__button hsb__button--save" data-hsb-action="save" ${this.saving ? 'disabled' : ''}>${this.saving ? '<span class="hsb__spinner"></span> Saving…' : `${icon('save')} Save Changes`}</button>
-                </div>
-            </header>`;
     }
 
     renderStageContent(animate = false) {
@@ -550,7 +532,20 @@ class HeroSliderBuilderInstance {
         const slide = this.workingSlide;
         return `
             <aside class="hsb__inspector" aria-label="Slide ${this.selectedIndex + 1} configuration">
-                <div class="hsb__inspector-header"><h2><span></span> Slide #${this.selectedIndex + 1} configuration</h2><span class="hsb__selected-pill">Selected</span></div>
+                <div class="hsb__inspector-header">
+                    <div class="hsb__inspector-actions">
+                        <span class="hsb__inspector-save-state" aria-live="polite">${this.dirty ? '<span class="hsb__unsaved">Unsaved changes</span>' : ''}</span>
+                        <button type="button" class="hsb__button hsb__button--secondary" data-hsb-action="preview">${icon('eye')} ${this.previewMode ? 'Exit Preview' : 'Preview Mode'}</button>
+                        <button type="button" class="hsb__button hsb__button--save" data-hsb-action="save" ${this.saving ? 'disabled' : ''}>${this.saving ? '<span class="hsb__spinner"></span> Saving…' : `${icon('save')} Save Changes`}</button>
+                    </div>
+                    <div class="hsb__inspector-context">
+                        <h2><span></span> Slide #${this.selectedIndex + 1} configuration</h2>
+                        <div class="hsb__inspector-status">
+                            <button type="button" class="hsb__status ${this.slider.is_active ? 'is-active' : ''}" data-hsb-action="toggle-slider-active" aria-pressed="${this.slider.is_active}">${this.slider.is_active ? 'Active' : 'Inactive'}</button>
+                            <span class="hsb__selected-pill">Selected</span>
+                        </div>
+                    </div>
+                </div>
                 <div class="hsb__inspector-scroll">
                     <section class="hsb__form-section">
                         <h3>Slide media & overlay</h3>
