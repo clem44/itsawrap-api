@@ -23,6 +23,7 @@ class OrderCreationService
         private readonly PosPushNotifier $posPushNotifier,
         private readonly DeliveryScheduler $deliveryScheduler,
         private readonly BundleOrderExpander $bundleOrderExpander,
+        private readonly MealDealSelectionService $mealDealSelections,
         private readonly RewardService $rewards,
     ) {}
 
@@ -37,7 +38,7 @@ class OrderCreationService
             $existingOrder = Order::query()
                 ->where('source', $source)
                 ->where('idempotency_key', $idempotencyKey)
-                ->with(['customer', 'status', 'delivery.deliveryWindow', 'participants', 'orderItems.participant', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option'])
+                ->with(['customer', 'status', 'delivery.deliveryWindow', 'participants', 'mealDeals', 'orderItems.participant', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option'])
                 ->first();
 
             if ($existingOrder !== null) {
@@ -52,6 +53,31 @@ class OrderCreationService
         }
 
         $validated = $this->bundleOrderExpander->expand($validated);
+        $preparedDeals = [];
+        foreach ($validated['meal_deals'] ?? [] as $index => $selection) {
+            $preparedDeals[] = $this->mealDealSelections->prepare($selection, "meal_deals.{$index}");
+        }
+        if ($preparedDeals !== []) {
+            $ordinarySubtotal = collect($validated['items'] ?? [])->sum(function (array $item): float {
+                $options = collect($item['options'] ?? [])->sum(fn (array $option): float => (float) ($option['price'] ?? 0) * max(1, (int) ($option['qty'] ?? 1)));
+
+                return ((float) $item['price'] + $options) * (int) $item['quantity'];
+            });
+            $dealSubtotal = collect($preparedDeals)->sum(fn (array $deal): float => ($deal['base_price'] + $deal['extras_price']) * $deal['quantity']);
+            $dealCharge = collect($preparedDeals)->sum(fn (array $deal): float => $deal['service_charge'] * $deal['quantity']);
+            $validated['delivery_fee'] = (float) ($validated['service_charge'] ?? 0);
+            $validated['meal_deal_service_charge'] = round($dealCharge, 2);
+            $validated['subtotal'] = round($ordinarySubtotal + $dealSubtotal, 2);
+            $validated['service_charge'] = round($validated['delivery_fee'] + $dealCharge, 2);
+            $validated['total'] = round($validated['subtotal'] + $validated['service_charge'], 2);
+            $validated['items'] = $validated['items'] ?? [];
+            foreach ($preparedDeals as $dealIndex => $deal) {
+                foreach ($deal['items'] as $item) {
+                    $validated['items'][] = [...$item, '_meal_deal_index' => $dealIndex, 'participant_client_id' => $deal['participant_client_id']];
+                }
+            }
+        }
+        unset($validated['meal_deals']);
 
         $lockKey = "{$source}-order:".sha1((string) ($idempotencyKey ?? json_encode([
             'customer_id' => $customerId,
@@ -76,7 +102,7 @@ class OrderCreationService
                 ->where('name', 'pending')
                 ->value('id') ?? 1;
 
-            $createOrder = function () use ($validated, $customerId, $source, $pendingStatusId, $idempotencyKey): Order {
+            $createOrder = function () use ($validated, $preparedDeals, $customerId, $source, $pendingStatusId, $idempotencyKey): Order {
                 $guestLookupToken = $source === 'guest-web' ? Str::random(64) : null;
 
                 $order = Order::query()->create([
@@ -87,6 +113,8 @@ class OrderCreationService
                     'discount' => 0,
                     'discount_percent' => 0,
                     'service_charge' => $validated['service_charge'] ?? 0,
+                    'meal_deal_service_charge' => $validated['meal_deal_service_charge'] ?? 0,
+                    'delivery_fee' => $validated['delivery_fee'] ?? 0,
                     'total' => $validated['total'],
                     'comments' => $validated['comments'] ?? null,
                     'placed_at' => now(),
@@ -102,8 +130,23 @@ class OrderCreationService
 
                 $participantIdsByClientId = $this->createParticipants($order, $validated['participants'] ?? []);
 
+                $purchases = [];
+                foreach ($preparedDeals as $index => $deal) {
+                    $purchases[$index] = $order->mealDeals()->create([
+                        'meal_deal_id' => $deal['meal_deal_id'],
+                        'order_participant_id' => $this->participantIdForItem($participantIdsByClientId, $deal),
+                        'name' => $deal['name'],
+                        'base_price' => $deal['base_price'],
+                        'extras_price' => $deal['extras_price'],
+                        'service_charge' => $deal['service_charge'],
+                        'quantity' => $deal['quantity'],
+                        'selections' => $deal['selections'],
+                    ]);
+                }
+
                 foreach ($validated['items'] as $itemData) {
                     $orderItem = $order->orderItems()->create([
+                        'order_meal_deal_id' => isset($itemData['_meal_deal_index']) ? $purchases[$itemData['_meal_deal_index']]->id : null,
                         'order_participant_id' => $this->participantIdForItem($participantIdsByClientId, $itemData),
                         'item_id' => $itemData['item_id'],
                         'price' => $itemData['price'],
@@ -149,7 +192,7 @@ class OrderCreationService
 
         $this->posPushNotifier->webOrderCreated($order);
 
-        return $order->load(['customer', 'status', 'delivery.deliveryWindow', 'participants', 'orderItems.participant', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option']);
+        return $order->load(['customer', 'status', 'delivery.deliveryWindow', 'participants', 'mealDeals', 'orderItems.participant', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option']);
     }
 
     /**

@@ -131,6 +131,19 @@
                                     <div class="flex items-start justify-between p-3 rounded-lg bg-gray-50 border border-gray-200">
                                         <div class="flex-1 pr-4">
                                             <p class="text-gray-900 font-medium">{{ $item->item?->name ?: 'Item' }}</p>
+                                            @if($item->orderMealDeal)
+                                                <p class="text-xs font-semibold" style="color: var(--color-forest)">Meal Deal: {{ $item->orderMealDeal->name }} #{{ $item->orderMealDeal->id }}</p>
+                                                <div class="mt-1 text-xs text-gray-600">
+                                                    <p>Deal base: {{ number_format((float) $item->orderMealDeal->base_price, 2) }} · Extras: {{ number_format((float) $item->orderMealDeal->extras_price, 2) }} · Service charge: {{ number_format((float) $item->orderMealDeal->service_charge, 2) }}</p>
+                                                    @foreach($item->orderMealDeal->selections ?? [] as $group => $choices)
+                                                        @if($group === 'primary_item')
+                                                            <p>Item: {{ $choices['name'] ?? 'Item' }}</p>
+                                                        @elseif(is_array($choices) && count($choices))
+                                                            <p>{{ str_replace('_', ' ', ucfirst($group)) }}: {{ collect($choices)->pluck('name')->filter()->implode(', ') }}</p>
+                                                        @endif
+                                                    @endforeach
+                                                </div>
+                                            @endif
                                             <p class="text-sm text-gray-600">Qty: {{ $item->quantity }}</p>
 
                                             {{-- The options are what the kitchen actually builds, and on

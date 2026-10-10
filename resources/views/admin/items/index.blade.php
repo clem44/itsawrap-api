@@ -47,11 +47,13 @@
                 category_id: '',
                 media_id: '',
                 primary_media: null,
-                image_path: '',
                 short_code: '',
                 active: false
             },
-            editAction: '{{ route('admin.items.update', ['item' => '__ID__']) }}',
+            editAction: @js(route('admin.items.update', array_filter([
+                'item' => '__ID__',
+                'category_id' => request('category_id'),
+            ], fn ($value) => filled($value)))),
             itemOptionRoute: '{{ url('/admin/items/__ITEM__/item-options/__ITEM_OPTION__') }}',
             itemOptionOrderRoute: '{{ url('/admin/items/__ITEM__/item-options/order') }}',
             itemsData: @js($itemsData),
@@ -67,7 +69,6 @@
                     category_id: '',
                     media_id: '',
                     primary_media: null,
-                    image_path: '',
                     short_code: '',
                     active: false
                 };
@@ -108,7 +109,6 @@
                     active: item.active || false,
                     options: selectedOptions || []
                 };
-                this.editAction = '{{ route('admin.items.update', ['item' => '__ID__']) }}'.replace('__ID__', item.id);
                 this.editOpen = true;
                 this.createOpen = false;
             },
@@ -518,7 +518,18 @@
 
                     if (response.ok) {
                         this.closeEditOptions();
-                        location.reload();
+                        const categoryFilter = document.getElementById('category_filter');
+                        if (categoryFilter) {
+                            const url = new URL(window.location.href);
+                            if (categoryFilter.value) {
+                                url.searchParams.set('category_id', categoryFilter.value);
+                            } else {
+                                url.searchParams.delete('category_id');
+                            }
+                            location.href = url.toString();
+                        } else {
+                            location.reload();
+                        }
                     }
                 } catch (error) {
                     console.error('Error saving option values:', error);
@@ -532,15 +543,6 @@
                     this.createOptions.splice(index, 1);
                 } else {
                     this.createOptions.push(optionId);
-                }
-            },
-
-            toggleEditOption(optionId) {
-                const index = this.editItem.options.indexOf(optionId);
-                if (index > -1) {
-                    this.editItem.options.splice(index, 1);
-                } else {
-                    this.editItem.options.push(optionId);
                 }
             },
 
@@ -725,7 +727,7 @@
                     class="relative inline-block w-full max-w-4xl transform overflow-hidden rounded-2xl bg-white text-left align-bottom shadow-xl sm:my-8 sm:align-middle"
                     @click.stop
                 >
-                <form method="POST" action="{{ route('admin.items.store') }}">
+                <form method="POST" action="{{ route('admin.items.store', request()->filled('category_id') ? ['category_id' => request('category_id')] : []) }}">
                     @csrf
                     <input type="hidden" name="form_action" value="create">
 
@@ -1135,17 +1137,6 @@
                                                         class="w-20 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-sm text-gray-900 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)]"
                                                         placeholder="0.00"
                                                     >
-                                                    <a
-                                                        type="button"
-                                                        @click.stop="console.log('Delete would go here')"
-                                                        class="text-gray-400 hover:text-red-600 transition-colors p-1"
-                                                        title="Delete value"
-                                                    >
-                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                                        </svg>
-                                                    </a>
-                                                  
                                                 </div>
                                             </button>
 

@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\Bundle;
 use App\Models\BundleItem;
 use App\Models\BundleItemOptionValue;
+use App\Models\MealDeal;
 use App\Models\Category;
 use App\Models\Item;
 use App\Models\ItemOption;
@@ -54,6 +55,7 @@ class AppServiceProvider extends ServiceProvider
         Bundle::class,
         BundleItem::class,
         BundleItemOptionValue::class,
+        MealDeal::class,
         Category::class,
         Item::class,
         ItemOption::class,

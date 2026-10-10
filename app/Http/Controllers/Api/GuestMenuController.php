@@ -32,6 +32,7 @@ class GuestMenuController extends Controller
                 'itemOptions.itemOptionValues.optionDependency.childOption.itemOptionValues.optionValue',
             ])
             ->where('active', true)
+            ->where('menu_visible', true)
             ->orderBy('name')
             ->get()
             ->each(function (Item $item): void {

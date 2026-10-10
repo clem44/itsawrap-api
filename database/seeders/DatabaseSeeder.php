@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             ReferralProgramSeeder::class,
             OptionSeeder::class,
             ItemsSeeder::class,
+            MealDealSeeder::class,
             BranchSeeder::class,
             SliderSeeder::class,
         ]);

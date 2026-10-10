@@ -28,6 +28,8 @@ class ConsumerCache
     /** Ready-made bundles, including the prices resolved from the menu. */
     public const BUNDLES = 'itsawrap_api.guest_bundles';
 
+    public const MEAL_DEALS = 'itsawrap_api.guest_meal_deals';
+
     /**
      * Drop every consumer cache entry.
      *
@@ -49,6 +51,6 @@ class ConsumerCache
      */
     public static function keys(): array
     {
-        return [self::MENU, self::OFFERS, self::BUNDLES];
+        return [self::MENU, self::OFFERS, self::BUNDLES, self::MEAL_DEALS];
     }
 }

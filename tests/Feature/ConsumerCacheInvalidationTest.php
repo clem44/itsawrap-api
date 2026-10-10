@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Bundle;
 use App\Models\Category;
 use App\Models\Item;
+use App\Models\MealDeal;
 use App\Models\Offer;
 use App\Models\Option;
 use App\Models\OptionValue;
@@ -88,6 +89,16 @@ class ConsumerCacheInvalidationTest extends TestCase
     public function test_saving_a_bundle_clears_the_storefront_caches(): void
     {
         Bundle::query()->create(['name' => 'Green Machine', 'is_active' => true, 'sort_order' => 0]);
+
+        $this->assertConsumerCacheCleared();
+    }
+
+    public function test_updating_a_meal_deal_clears_the_storefront_caches(): void
+    {
+        $deal = MealDeal::query()->create(['name' => 'The Albena', 'base_price' => 13, 'selection_groups' => [], 'is_active' => true]);
+
+        $this->warmConsumerCache();
+        $deal->update(['base_price' => 14]);
 
         $this->assertConsumerCacheCleared();
     }

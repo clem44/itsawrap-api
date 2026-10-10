@@ -117,7 +117,7 @@ class BundleController extends Controller
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:999'],
             'media_id' => ['nullable', 'integer', 'exists:media,id'],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.item_id' => ['required', 'integer', 'exists:items,id'],
+            'items.*.item_id' => ['required', 'integer', Rule::exists('items', 'id')->where('menu_visible', true)],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:999'],
             'items.*.sort_order' => ['nullable', 'integer', 'min:0', 'max:999'],
             'items.*.price_override' => ['nullable', 'numeric', 'min:0', 'max:99999.99'],

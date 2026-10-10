@@ -1706,12 +1706,25 @@ html,
     color: white;
 }
 
-.sidebar-nav-link svg {
+.sidebar-nav-link svg,
+.sidebar-nav-link > i.bi {
     margin-right: 0.75rem;
     opacity: 0.8;
 }
 
-.sidebar-nav-link.active svg {
+.sidebar-nav-link > i.bi {
+    display: inline-flex;
+    width: 1.25rem;
+    height: 1.25rem;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+.sidebar-nav-link.active svg,
+.sidebar-nav-link.active > i.bi {
     opacity: 1;
 }
 
@@ -1729,6 +1742,10 @@ html,
 
 .sidebar-chevron {
     margin-left: auto;
+    margin-right: 0;
+    width: 1rem;
+    height: 1rem;
+    font-size: 1rem;
     opacity: 0.6;
     transition: transform 0.2s ease, opacity 0.2s ease;
 }
@@ -1837,11 +1854,18 @@ html,
     justify-content: center;
 }
 
-.admin-sidebar.collapsed .sidebar-nav-link svg {
+.admin-sidebar.collapsed .sidebar-nav-link svg,
+.admin-sidebar.collapsed .sidebar-nav-link > i.bi {
     margin-right: 0;
 }
 
-.admin-sidebar.collapsed .sidebar-collapse-btn svg {
+.sidebar-collapse-btn i.bi {
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+.admin-sidebar.collapsed .sidebar-collapse-btn svg,
+.admin-sidebar.collapsed .sidebar-collapse-btn i.bi {
     transform: rotate(180deg);
 }
 

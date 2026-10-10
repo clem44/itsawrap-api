@@ -69,6 +69,7 @@ class CustomerOrderController extends Controller
                             ]
                         )
                     ),
+                    new OA\Property(property: 'meal_deals', type: 'array', nullable: true, items: new OA\Items(ref: '#/components/schemas/MealDealOrderSelection')),
                     new OA\Property(
                         property: 'items',
                         type: 'array',

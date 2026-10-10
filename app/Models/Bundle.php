@@ -74,7 +74,7 @@ class Bundle extends Model
         return $query
             ->currentlyActive($now)
             ->whereHas('bundleItems')
-            ->whereDoesntHave('bundleItems.item', fn (Builder $query) => $query->where('active', false));
+            ->whereDoesntHave('bundleItems.item', fn (Builder $query) => $query->where('active', false)->orWhere('menu_visible', false));
     }
 
     /**

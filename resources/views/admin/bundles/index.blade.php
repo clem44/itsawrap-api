@@ -25,6 +25,7 @@
         createAction: '{{ route('admin.bundles.store') }}',
         updateAction: '{{ route('admin.bundles.update', ['bundle' => '__ID__']) }}',
         modalAction: '{{ old('form_action') === 'edit' && old('edit_id') ? route('admin.bundles.update', ['bundle' => old('edit_id')]) : route('admin.bundles.store') }}',
+        itemChoices: @js($items->map(fn ($item) => ['value' => $item->id, 'text' => $item->name.($item->category ? ' - '.$item->category->name : '')])->values()),
         itemOptionsByItemId: @js($items->mapWithKeys(fn ($item) => [(string) $item->id => $item->itemOptions->map(fn ($itemOption) => [
             'id' => $itemOption->id,
             'name' => $itemOption->option?->name,
@@ -143,6 +144,14 @@
 
         itemOptionsFor(bundleItem) {
             return this.itemOptionsByItemId[bundleItem.item_id] || [];
+        },
+
+        changeBundleItem(bundleItem) {
+            bundleItem.option_values = [];
+        },
+
+        changeBundleOption(optionValue) {
+            optionValue.option_value_id = '';
         },
 
         optionValuesFor(bundleItem, optionValue) {
@@ -414,12 +423,7 @@
                                             <div class="grid grid-cols-1 gap-3 md:grid-cols-6">
                                                 <div class="md:col-span-2">
                                                     <label class="mb-1.5 block text-xs font-medium text-white/70">Item</label>
-                                                    <select :name="`items[${index}][item_id]`" class="bundle-modal-select w-full rounded-lg border border-white/20 px-3 py-2 text-sm focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)]" v-model="bundleItem.item_id" required>
-                                                        <option value="">Choose item</option>
-                                                        @foreach($items as $item)
-                                                            <option value="{{ $item->id }}">{{ $item->name }}{{ $item->category ? ' - '.$item->category->name : '' }}</option>
-                                                        @endforeach
-                                                    </select>
+                                                    <admin-tom-select :name="`items[${index}][item_id]`" :options="[{ value: '', text: 'Choose item' }, ...itemChoices]" class="bundle-modal-select w-full rounded-lg border border-white/20 px-3 py-2 text-sm focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)]" v-model="bundleItem.item_id" @change="changeBundleItem(bundleItem)" required></admin-tom-select>
                                                 </div>
                                                 <div>
                                                     <label class="mb-1.5 block text-xs font-medium text-white/70">Qty</label>
@@ -455,17 +459,11 @@
                                                     <div v-for="(optionValue, optionIndex) in bundleItem.option_values" :key="`option-${index}-${optionIndex}`" class="grid grid-cols-1 gap-3 md:grid-cols-6">
                                                         <div class="md:col-span-2">
                                                             <label class="mb-1.5 block text-xs font-medium text-white/60">Option</label>
-                                                            <select :name="`items[${index}][option_values][${optionIndex}][item_option_id]`" class="bundle-modal-select w-full rounded-lg border border-white/20 px-3 py-2 text-sm focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)]" v-model="optionValue.item_option_id" required>
-                                                                <option value="">Choose option</option>
-                                                                <option v-for="itemOption in itemOptionsFor(bundleItem)" :key="itemOption.id" :value="itemOption.id" v-text="itemOption.name"></option>
-                                                            </select>
+                                                            <admin-tom-select :name="`items[${index}][option_values][${optionIndex}][item_option_id]`" :options="[{ value: '', text: 'Choose option' }, ...itemOptionsFor(bundleItem).map(itemOption => ({ value: itemOption.id, text: itemOption.name }))]" class="bundle-modal-select w-full rounded-lg border border-white/20 px-3 py-2 text-sm focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)]" v-model="optionValue.item_option_id" @change="changeBundleOption(optionValue)" required></admin-tom-select>
                                                         </div>
                                                         <div class="md:col-span-2">
                                                             <label class="mb-1.5 block text-xs font-medium text-white/60">Value</label>
-                                                            <select :name="`items[${index}][option_values][${optionIndex}][option_value_id]`" class="bundle-modal-select w-full rounded-lg border border-white/20 px-3 py-2 text-sm focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)]" v-model="optionValue.option_value_id" required>
-                                                                <option value="">Choose value</option>
-                                                                <option v-for="value in optionValuesFor(bundleItem, optionValue)" :key="value.id" :value="value.id" v-text="value.name"></option>
-                                                            </select>
+                                                            <admin-tom-select :name="`items[${index}][option_values][${optionIndex}][option_value_id]`" :options="[{ value: '', text: 'Choose value' }, ...optionValuesFor(bundleItem, optionValue).map(value => ({ value: value.id, text: value.name }))]" class="bundle-modal-select w-full rounded-lg border border-white/20 px-3 py-2 text-sm focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)]" v-model="optionValue.option_value_id" required></admin-tom-select>
                                                         </div>
                                                         <div>
                                                             <label class="mb-1.5 block text-xs font-medium text-white/60">Qty</label>

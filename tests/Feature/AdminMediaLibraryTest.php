@@ -36,6 +36,15 @@ class AdminMediaLibraryTest extends TestCase
             ->assertSee(route('admin.media-library.index'), false);
     }
 
+    public function test_media_library_sidebar_link_does_not_open_data_menu(): void
+    {
+        $this->actingAs($this->makeAdmin())
+            ->get(route('admin.media-library.show'))
+            ->assertOk()
+            ->assertSee('data-menu-open="false"', false)
+            ->assertSee('Media Library');
+    }
+
     public function test_admin_can_upload_and_list_media_files(): void
     {
         $mediaId = $this->uploadImage('summer-beach-sunset.jpg', 'Beach sunset')

@@ -1592,6 +1592,13 @@
                                         },
                                         "nullable": true
                                     },
+                                    "meal_deals": {
+                                        "type": "array",
+                                        "items": {
+                                            "$ref": "#/components/schemas/MealDealOrderSelection"
+                                        },
+                                        "nullable": true
+                                    },
                                     "items": {
                                         "type": "array",
                                         "items": {
@@ -1960,6 +1967,13 @@
                                                 }
                                             },
                                             "type": "object"
+                                        },
+                                        "nullable": true
+                                    },
+                                    "meal_deals": {
+                                        "type": "array",
+                                        "items": {
+                                            "$ref": "#/components/schemas/MealDealOrderSelection"
                                         },
                                         "nullable": true
                                     },
@@ -3288,6 +3302,37 @@
                         "bearerAuth": []
                     }
                 ]
+            }
+        },
+        "/guest/meal-deals": {
+            "get": {
+                "tags": [
+                    "Meal Deals"
+                ],
+                "summary": "List available Meal Deals",
+                "operationId": "2adce5d43b059a4b18708e387a246d1c",
+                "responses": {
+                    "200": {
+                        "description": "Available deals and diagnostics for active deals that cannot be ordered"
+                    }
+                }
+            }
+        },
+        "/guest/meal-deals/quote": {
+            "post": {
+                "tags": [
+                    "Meal Deals"
+                ],
+                "summary": "Quote configured Meal Deals",
+                "operationId": "18fb1eaef9d89b84ab8c07750244d331",
+                "responses": {
+                    "200": {
+                        "description": "Server calculated deal prices"
+                    },
+                    "422": {
+                        "description": "Invalid selection"
+                    }
+                }
             }
         },
         "/guest/offers": {
@@ -7368,6 +7413,69 @@
                 },
                 "type": "object"
             },
+            "MealDealOrderSelection": {
+                "required": [
+                    "meal_deal_id",
+                    "quantity",
+                    "selections"
+                ],
+                "properties": {
+                    "meal_deal_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "quantity": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "participant_client_id": {
+                        "type": "string",
+                        "example": "person-0",
+                        "nullable": true
+                    },
+                    "selections": {
+                        "description": "Selection group keys map to arrays of chosen item or option value IDs.",
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            }
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "PurchasedMealDeal": {
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "meal_deal_id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "quantity": {
+                        "type": "integer"
+                    },
+                    "base_price": {
+                        "type": "string"
+                    },
+                    "extras_price": {
+                        "type": "string"
+                    },
+                    "service_charge": {
+                        "type": "string"
+                    },
+                    "selections": {
+                        "description": "Purchase-time snapshot of selected names and prices.",
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
             "Order": {
                 "properties": {
                     "id": {
@@ -7413,6 +7521,22 @@
                         "type": "number",
                         "format": "float",
                         "example": 28.13
+                    },
+                    "meal_deal_service_charge": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 1.95
+                    },
+                    "delivery_fee": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 0
+                    },
+                    "meal_deals": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PurchasedMealDeal"
+                        }
                     },
                     "notes": {
                         "type": "string",
@@ -7521,6 +7645,10 @@
                     "item_id": {
                         "type": "integer",
                         "example": 1
+                    },
+                    "order_meal_deal_id": {
+                        "type": "integer",
+                        "nullable": true
                     },
                     "quantity": {
                         "type": "integer",
@@ -7637,6 +7765,20 @@
                         "type": "string",
                         "example": "0.00"
                     },
+                    "meal_deal_service_charge": {
+                        "type": "string",
+                        "example": "1.95"
+                    },
+                    "delivery_fee": {
+                        "type": "string",
+                        "example": "0.00"
+                    },
+                    "meal_deals": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PurchasedMealDeal"
+                        }
+                    },
                     "total": {
                         "type": "string",
                         "example": "13.50"
@@ -7731,6 +7873,10 @@
                                 "price": {
                                     "type": "string",
                                     "example": "12.50"
+                                },
+                                "order_meal_deal_id": {
+                                    "type": "integer",
+                                    "nullable": true
                                 },
                                 "quantity": {
                                     "type": "integer",
@@ -8986,6 +9132,10 @@
         {
             "name": "Item Option Values",
             "description": "Item Option Values"
+        },
+        {
+            "name": "Meal Deals",
+            "description": "Meal Deals"
         },
         {
             "name": "Offers",

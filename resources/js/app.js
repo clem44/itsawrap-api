@@ -1,4 +1,5 @@
 import './bootstrap';
+import 'bootstrap-icons/font/bootstrap-icons.css';
 import './plugins/media-library/media-library';
 import './plugins/media-library/Media-library.css';
 import './plugins/hero-slider/hero-slider-builder';
@@ -9,6 +10,7 @@ import 'flatpickr/dist/flatpickr.css';
 import EditItemModal from './components/admin/EditItemModal.vue';
 import EditOptionValueModal from './components/admin/EditOptionValueModal.vue';
 import UserForm from './components/admin/users/UserForm.vue';
+import AdminTomSelect from './components/admin/AdminTomSelect.vue';
 
 window.flatpickr = flatpickr;
 
@@ -88,6 +90,7 @@ function mountAdminApp() {
         .component('edit-item-modal', EditItemModal)
         .component('edit-option-value-modal', EditOptionValueModal)
         .component('user-form', UserForm)
+        .component('admin-tom-select', AdminTomSelect)
         .mount(root);
 
     window.MediaLibrary?.autoMount();

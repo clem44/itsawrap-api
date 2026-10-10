@@ -22,6 +22,7 @@ class Item extends Model
         'media_id',
         'stock_id',
         'active',
+        'menu_visible',
         'image_path',
         'short_code',
     ];
@@ -31,6 +32,7 @@ class Item extends Model
         return [
             'cost' => 'decimal:2',
             'active' => 'boolean',
+            'menu_visible' => 'boolean',
         ];
     }
 

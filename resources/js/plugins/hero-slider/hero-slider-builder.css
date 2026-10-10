@@ -110,8 +110,8 @@
     border-radius: 1rem;
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
-    height: calc(100vh - 4rem);
-    height: calc(100dvh - 4rem);
+    height: calc(94vh - 4rem);
+    height: calc(94dvh - 4rem);
     min-height: 0;
     overflow: hidden;
     position: sticky;

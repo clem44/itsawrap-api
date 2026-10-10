@@ -13,6 +13,7 @@ class OrderItem extends Model
 
     protected $fillable = [
         'order_id',
+        'order_meal_deal_id',
         'order_participant_id',
         'item_id',
         'price',
@@ -70,6 +71,11 @@ class OrderItem extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
+    }
+
+    public function orderMealDeal(): BelongsTo
+    {
+        return $this->belongsTo(OrderMealDeal::class);
     }
 
     public function participant(): BelongsTo

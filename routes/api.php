@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\OptionController;
 use App\Http\Controllers\Api\OptionDependencyController;
 use App\Http\Controllers\Api\OptionValueController;
 use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\MealDealController;
 use App\Http\Controllers\Api\OrderItemController;
 use App\Http\Controllers\Api\OrderReferralRewardController;
 use App\Http\Controllers\Api\OrderRewardController;
@@ -45,6 +46,8 @@ Route::prefix('guest')->group(function () {
     Route::middleware('throttle:guest-menu')->get('/menu', GuestMenuController::class);
     Route::middleware('throttle:guest-delivery-windows')->get('/delivery-windows/today', DeliveryWindowTodayController::class);
     Route::get('/bundles', [BundleController::class, 'index']);
+    Route::get('/meal-deals', [MealDealController::class, 'index']);
+    Route::post('/meal-deals/quote', [MealDealController::class, 'quote']);
     Route::get('/offers', [OfferController::class, 'index']);
     Route::middleware('throttle:guest-customer')->post('/customers', [GuestCustomerController::class, 'store']);
     Route::middleware('throttle:guest-order')->post('/orders', [GuestOrderController::class, 'store']);
@@ -65,6 +68,8 @@ Route::middleware(['auth:sanctum', 'customer'])->prefix('me')->group(function ()
     Route::get('/rewards', [CustomerRewardController::class, 'me']);
     Route::get('/offers', [OfferController::class, 'index']);
     Route::get('/bundles', [BundleController::class, 'index']);
+    Route::get('/meal-deals', [MealDealController::class, 'index']);
+    Route::post('/meal-deals/quote', [MealDealController::class, 'quote']);
     Route::get('/referral-code', [ReferralCodeController::class, 'show']);
     Route::get('/delivery-windows/today', DeliveryWindowTodayController::class);
     Route::post('/orders', [CustomerOrderController::class, 'store']);

@@ -151,7 +151,7 @@ class ItemController extends Controller
             }
         }
 
-        return redirect()->route('admin.items.index')
+        return $this->redirectToItemsIndex($request)
             ->with('success', 'Item created successfully.');
     }
 
@@ -190,7 +190,7 @@ class ItemController extends Controller
             $this->syncItemOptions($item, (array) $request->input('options', []));
             // dd($item, "item should be saved");
 
-            return redirect()->route('admin.items.index')
+            return $this->redirectToItemsIndex($request)
                 ->with('success', 'Item updated successfully.');
         } catch (\Throwable $e) {
             report($e);
@@ -546,5 +546,15 @@ class ItemController extends Controller
         }
 
         $item->detachMediaTags('primary_image');
+    }
+
+    private function redirectToItemsIndex(Request $request): RedirectResponse
+    {
+        $categoryId = $request->query('category_id');
+
+        return redirect()->route(
+            'admin.items.index',
+            !empty($categoryId) ? ['category_id' => $categoryId] : []
+        );
     }
 }

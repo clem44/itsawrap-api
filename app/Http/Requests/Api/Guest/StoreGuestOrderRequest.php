@@ -39,7 +39,7 @@ class StoreGuestOrderRequest extends FormRequest
             'delivery_instructions' => ['nullable', 'string', 'max:1000'],
             'idempotency_key' => ['nullable', 'string', 'max:100'],
             ...$this->participantRules(),
-            'items' => ['required_without:bundles', 'array', 'min:1', 'max:25'],
+            'items' => ['nullable', 'array', 'max:25'],
             'items.*.item_id' => ['required', 'integer', 'exists:items,id'],
             'items.*.price' => ['required', 'numeric', 'min:0', 'max:9999.99'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:20'],
@@ -55,6 +55,14 @@ class StoreGuestOrderRequest extends FormRequest
             'bundles.*.quantity' => ['required', 'integer', 'min:1', 'max:20'],
             ...$this->bundleParticipantRules(),
             'bundles.*.comment' => ['nullable', 'string', 'max:255'],
+            'meal_deals' => ['nullable', 'array', 'max:10'],
+            'meal_deals.*.meal_deal_id' => ['required', 'integer', 'exists:meal_deals,id'],
+            'meal_deals.*.item_id' => ['nullable', 'integer', 'exists:items,id'],
+            'meal_deals.*.quantity' => ['required', 'integer', 'min:1', 'max:20'],
+            'meal_deals.*.selections' => ['required', 'array'],
+            'meal_deals.*.selections.*' => ['array', 'max:20'],
+            'meal_deals.*.selections.*.*' => ['required', 'integer', 'min:1'],
+            ...$this->mealDealParticipantRules(),
         ];
     }
 
@@ -73,6 +81,9 @@ class StoreGuestOrderRequest extends FormRequest
     {
         return [
             function (Validator $validator): void {
+                if (empty($this->input('items')) && empty($this->input('bundles')) && empty($this->input('meal_deals'))) {
+                    $validator->errors()->add('items', 'Add at least one item, bundle, or Meal Deal.');
+                }
                 if (strlen((string) $this->getContent()) > 65535) {
                     $validator->errors()->add('payload', 'The guest order payload is too large.');
                 }
@@ -96,7 +107,7 @@ class StoreGuestOrderRequest extends FormRequest
 
                 foreach ($this->input('items', []) as $index => $item) {
                     $itemModel = Item::query()->find($item['item_id'] ?? null);
-                    if ($itemModel === null || ! $itemModel->active) {
+                    if ($itemModel === null || ! $itemModel->active || ! $itemModel->menu_visible) {
                         $validator->errors()->add("items.$index.item_id", 'The selected item is not available for guest ordering.');
                     }
 
@@ -104,6 +115,9 @@ class StoreGuestOrderRequest extends FormRequest
                     $totalOptions += count($item['options'] ?? []);
 
                     foreach ($item['options'] ?? [] as $optionIndex => $option) {
+                        if (OptionValue::query()->whereKey($option['option_value_id'] ?? null)->whereHas('option', fn ($query) => $query->where('name', 'Protein 2'))->exists()) {
+                            $validator->errors()->add("items.$index.options.$optionIndex.option_value_id", 'Protein 2 is only available in the Big Boy Meal Deal.');
+                        }
                         if (isset($option['parent_option_value_id']) && $option['parent_option_value_id'] !== null) {
                             $parentOptionValue = OptionValue::query()->find($option['parent_option_value_id']);
                             if ($parentOptionValue === null) {

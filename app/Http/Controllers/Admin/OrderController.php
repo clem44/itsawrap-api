@@ -26,7 +26,7 @@ class OrderController extends Controller
 
     public function show(Order $order): View
     {
-        $order->load(['customer', 'status', 'delivery.deliveryWindow', 'delivery.assignedDriver', 'participants', 'orderItems.participant', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option', 'payments']);
+        $order->load(['customer', 'status', 'delivery.deliveryWindow', 'delivery.assignedDriver', 'participants', 'mealDeals', 'orderItems.orderMealDeal', 'orderItems.participant', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option', 'payments']);
         $statuses = Status::query()->orderBy('id')->get();
 
         return view('admin.orders.show', compact('order', 'statuses'));

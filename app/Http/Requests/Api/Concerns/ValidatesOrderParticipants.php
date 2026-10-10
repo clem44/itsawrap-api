@@ -39,6 +39,11 @@ trait ValidatesOrderParticipants
         ];
     }
 
+    protected function mealDealParticipantRules(): array
+    {
+        return ['meal_deals.*.participant_client_id' => ['nullable', 'string', 'max:100']];
+    }
+
     protected function validateParticipantAssignments(Validator $validator): void
     {
         $participants = $this->input('participants', []);
@@ -78,6 +83,13 @@ trait ValidatesOrderParticipants
                 $validator->errors()->add("bundles.$index.participant_client_id", 'Each bundle must identify the participant it belongs to.');
             } elseif (! in_array((string) $participantClientId, $participantClientIds, true)) {
                 $validator->errors()->add("bundles.$index.participant_client_id", 'The selected participant is invalid.');
+            }
+        }
+
+        foreach ($this->input('meal_deals', []) as $index => $deal) {
+            $participantClientId = $deal['participant_client_id'] ?? null;
+            if (blank($participantClientId) || ! in_array((string) $participantClientId, $participantClientIds, true)) {
+                $validator->errors()->add("meal_deals.$index.participant_client_id", 'The selected participant is invalid.');
             }
         }
     }

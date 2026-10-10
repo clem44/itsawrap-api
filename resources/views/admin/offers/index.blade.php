@@ -47,6 +47,11 @@
         createAction: '{{ route('admin.offers.store') }}',
         updateAction: '{{ route('admin.offers.update', ['offer' => '__ID__']) }}',
         modalAction: '{{ old('form_action') === 'edit' && old('edit_id') ? route('admin.offers.update', ['offer' => old('edit_id')]) : route('admin.offers.store') }}',
+        offerTypeOptions: @js(collect($offerTypeLabels)->map(fn ($label, $value) => ['value' => $value, 'text' => $label])->values()),
+        discountTypeOptions: @js(collect($discountTypeLabels)->map(fn ($label, $value) => ['value' => $value, 'text' => $label])->values()),
+        bundleOptions: @js($bundles->map(fn ($bundle) => ['value' => $bundle->id, 'text' => $bundle->name.($bundle->is_active ? '' : ' - inactive')])->values()),
+        categoryOptions: @js($categories->map(fn ($category) => ['value' => $category->id, 'text' => $category->name])->values()),
+        itemOptions: @js($items->map(fn ($item) => ['value' => $item->id, 'text' => $item->name.($item->category ? ' - '.$item->category->name : '')])->values()),
         offer: {
             id: {{ old('form_action') === 'edit' ? (old('edit_id') ?: 'null') : 'null' }},
             name: @js(old('form_action') ? old('name', '') : ''),
@@ -381,20 +386,12 @@
                                 <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                                     <div>
                                         <label class="mb-2 block text-sm font-medium text-white/80">Offer Type</label>
-                                        <select name="offer_type" class="offer-modal-select w-full rounded-lg border border-white/20 px-4 py-2.5 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('offer_type') border-red-500 @enderror" v-model="offer.offer_type" required>
-                                            @foreach($offerTypeLabels as $value => $label)
-                                                <option value="{{ $value }}">{{ $label }}</option>
-                                            @endforeach
-                                        </select>
+                                        <admin-tom-select name="offer_type" :options="offerTypeOptions" class="offer-modal-select w-full rounded-lg border border-white/20 px-4 py-2.5 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('offer_type') border-red-500 @enderror" v-model="offer.offer_type" required></admin-tom-select>
                                         @error('offer_type')<p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>@enderror
                                     </div>
                                     <div>
                                         <label class="mb-2 block text-sm font-medium text-white/80">Discount Type</label>
-                                        <select name="discount_type" class="offer-modal-select w-full rounded-lg border border-white/20 px-4 py-2.5 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('discount_type') border-red-500 @enderror" v-model="offer.discount_type" required>
-                                            @foreach($discountTypeLabels as $value => $label)
-                                                <option value="{{ $value }}">{{ $label }}</option>
-                                            @endforeach
-                                        </select>
+                                        <admin-tom-select name="discount_type" :options="discountTypeOptions" class="offer-modal-select w-full rounded-lg border border-white/20 px-4 py-2.5 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('discount_type') border-red-500 @enderror" v-model="offer.discount_type" required></admin-tom-select>
                                         @error('discount_type')<p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>@enderror
                                     </div>
                                     <div>
@@ -406,14 +403,7 @@
 
                                 <div>
                                     <label class="mb-2 block text-sm font-medium text-white/80">Bundle</label>
-                                    <select name="bundle_id" class="offer-modal-select w-full rounded-lg border border-white/20 px-4 py-2.5 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('bundle_id') border-red-500 @enderror" v-model="offer.bundle_id">
-                                        <option value="">No bundle</option>
-                                        @foreach($bundles as $bundle)
-                                            <option value="{{ $bundle->id }}">
-                                                {{ $bundle->name }}{{ $bundle->is_active ? '' : ' - inactive' }}
-                                            </option>
-                                        @endforeach
-                                    </select>
+                                    <admin-tom-select name="bundle_id" :options="[{ value: '', text: 'No bundle' }, ...bundleOptions]" class="offer-modal-select w-full rounded-lg border border-white/20 px-4 py-2.5 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('bundle_id') border-red-500 @enderror" v-model="offer.bundle_id"></admin-tom-select>
                                     <p class="mt-1.5 text-xs text-white/60">Required for fixed-price bundle offers. Build reusable bundles from Data > Bundles.</p>
                                     @error('bundle_id')<p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>@enderror
                                 </div>
@@ -421,22 +411,12 @@
                                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                                     <div>
                                         <label class="mb-2 block text-sm font-medium text-white/80">Qualifying Category</label>
-                                        <select name="qualifying_category_id" class="offer-modal-select w-full rounded-lg border border-white/20 px-4 py-2.5 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('qualifying_category_id') border-red-500 @enderror" v-model="offer.qualifying_category_id">
-                                            <option value="">Any category</option>
-                                            @foreach($categories as $category)
-                                                <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                            @endforeach
-                                        </select>
+                                        <admin-tom-select name="qualifying_category_id" :options="[{ value: '', text: 'Any category' }, ...categoryOptions]" class="offer-modal-select w-full rounded-lg border border-white/20 px-4 py-2.5 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('qualifying_category_id') border-red-500 @enderror" v-model="offer.qualifying_category_id"></admin-tom-select>
                                         @error('qualifying_category_id')<p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>@enderror
                                     </div>
                                     <div>
                                         <label class="mb-2 block text-sm font-medium text-white/80">Qualifying Item</label>
-                                        <select name="qualifying_item_id" class="offer-modal-select w-full rounded-lg border border-white/20 px-4 py-2.5 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('qualifying_item_id') border-red-500 @enderror" v-model="offer.qualifying_item_id">
-                                            <option value="">Any item</option>
-                                            @foreach($items as $item)
-                                                <option value="{{ $item->id }}">{{ $item->name }}{{ $item->category ? ' - '.$item->category->name : '' }}</option>
-                                            @endforeach
-                                        </select>
+                                        <admin-tom-select name="qualifying_item_id" :options="[{ value: '', text: 'Any item' }, ...itemOptions]" class="offer-modal-select w-full rounded-lg border border-white/20 px-4 py-2.5 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('qualifying_item_id') border-red-500 @enderror" v-model="offer.qualifying_item_id"></admin-tom-select>
                                         @error('qualifying_item_id')<p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>@enderror
                                     </div>
                                 </div>
@@ -444,22 +424,12 @@
                                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                                     <div>
                                         <label class="mb-2 block text-sm font-medium text-white/80">Reward Category</label>
-                                        <select name="reward_category_id" class="offer-modal-select w-full rounded-lg border border-white/20 px-4 py-2.5 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('reward_category_id') border-red-500 @enderror" v-model="offer.reward_category_id">
-                                            <option value="">No reward category</option>
-                                            @foreach($categories as $category)
-                                                <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                            @endforeach
-                                        </select>
+                                        <admin-tom-select name="reward_category_id" :options="[{ value: '', text: 'No reward category' }, ...categoryOptions]" class="offer-modal-select w-full rounded-lg border border-white/20 px-4 py-2.5 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('reward_category_id') border-red-500 @enderror" v-model="offer.reward_category_id"></admin-tom-select>
                                         @error('reward_category_id')<p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>@enderror
                                     </div>
                                     <div>
                                         <label class="mb-2 block text-sm font-medium text-white/80">Reward Item</label>
-                                        <select name="reward_item_id" class="offer-modal-select w-full rounded-lg border border-white/20 px-4 py-2.5 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('reward_item_id') border-red-500 @enderror" v-model="offer.reward_item_id">
-                                            <option value="">No reward item</option>
-                                            @foreach($items as $item)
-                                                <option value="{{ $item->id }}">{{ $item->name }}{{ $item->category ? ' - '.$item->category->name : '' }}</option>
-                                            @endforeach
-                                        </select>
+                                        <admin-tom-select name="reward_item_id" :options="[{ value: '', text: 'No reward item' }, ...itemOptions]" class="offer-modal-select w-full rounded-lg border border-white/20 px-4 py-2.5 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)] @error('reward_item_id') border-red-500 @enderror" v-model="offer.reward_item_id"></admin-tom-select>
                                         @error('reward_item_id')<p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>@enderror
                                     </div>
                                 </div>

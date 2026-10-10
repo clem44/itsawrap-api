@@ -179,6 +179,29 @@ use OpenApi\Attributes as OA;
     ]
 )]
 #[OA\Schema(
+    schema: 'MealDealOrderSelection',
+    required: ['meal_deal_id', 'quantity', 'selections'],
+    properties: [
+        new OA\Property(property: 'meal_deal_id', type: 'integer', example: 1),
+        new OA\Property(property: 'quantity', type: 'integer', example: 1),
+        new OA\Property(property: 'participant_client_id', type: 'string', nullable: true, example: 'person-0'),
+        new OA\Property(property: 'selections', type: 'object', description: 'Selection group keys map to arrays of chosen item or option value IDs.', additionalProperties: new OA\AdditionalProperties(type: 'array', items: new OA\Items(type: 'integer'))),
+    ]
+)]
+#[OA\Schema(
+    schema: 'PurchasedMealDeal',
+    properties: [
+        new OA\Property(property: 'id', type: 'integer'),
+        new OA\Property(property: 'meal_deal_id', type: 'integer'),
+        new OA\Property(property: 'name', type: 'string'),
+        new OA\Property(property: 'quantity', type: 'integer'),
+        new OA\Property(property: 'base_price', type: 'string'),
+        new OA\Property(property: 'extras_price', type: 'string'),
+        new OA\Property(property: 'service_charge', type: 'string'),
+        new OA\Property(property: 'selections', type: 'object', description: 'Purchase-time snapshot of selected names and prices.'),
+    ]
+)]
+#[OA\Schema(
     schema: 'Order',
     properties: [
         new OA\Property(property: 'id', type: 'integer', example: 1),
@@ -191,6 +214,9 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'tax_amount', type: 'number', format: 'float', example: 2.14),
         new OA\Property(property: 'discount_amount', type: 'number', format: 'float', example: 0),
         new OA\Property(property: 'total', type: 'number', format: 'float', example: 28.13),
+        new OA\Property(property: 'meal_deal_service_charge', type: 'number', format: 'float', example: 1.95),
+        new OA\Property(property: 'delivery_fee', type: 'number', format: 'float', example: 0),
+        new OA\Property(property: 'meal_deals', type: 'array', items: new OA\Items(ref: '#/components/schemas/PurchasedMealDeal')),
         new OA\Property(property: 'notes', type: 'string', nullable: true),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),
         new OA\Property(property: 'updated_at', type: 'string', format: 'date-time'),
@@ -227,6 +253,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'order_participant_id', type: 'integer', nullable: true, example: 1),
         new OA\Property(property: 'participant', ref: '#/components/schemas/OrderParticipant', nullable: true),
         new OA\Property(property: 'item_id', type: 'integer', example: 1),
+        new OA\Property(property: 'order_meal_deal_id', type: 'integer', nullable: true),
         new OA\Property(property: 'quantity', type: 'integer', example: 2),
         new OA\Property(property: 'is_reward_item', type: 'boolean', example: false),
         new OA\Property(property: 'reward_program_id', type: 'integer', nullable: true, example: 1),
@@ -261,6 +288,9 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'discount', type: 'string', nullable: true, example: '0.00'),
         new OA\Property(property: 'discount_percent', type: 'string', nullable: true, example: '0.00'),
         new OA\Property(property: 'service_charge', type: 'string', example: '0.00'),
+        new OA\Property(property: 'meal_deal_service_charge', type: 'string', example: '1.95'),
+        new OA\Property(property: 'delivery_fee', type: 'string', example: '0.00'),
+        new OA\Property(property: 'meal_deals', type: 'array', items: new OA\Items(ref: '#/components/schemas/PurchasedMealDeal')),
         new OA\Property(property: 'total', type: 'string', example: '13.50'),
         new OA\Property(property: 'comments', type: 'string', nullable: true),
         new OA\Property(property: 'placed_at', type: 'string', format: 'date-time', nullable: true),
@@ -293,6 +323,7 @@ use OpenApi\Attributes as OA;
                         new OA\Property(property: 'is_primary', type: 'boolean', example: true),
                     ]),
                     new OA\Property(property: 'price', type: 'string', example: '12.50'),
+                    new OA\Property(property: 'order_meal_deal_id', type: 'integer', nullable: true),
                     new OA\Property(property: 'quantity', type: 'integer', example: 1),
                     new OA\Property(property: 'comment', type: 'string', nullable: true),
                     new OA\Property(

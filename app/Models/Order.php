@@ -21,6 +21,8 @@ class Order extends Model
         'discount',
         'discount_percent',
         'service_charge',
+        'meal_deal_service_charge',
+        'delivery_fee',
         'total',
         'comments',
         'placed_at',
@@ -46,6 +48,8 @@ class Order extends Model
             'discount' => 'decimal:2',
             'discount_percent' => 'decimal:2',
             'service_charge' => 'decimal:2',
+            'meal_deal_service_charge' => 'decimal:2',
+            'delivery_fee' => 'decimal:2',
             'total' => 'decimal:2',
             'is_delivery' => 'boolean',
             'is_reward' => 'boolean',
@@ -73,6 +77,11 @@ class Order extends Model
     public function orderItems(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    public function mealDeals(): HasMany
+    {
+        return $this->hasMany(OrderMealDeal::class);
     }
 
     public function participants(): HasMany

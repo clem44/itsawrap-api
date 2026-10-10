@@ -70,6 +70,7 @@ class GuestOrderController extends Controller
                             ]
                         )
                     ),
+                    new OA\Property(property: 'meal_deals', type: 'array', nullable: true, items: new OA\Items(ref: '#/components/schemas/MealDealOrderSelection')),
                     new OA\Property(
                         property: 'items',
                         type: 'array',
@@ -169,7 +170,7 @@ class GuestOrderController extends Controller
                 $query->whereNull('guest_access_token_expires_at')
                     ->orWhere('guest_access_token_expires_at', '>', now());
             })
-            ->with(['customer', 'status', 'delivery.deliveryWindow', 'participants', 'orderItems.participant', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option'])
+            ->with(['customer', 'status', 'delivery.deliveryWindow', 'participants', 'mealDeals', 'orderItems.participant', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option'])
             ->first();
 
         if ($order === null) {
@@ -184,7 +185,7 @@ class GuestOrderController extends Controller
      */
     private function guestOrderPayload(Order $order, bool $includeLookup = false, bool $includeCreationFields = false): array
     {
-        $order->loadMissing(['customer', 'status', 'delivery.deliveryWindow', 'participants', 'orderItems.participant', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option']);
+        $order->loadMissing(['customer', 'status', 'delivery.deliveryWindow', 'participants', 'mealDeals', 'orderItems.participant', 'orderItems.item', 'orderItems.orderItemOptions.optionValue.option']);
 
         $payload = [
             'number' => $order->number,
@@ -196,6 +197,8 @@ class GuestOrderController extends Controller
             'discount' => $order->discount,
             'discount_percent' => $order->discount_percent,
             'service_charge' => $order->service_charge,
+            'meal_deal_service_charge' => $order->meal_deal_service_charge,
+            'delivery_fee' => $order->delivery_fee,
             'total' => $order->total,
             'comments' => $order->comments,
             'placed_at' => $order->placed_at?->toISOString(),
@@ -203,6 +206,16 @@ class GuestOrderController extends Controller
             'delivery' => $this->deliveryPayload($order, $includeCreationFields),
             'participants' => $this->participantsPayload($order, $includeCreationFields),
             'order_items' => $this->orderItemsPayload($order, $includeCreationFields),
+            'meal_deals' => $order->mealDeals->map(fn ($deal) => [
+                'id' => $deal->id,
+                'meal_deal_id' => $deal->meal_deal_id,
+                'name' => $deal->name,
+                'quantity' => $deal->quantity,
+                'base_price' => $deal->base_price,
+                'extras_price' => $deal->extras_price,
+                'service_charge' => $deal->service_charge,
+                'selections' => $deal->selections,
+            ])->values()->all(),
             'created_at' => $order->created_at?->toISOString(),
             'updated_at' => $order->updated_at?->toISOString(),
         ];
@@ -335,6 +348,7 @@ class GuestOrderController extends Controller
                 'price' => $orderItem->price,
                 'quantity' => $orderItem->quantity,
                 'comment' => $orderItem->comment,
+                'order_meal_deal_id' => $orderItem->order_meal_deal_id,
                 // A redeemed line costs nothing; the value it gave away is
                 // reported so the customer can see what the reward was worth.
                 'is_reward_item' => (bool) $orderItem->is_reward_item,
