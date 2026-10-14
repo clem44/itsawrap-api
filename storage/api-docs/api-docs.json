@@ -997,6 +997,10 @@
                                     "sort_order": {
                                         "type": "integer",
                                         "example": 1
+                                    },
+                                    "menu_visibility": {
+                                        "type": "boolean",
+                                        "example": true
                                     }
                                 },
                                 "type": "object"
@@ -1114,6 +1118,9 @@
                                     },
                                     "sort_order": {
                                         "type": "integer"
+                                    },
+                                    "menu_visibility": {
+                                        "type": "boolean"
                                     }
                                 },
                                 "type": "object"
@@ -6879,6 +6886,10 @@
                     "sort_order": {
                         "type": "integer",
                         "example": 1
+                    },
+                    "menu_visibility": {
+                        "type": "boolean",
+                        "example": true
                     },
                     "primary_image_url": {
                         "type": "string",

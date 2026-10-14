@@ -13,6 +13,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'icon', type: 'string', nullable: true, example: 'wrap-icon'),
         new OA\Property(property: 'color', type: 'string', nullable: true, example: '#FF5733'),
         new OA\Property(property: 'sort_order', type: 'integer', example: 1),
+        new OA\Property(property: 'menu_visibility', type: 'boolean', example: true),
         new OA\Property(property: 'primary_image_url', type: 'string', nullable: true, example: 'https://itsawrap.ai/storage/media-library/wraps.jpg'),
         new OA\Property(property: 'primary_media', ref: '#/components/schemas/PrimaryMedia', nullable: true),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),

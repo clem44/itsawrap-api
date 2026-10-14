@@ -56,6 +56,7 @@ class CategoryController extends Controller
                     new OA\Property(property: 'icon', type: 'string', nullable: true, example: 'wrap-icon'),
                     new OA\Property(property: 'color', type: 'string', nullable: true, example: '#FF5733'),
                     new OA\Property(property: 'sort_order', type: 'integer', example: 1),
+                    new OA\Property(property: 'menu_visibility', type: 'boolean', example: true),
                 ]
             )
         ),
@@ -77,6 +78,7 @@ class CategoryController extends Controller
             'icon' => 'nullable|string|max:255',
             'color' => 'nullable|string|max:255',
             'sort_order' => 'integer',
+            'menu_visibility' => 'boolean',
         ]);
 
         $category = Category::create($validated);
@@ -135,6 +137,7 @@ class CategoryController extends Controller
                     new OA\Property(property: 'icon', type: 'string', nullable: true),
                     new OA\Property(property: 'color', type: 'string', nullable: true),
                     new OA\Property(property: 'sort_order', type: 'integer'),
+                    new OA\Property(property: 'menu_visibility', type: 'boolean'),
                 ]
             )
         ),
@@ -157,6 +160,7 @@ class CategoryController extends Controller
             'icon' => 'nullable|string|max:255',
             'color' => 'nullable|string|max:255',
             'sort_order' => 'integer',
+            'menu_visibility' => 'boolean',
         ]);
 
         $category->update($validated);

@@ -25,7 +25,11 @@ class GuestOrderingApiTest extends TestCase
 
     public function test_guest_menu_only_returns_active_items(): void
     {
-        $category = Category::query()->create(['name' => 'Wraps', 'sort_order' => 1]);
+        $category = Category::query()->create([
+            'name' => 'Wraps',
+            'sort_order' => 1,
+            'menu_visibility' => false,
+        ]);
         Item::query()->create(['name' => 'Active Wrap', 'category_id' => $category->id, 'cost' => 12, 'active' => true]);
         Item::query()->create(['name' => 'Hidden Wrap', 'category_id' => $category->id, 'cost' => 12, 'active' => false]);
 
@@ -34,6 +38,7 @@ class GuestOrderingApiTest extends TestCase
         $response
             ->assertOk()
             ->assertJsonCount(1, 'categories')
+            ->assertJsonPath('categories.0.menu_visibility', false)
             ->assertJsonCount(1, 'items')
             ->assertJsonPath('items.0.name', 'Active Wrap');
     }

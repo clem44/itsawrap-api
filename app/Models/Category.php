@@ -18,6 +18,7 @@ class Category extends Model
         'icon',
         'color',
         'sort_order',
+        'menu_visibility',
         'media_id',
     ];
 
@@ -25,6 +26,7 @@ class Category extends Model
     {
         return [
             'sort_order' => 'integer',
+            'menu_visibility' => 'boolean',
         ];
     }
 
