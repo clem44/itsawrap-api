@@ -9,9 +9,7 @@
         'admin.items.*',
         'admin.options.*',
         'admin.branches.*',
-        'admin.customers.*',
-        'admin.bundles.*',
-        'admin.meal-deals.*'
+        'admin.customers.*'
     );
     $deliveryMenuOpen = request()->routeIs(
         'admin.deliveries.*',
@@ -80,8 +78,8 @@
                             <a href="{{ route('admin.tips.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.tips.*') ? 'active' : '' }}"><span class="sidebar-label">Tips</span></a>
                             <a href="{{ route('admin.payments.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.payments.*') ? 'active' : '' }}"><span class="sidebar-label">Payments</span></a>
                             <a href="{{ route('admin.items.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.items.*') ? 'active' : '' }}"><span class="sidebar-label">Items</span></a>
-                            <a href="{{ route('admin.bundles.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.bundles.*') ? 'active' : '' }}"><span class="sidebar-label">Bundles</span></a>
-                            <a href="{{ route('admin.meal-deals.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.meal-deals.*') ? 'active' : '' }}"><span class="sidebar-label">Meal Deals</span></a>
+                            {{-- <a href="{{ route('admin.bundles.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.bundles.*') ? 'active' : '' }}"><span class="sidebar-label">Bundles</span></a>
+                            <a href="{{ route('admin.meal-deals.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.meal-deals.*') ? 'active' : '' }}"><span class="sidebar-label">Meal Deals</span></a> --}}
                             <a href="{{ route('admin.options.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.options.*') ? 'active' : '' }}"><span class="sidebar-label">Options</span></a>
                             <a href="{{ route('admin.categories.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}"><span class="sidebar-label">Categories</span></a>
                             <a href="{{ route('admin.branches.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.branches.*') ? 'active' : '' }}"><span class="sidebar-label">Branches</span></a>
@@ -101,7 +99,17 @@
                             <a href="{{ route('admin.deliveries.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.deliveries.*') ? 'active' : '' }}"><span class="sidebar-label">Deliveries</span></a>
                             <a href="{{ route('admin.delivery-windows.index') }}" class="sidebar-submenu-link {{ request()->routeIs('admin.delivery-windows.*') ? 'active' : '' }}"><span class="sidebar-label">Delivery Windows</span></a>
                         </div>
-                    </div>
+                    </div>   
+
+                    <a href="{{ route('admin.meal-deals.index') }}" class="sidebar-nav-link {{ request()->routeIs('admin.meal-deals.*') ? 'active' : '' }}">
+                         <i class="bi bi-tag" aria-hidden="true"></i>
+                        <span class="sidebar-label">Meal Deals</span>
+                    </a>
+
+                    <a href="{{ route('admin.bundles.index') }}" class="sidebar-nav-link {{ request()->routeIs('admin.bundles.*') ? 'active' : '' }}">
+                        <i class="bi bi-box" aria-hidden="true"></i>
+                        <span class="sidebar-label">Bundles</span></a>
+
                     <a href="{{ route('admin.offers.index') }}" class="sidebar-nav-link {{ request()->routeIs('admin.offers.*') ? 'active' : '' }}">
                         <i class="bi bi-tag" aria-hidden="true"></i>
                         <span class="sidebar-label">Offers</span>

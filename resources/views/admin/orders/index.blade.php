@@ -33,6 +33,30 @@
         </div>
     </div>
 
+    <div class="search-filter-bar animate-in animate-delay-1">
+        <form method="GET" action="{{ route('admin.orders.index') }}" class="flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+                <label for="order_search" class="sr-only">Search orders</label>
+                <svg aria-hidden="true" class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2" style="color: var(--color-ink-light);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+                <input
+                    id="order_search"
+                    type="search"
+                    name="search"
+                    value="{{ request('search') }}"
+                    placeholder="Search by order number or customer..."
+                    class="search-input"
+                    autocomplete="off"
+                >
+            </div>
+            @if(request()->filled('search'))
+                <a href="{{ route('admin.orders.index') }}" class="btn-secondary inline-flex items-center justify-center whitespace-nowrap">Clear</a>
+            @endif
+            <button type="submit" class="btn-filter">Search orders</button>
+        </form>
+    </div>
+
     <div class="users-table-container animate-in animate-delay-1">
         <table class="users-table">
             <thead>
@@ -122,8 +146,13 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
                                     </svg>
                                 </div>
-                                <h3 class="empty-state-title">No orders yet</h3>
-                                <p class="empty-state-text">Orders will appear here once they are created.</p>
+                                @if(request()->filled('search'))
+                                    <h3 class="empty-state-title">No matching orders</h3>
+                                    <p class="empty-state-text">Try a different order number or customer detail.</p>
+                                @else
+                                    <h3 class="empty-state-title">No orders yet</h3>
+                                    <p class="empty-state-text">Orders will appear here once they are created.</p>
+                                @endif
                             </div>
                         </td>
                     </tr>

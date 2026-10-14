@@ -17,6 +17,7 @@
         ...$group,
         'kind' => $group['kind'] ?? 'option',
         'allowed_ids' => array_map('strval', $group['allowed_ids'] ?? []),
+        'expanded' => true,
         'allow_duplicates' => (bool) ($group['allow_duplicates'] ?? false),
         'paid_extra' => (bool) ($group['paid_extra'] ?? false),
     ])->values();
@@ -42,7 +43,6 @@
         categoryChoices: @js($categoryChoices),
         optionChoices: @js($optionChoices),
         modalTrigger: null,
-        customerChoicesOpen: @js($errors->any() && in_array($oldForm, ['create', 'edit'], true)),
         deal: {
             id: @js($oldForm === 'edit' ? old('edit_id') : null),
             name: @js($oldForm ? old('name', '') : ''),
@@ -69,7 +69,6 @@
             this.modalMode = 'create';
             this.modalAction = this.createAction;
             this.deal = this.blankDeal();
-            this.customerChoicesOpen = false;
             this.modalOpen = true;
             this.focusMealDealForm();
         },
@@ -86,11 +85,11 @@
                     option_id: group.option_id ? String(group.option_id) : '',
                     category_id: group.category_id ? String(group.category_id) : '',
                     allowed_ids: (group.allowed_ids || []).map(String),
+                    expanded: false,
                 })),
                 fixed_option_value_ids: (value.fixed_option_value_ids || []).map(String),
                 media_id: value.media_id || '',
             };
-            this.customerChoicesOpen = false;
             this.modalOpen = true;
             this.focusMealDealForm();
         },
@@ -110,15 +109,15 @@
             else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
         },
         addMealDealGroup() {
-            this.deal.selection_groups.push({ kind: 'option', option_id: '', category_id: '', allowed_ids: [], min: 1, max: 1, allow_duplicates: false, paid_extra: false });
-            this.customerChoicesOpen = true;
+            this.deal.selection_groups.push({ kind: 'option', option_id: '', category_id: '', allowed_ids: [], min: 1, max: 1, allow_duplicates: false, paid_extra: false, expanded: true });
         },
         revealInvalidChoices() {
-            const panel = document.getElementById('meal-deal-choice-panel');
-            if (panel?.querySelector(':invalid')) {
-                this.customerChoicesOpen = true;
-                panel.style.display = '';
-            }
+            document.querySelectorAll('#meal-deal-dialog [data-choice-card]').forEach((card, index) => {
+                if (!card.querySelector(':invalid')) return;
+                this.deal.selection_groups[index].expanded = true;
+                const body = card.querySelector('[data-choice-body]');
+                if (body) body.style.display = '';
+            });
         },
         changePrimaryCategory() { this.deal.primary_item_id = ''; },
         groupName(group) {
@@ -229,7 +228,7 @@
             <div class="flex min-h-screen items-center justify-center p-4 sm:p-6">
                 <div class="fixed inset-0 bg-black/60 backdrop-blur-sm" @click="closeMealDealModal()"></div>
                 <div class="relative w-full max-w-5xl overflow-hidden rounded-2xl bg-[var(--color-forest)] text-white shadow-xl" @click.stop>
-                    <form method="POST" :action="modalAction" class="flex max-h-[calc(100vh-2rem)] flex-col sm:max-h-[calc(100vh-3rem)]">
+                    <form method="POST" :action="modalAction" class="flex max-h-[calc(100vh-2rem)] flex-col sm:max-h-[calc(100vh-3rem)]" @invalid.capture="revealInvalidChoices()">
                         @csrf
                         <input v-if="modalMode === 'edit'" type="hidden" name="_method" value="PUT">
                         <input type="hidden" name="form_action" :value="modalMode">
@@ -265,19 +264,20 @@
                             </div>
                             <section class="border-t border-white/10 pt-6">
                                 <div class="flex flex-wrap items-center justify-between gap-3">
-                                    <button type="button" class="flex min-w-0 flex-1 items-center gap-3 rounded-lg py-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" :aria-expanded="customerChoicesOpen" aria-controls="meal-deal-choice-panel" @click="customerChoicesOpen = !customerChoicesOpen">
-                                        <svg class="h-5 w-5 shrink-0 text-white/70 transition-transform duration-200" :class="customerChoicesOpen ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 18 6-6-6-6"/></svg>
-                                        <span class="min-w-0"><span role="heading" aria-level="3" class="heading-serif block text-lg font-semibold text-white">Customer choices</span><span class="block text-sm text-white/70" v-text="`${deal.selection_groups.length} ${deal.selection_groups.length === 1 ? 'group' : 'groups'} · ${deal.selection_groups.reduce((count, group) => count + (group.allowed_ids || []).length, 0)} choices`"></span></span>
-                                    </button>
+                                    <div><h3 class="heading-serif text-lg font-semibold text-white">Customer choices</h3><p class="mt-1 text-sm text-white/70">Choose from item options or menu items in a category. These appear in the customer customizer.</p></div>
                                     <button type="button" class="rounded-lg border border-white/25 px-4 py-2 text-sm font-medium hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" @click="addMealDealGroup()">Add choice group</button>
                                 </div>
-                                <div id="meal-deal-choice-panel" v-show="customerChoicesOpen">
-                                <p class="mt-3 text-sm text-white/70">Choose from item options or menu items in a category. These appear in the customer customizer.</p>
                                 <div v-if="!deal.selection_groups.length" class="mt-4 rounded-xl border border-dashed border-white/25 p-5 text-sm text-white/70">No choice groups yet. Add at least one to make this Meal Deal configurable.</div>
                                 <div class="mt-4 space-y-4">
-                                    <div v-for="(group, index) in deal.selection_groups" :key="index" class="rounded-xl border border-white/15 bg-white/5 p-4">
-                                        <div class="mb-4 flex items-start justify-between gap-3"><h4 class="font-semibold" v-text="groupName(group)"></h4><button type="button" class="text-sm text-red-200 underline hover:text-white" @click="deal.selection_groups.splice(index, 1)">Remove group</button></div>
-                                        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                    <div v-for="(group, index) in deal.selection_groups" :key="index" data-choice-card class="rounded-xl border border-white/15 bg-white/5 p-4">
+                                        <div class="flex items-start justify-between gap-3">
+                                            <button type="button" class="flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" :aria-expanded="Boolean(group.expanded)" :aria-controls="`meal-deal-choice-${index}`" @click="group.expanded = !group.expanded">
+                                                <svg class="h-5 w-5 shrink-0 text-white/70 transition-transform duration-200" :class="group.expanded ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 18 6-6-6-6"/></svg>
+                                                <span class="min-w-0"><span role="heading" aria-level="4" class="block truncate font-semibold text-white" v-text="groupName(group)"></span><span class="block text-sm text-white/65" v-text="`${(group.allowed_ids || []).length} selected · choose ${group.min}–${group.max}`"></span></span>
+                                            </button>
+                                            <button type="button" class="shrink-0 text-sm text-red-200 underline hover:text-white" @click="deal.selection_groups.splice(index, 1)">Remove group</button>
+                                        </div>
+                                        <div :id="`meal-deal-choice-${index}`" data-choice-body v-show="group.expanded" class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                             <label class="block text-sm text-white/80">Choose from <admin-tom-select :name="`selection_groups[${index}][kind]`" v-model="group.kind" :options="[{ value: 'option', text: 'Item option values' }, { value: 'item', text: 'Menu items' }]" class="meal-deal-select mt-2 w-full rounded-lg border border-white/20 px-4 py-2.5" @change="changeGroupSource(group)"></admin-tom-select></label>
                                             <label v-if="group.kind === 'item'" class="block text-sm text-white/80">Menu category <admin-tom-select :name="`selection_groups[${index}][category_id]`" v-model="group.category_id" :options="[{ value: '', text: 'Choose a category' }, ...categoryChoices.map(category => ({ value: category.id, text: category.name }))]" required class="meal-deal-select mt-2 w-full rounded-lg border border-white/20 px-4 py-2.5" @change="changeGroupOption(group)"></admin-tom-select></label>
                                             <label v-else class="block text-sm text-white/80">Item option <admin-tom-select :name="`selection_groups[${index}][option_id]`" v-model="group.option_id" :options="[{ value: '', text: 'Select an option' }, ...optionChoices.map(option => ({ value: option.id, text: option.title || option.name }))]" required class="meal-deal-select mt-2 w-full rounded-lg border border-white/20 px-4 py-2.5" @change="changeGroupOption(group)"></admin-tom-select></label>
@@ -295,7 +295,6 @@
                                             <div class="flex flex-col justify-end gap-2 pb-2 text-sm text-white/80"><label class="inline-flex items-center gap-2"><input :name="`selection_groups[${index}][allow_duplicates]`" v-model="group.allow_duplicates" type="checkbox" value="1">Allow the same choice twice</label><label class="inline-flex items-center gap-2"><input :name="`selection_groups[${index}][paid_extra]`" v-model="group.paid_extra" type="checkbox" value="1">Charge regular price</label></div>
                                         </div>
                                     </div>
-                                </div>
                                 </div>
                             </section>
                             <section class="border-t border-white/10 pt-6"><h3 class="heading-serif text-lg font-semibold">Included fixed options</h3><p class="mb-3 mt-1 text-sm text-white/70">Choose options included automatically, such as avocado.</p><div class="max-h-52 space-y-3 overflow-y-auto rounded-lg border border-white/20 p-3"><div v-for="option in optionChoices.filter(option => option.values.length)" :key="option.id"><h4 class="mb-1 text-xs font-semibold uppercase tracking-wide text-white/60" v-text="option.name"></h4><label v-for="value in option.values" :key="value.id" class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm text-white/90 hover:bg-white/10"><input name="fixed_option_value_ids[]" :value="String(value.id)" v-model="deal.fixed_option_value_ids" type="checkbox" class="rounded border-white/30 text-[var(--color-sage)]"><span v-text="value.name"></span></label></div></div></section>

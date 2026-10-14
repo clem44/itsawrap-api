@@ -2343,6 +2343,11 @@
                                         "type": "boolean",
                                         "example": true
                                     },
+                                    "menu_visible": {
+                                        "description": "Whether the item is visible in customer menus",
+                                        "type": "boolean",
+                                        "example": true
+                                    },
                                     "media_id": {
                                         "description": "Media library asset to attach as the primary image",
                                         "type": "integer",
@@ -2475,6 +2480,10 @@
                                         "nullable": true
                                     },
                                     "active": {
+                                        "type": "boolean"
+                                    },
+                                    "menu_visible": {
+                                        "description": "Whether the item is visible in customer menus",
                                         "type": "boolean"
                                     },
                                     "media_id": {
@@ -6939,6 +6948,11 @@
                         "nullable": true
                     },
                     "active": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "menu_visible": {
+                        "description": "Whether the item is visible in customer menus",
                         "type": "boolean",
                         "example": true
                     },
