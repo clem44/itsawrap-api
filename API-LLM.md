@@ -94,6 +94,8 @@ These do not require Bearer auth.
 
 Returns active storefront menu data: categories, items, options, option values, taxes, media objects, dependencies, bundles/offers as supported by the presenter. Use this for guest ordering UI.
 
+Category objects include the boolean `menu_visibility` field. The endpoint returns the field as stored; menu clients should use it to decide whether to display a category.
+
 ### `GET /api/guest/sliders/{slug}`
 
 Returns one published hero slider by slug. This endpoint is public and does not require Bearer authentication.
@@ -337,11 +339,12 @@ Create/update request:
   "description": "Menu wraps",
   "icon": "wrap-icon",
   "color": "#7c9a8a",
-  "sort_order": 1
+  "sort_order": 1,
+  "menu_visibility": true
 }
 ```
 
-Responses include `primary_media` and nested items where loaded.
+`menu_visibility` is optional on create/update, must be boolean when supplied, and defaults to `true` for newly created categories. Category list, detail, create, and update responses include the field. Responses also include `primary_media` and nested items where loaded.
 
 ### Items
 
@@ -928,6 +931,7 @@ Fields:
 - `icon`
 - `color`
 - `sort_order`
+- `menu_visibility` boolean, defaults to `true`
 - `media_id` legacy column may exist, but Plank Mediable `primary_image` is preferred.
 
 Relationships:
@@ -936,7 +940,7 @@ Relationships:
 - reward/referral program category relationships
 - media via Plank Mediable
 
-API response includes `primary_image_url` and `primary_media`.
+API responses include `menu_visibility`, `primary_image_url`, and `primary_media`.
 
 ### `Item`
 
