@@ -29,6 +29,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'cost', type: 'number', format: 'float', example: 9.99),
         new OA\Property(property: 'category_id', type: 'integer', nullable: true),
         new OA\Property(property: 'active', type: 'boolean', example: true),
+        new OA\Property(property: 'menu_visible', type: 'boolean', example: true, description: 'Whether the item is visible in customer menus'),
         new OA\Property(property: 'image_path', type: 'string', nullable: true),
         new OA\Property(property: 'short_code', type: 'string', nullable: true),
         new OA\Property(property: 'primary_image_url', type: 'string', nullable: true, example: 'https://itsawrap.ai/storage/media-library/chicken-wrap.jpg'),

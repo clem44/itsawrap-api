@@ -17,6 +17,8 @@ class Item extends Model
     protected $fillable = [
         'name',
         'description',
+        'ingredients',
+        'allergens',
         'cost',
         'category_id',
         'media_id',

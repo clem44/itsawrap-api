@@ -20,6 +20,8 @@
                 id: {{ old('form_action') === 'edit' ? (old('edit_id') ?: 'null') : 'null' }},
                 name: '{{ old('form_action') === 'edit' ? addslashes(old('name', '')) : '' }}',
                 description: '{{ old('form_action') === 'edit' ? addslashes(old('description', '')) : '' }}',
+                ingredients: @js(old('form_action') === 'edit' ? old('ingredients', '') : ''),
+                allergens: @js(old('form_action') === 'edit' ? old('allergens', '') : ''),
                 cost: '{{ old('form_action') === 'edit' ? old('cost', '') : '' }}',
                 category_id: '{{ old('form_action') === 'edit' ? old('category_id', '') : '' }}',
                 media_id: '{{ old('form_action') === 'edit' ? old('media_id', '') : '' }}',
@@ -27,6 +29,7 @@
                 image_path: '{{ old('form_action') === 'edit' ? addslashes(old('image_path', '')) : '' }}',
                 short_code: '{{ old('form_action') === 'edit' ? addslashes(old('short_code', '')) : '' }}',
                 active: {{ old('form_action') === 'edit' ? (old('active') ? 'true' : 'false') : 'false' }},
+                menu_visible: {{ old('form_action') === 'edit' ? (old('menu_visible') ? 'true' : 'false') : 'true' }},
                 options: @js(old('form_action') === 'edit' ? collect(old('options', []))->map(fn ($optionId) => (int) $optionId)->all() : [])
             },
             itemEditData: @js($itemEditData),
@@ -53,6 +56,7 @@
             editAction: @js(route('admin.items.update', array_filter([
                 'item' => '__ID__',
                 'category_id' => request('category_id'),
+                'search' => request('search'),
             ], fn ($value) => filled($value)))),
             itemOptionRoute: '{{ url('/admin/items/__ITEM__/item-options/__ITEM_OPTION__') }}',
             itemOptionOrderRoute: '{{ url('/admin/items/__ITEM__/item-options/order') }}',
@@ -100,6 +104,8 @@
                     id: item.id,
                     name: item.name || '',
                     description: item.description || '',
+                    ingredients: item.ingredients || '',
+                    allergens: item.allergens || '',
                     cost: item.cost || '',
                     category_id: item.category_id || '',
                     media_id: item.media_id || '',
@@ -107,6 +113,7 @@
                     image_path: item.image_path || '',
                     short_code: item.short_code || '',
                     active: item.active || false,
+                    menu_visible: item.menu_visible !== false,
                     options: selectedOptions || []
                 };
                 this.editOpen = true;
@@ -570,22 +577,40 @@
         </div>
     </div>
 
-    <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
-        <form method="GET" action="{{ route('admin.items.index') }}" class="flex items-center gap-2">
-            <label for="category_filter" class="text-sm font-medium text-gray-700">Category</label>
+    <div class="search-filter-bar animate-in animate-delay-1">
+        <form method="GET" action="{{ route('admin.items.index') }}" class="flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+                <label for="item_search" class="sr-only">Search items</label>
+                <svg aria-hidden="true" class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2" style="color: var(--color-ink-light);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+                <input
+                    id="item_search"
+                    type="search"
+                    name="search"
+                    value="{{ request('search') }}"
+                    placeholder="Search by item name or short code..."
+                    class="search-input"
+                    autocomplete="off"
+                >
+            </div>
+            <label for="category_filter" class="sr-only">Filter by category</label>
             <select
                 id="category_filter"
                 name="category_id"
-                class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)]"
-                onchange="this.form.submit()"
+                class="filter-select w-full sm:w-48"
             >
-                <option value="">All</option>
+                <option value="">All categories</option>
                 @foreach($categories as $category)
                     <option value="{{ $category->id }}" @selected(request('category_id') == $category->id)>
                         {{ $category->name }}
                     </option>
                 @endforeach
             </select>
+            @if(request()->filled('search') || request()->filled('category_id'))
+                <a href="{{ route('admin.items.index') }}" class="btn-secondary inline-flex items-center justify-center whitespace-nowrap">Clear</a>
+            @endif
+            <button type="submit" class="btn-filter">Apply filters</button>
         </form>
     </div>
 
@@ -684,8 +709,13 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
                                     </svg>
                                 </div>
-                                <h3 class="empty-state-title">No items yet</h3>
-                                <p class="empty-state-text">Create your first item to get started.</p>
+                                @if(request()->filled('search') || request()->filled('category_id'))
+                                    <h3 class="empty-state-title">No matching items</h3>
+                                    <p class="empty-state-text">Try a different item name, short code, or category.</p>
+                                @else
+                                    <h3 class="empty-state-title">No items yet</h3>
+                                    <p class="empty-state-text">Create your first item to get started.</p>
+                                @endif
                             </div>
                         </td>
                     </tr>
@@ -727,7 +757,10 @@
                     class="relative inline-block w-full max-w-4xl transform overflow-hidden rounded-2xl bg-white text-left align-bottom shadow-xl sm:my-8 sm:align-middle"
                     @click.stop
                 >
-                <form method="POST" action="{{ route('admin.items.store', request()->filled('category_id') ? ['category_id' => request('category_id')] : []) }}">
+                <form method="POST" action="{{ route('admin.items.store', array_filter([
+                    'category_id' => request('category_id'),
+                    'search' => request('search'),
+                ], fn ($value) => filled($value))) }}">
                     @csrf
                     <input type="hidden" name="form_action" value="create">
 

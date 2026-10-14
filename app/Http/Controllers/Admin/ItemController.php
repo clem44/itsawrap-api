@@ -37,6 +37,14 @@ class ItemController extends Controller
                 },
                 'orderItems',
             ])
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = trim((string) $request->input('search'));
+
+                $query->where(function ($query) use ($search) {
+                    $query->where('name', 'like', "%{$search}%")
+                        ->orWhere('short_code', 'like', "%{$search}%");
+                });
+            })
             ->when($request->filled('category_id'), function ($query) use ($request) {
                 $query->where('category_id', $request->category_id);
             })
@@ -109,7 +117,7 @@ class ItemController extends Controller
         $itemEditData = $items->getCollection()
             ->mapWithKeys(function (Item $item) use ($mediaPresenter) {
                 $primaryMedia = $item->firstMedia('primary_image');
-                $data = $item->only(['id', 'name', 'description', 'cost', 'category_id', 'image_path', 'short_code', 'active']);
+                $data = $item->only(['id', 'name', 'description', 'ingredients', 'allergens', 'cost', 'category_id', 'image_path', 'short_code', 'active', 'menu_visible']);
 
                 $data['media_id'] = $primaryMedia?->id ?? $item->media_id;
                 $data['primary_media'] = $primaryMedia ? $mediaPresenter->present($primaryMedia) : null;
@@ -161,12 +169,15 @@ class ItemController extends Controller
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255',
                 'description' => 'nullable|string',
+                'ingredients' => 'nullable|string',
+                'allergens' => 'nullable|string',
                 'cost' => 'required|numeric|min:0|decimal:0,2',
                 'category_id' => 'required|exists:categories,id',
                 'media_id' => 'nullable|integer|exists:media,id',
                 'image_path' => 'nullable|string|max:500',
                 'short_code' => 'nullable|string|max:50',
                 'active' => 'nullable',
+                'menu_visible' => 'nullable',
                 'options' => 'nullable|array',
                 'options.*' => 'integer|exists:options,id',
             ]);
@@ -183,6 +194,7 @@ class ItemController extends Controller
             $validated = $validator->validated();
 
             $validated['active'] = $request->has('active');
+            $validated['menu_visible'] = $request->has('menu_visible');
 
             $item->update($validated);
             $this->syncPrimaryImage($item, $request);
@@ -554,7 +566,7 @@ class ItemController extends Controller
 
         return redirect()->route(
             'admin.items.index',
-            !empty($categoryId) ? ['category_id' => $categoryId] : []
+            ! empty($categoryId) ? ['category_id' => $categoryId] : []
         );
     }
 }

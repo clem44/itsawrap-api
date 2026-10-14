@@ -85,6 +85,38 @@
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <div>
+                                    <label for="edit_item_ingredients" class="mb-2 block text-sm font-medium text-gray-900">Ingredients</label>
+                                    <textarea
+                                        id="edit_item_ingredients"
+                                        name="ingredients"
+                                        rows="4"
+                                        class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)]"
+                                        :class="fieldClass('ingredients')"
+                                        v-model="item.ingredients"
+                                        placeholder="List the ingredients"
+                                    ></textarea>
+                                    <p class="mt-1.5 text-xs text-gray-500">Use commas or one ingredient per line.</p>
+                                    <p v-for="error in fieldErrors('ingredients')" :key="error" class="mt-1.5 text-sm text-red-600" v-text="error"></p>
+                                </div>
+
+                                <div>
+                                    <label for="edit_item_allergens" class="mb-2 block text-sm font-medium text-gray-900">Allergens</label>
+                                    <textarea
+                                        id="edit_item_allergens"
+                                        name="allergens"
+                                        rows="4"
+                                        class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)]"
+                                        :class="fieldClass('allergens')"
+                                        v-model="item.allergens"
+                                        placeholder="List known allergens"
+                                    ></textarea>
+                                    <p class="mt-1.5 text-xs text-gray-500">Include cross-contact warnings when relevant.</p>
+                                    <p v-for="error in fieldErrors('allergens')" :key="error" class="mt-1.5 text-sm text-red-600" v-text="error"></p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <div>
                                     <label class="mb-2 block text-sm font-medium text-gray-900">Category</label>
                                     <select
                                         name="category_id"
@@ -191,6 +223,17 @@
                                     v-model="item.active"
                                 >
                                 <label for="edit_active" class="text-sm font-medium text-gray-900">Active Item</label>
+                            </div>
+
+                            <div class="flex items-center gap-3">
+                                <input
+                                    type="checkbox"
+                                    id="edit_menu_visible"
+                                    name="menu_visible"
+                                    class="h-4 w-4 rounded border-gray-300 text-[var(--color-sage)] focus:ring-[var(--color-sage)]"
+                                    v-model="item.menu_visible"
+                                >
+                                <label for="edit_menu_visible" class="text-sm font-medium text-gray-900">Visible in Menu</label>
                             </div>
                         </div>
 

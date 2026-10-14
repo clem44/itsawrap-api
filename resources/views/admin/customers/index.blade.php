@@ -83,17 +83,27 @@
         </div>
     </div>
 
-    <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
-        <form method="GET" action="{{ route('admin.customers.index') }}" class="flex items-center gap-2">
-            <label for="customer_search" class="text-sm font-medium text-gray-700">Search</label>
-            <input
-                id="customer_search"
-                name="search"
-                value="{{ request('search') }}"
-                placeholder="Name, phone, or email"
-                class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-[var(--color-sage)] focus:outline-none focus:ring-1 focus:ring-[var(--color-sage)]"
-            >
-            <button type="submit" class="btn-primary btn-forest btn text-sm">Go</button>
+    <div class="search-filter-bar animate-in animate-delay-1">
+        <form method="GET" action="{{ route('admin.customers.index') }}" class="flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+                <label for="customer_search" class="sr-only">Search customers</label>
+                <svg aria-hidden="true" class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2" style="color: var(--color-ink-light);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+                <input
+                    id="customer_search"
+                    type="search"
+                    name="search"
+                    value="{{ request('search') }}"
+                    placeholder="Search by name, phone, or email..."
+                    class="search-input"
+                    autocomplete="off"
+                >
+            </div>
+            @if(request()->filled('search'))
+                <a href="{{ route('admin.customers.index') }}" class="btn-secondary inline-flex items-center justify-center whitespace-nowrap">Clear</a>
+            @endif
+            <button type="submit" class="btn-filter">Search customers</button>
         </form>
     </div>
 
@@ -185,8 +195,13 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4a8 8 0 100 16 8 8 0 000-16z"></path>
                                     </svg>
                                 </div>
-                                <h3 class="empty-state-title">No customers yet</h3>
-                                <p class="empty-state-text">Create your first customer to get started.</p>
+                                @if(request()->filled('search'))
+                                    <h3 class="empty-state-title">No matching customers</h3>
+                                    <p class="empty-state-text">Try a different name, phone number, or email address.</p>
+                                @else
+                                    <h3 class="empty-state-title">No customers yet</h3>
+                                    <p class="empty-state-text">Create your first customer to get started.</p>
+                                @endif
                             </div>
                         </td>
                     </tr>

@@ -58,10 +58,12 @@ class CategoryController extends Controller
             'icon' => 'nullable|string|max:255',
             'color' => 'nullable|string|max:255',
             'sort_order' => 'nullable|integer|min:0',
+            'active' => 'nullable|boolean',
             'menu_visibility' => 'nullable|boolean',
             'media_id' => 'nullable|integer|exists:media,id',
         ]);
 
+        $validated['active'] = $request->boolean('active');
         $validated['menu_visibility'] = $request->boolean('menu_visibility');
 
         $category->update($validated);

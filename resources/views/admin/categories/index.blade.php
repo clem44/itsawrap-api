@@ -18,6 +18,7 @@
                 icon: '{{ old('form_action') === 'edit' ? addslashes(old('icon', '')) : '' }}',
                 color: '{{ old('form_action') === 'edit' ? addslashes(old('color', '')) : '' }}',
                 sort_order: '{{ old('form_action') === 'edit' ? old('sort_order', '') : '' }}',
+                active: {{ old('form_action') === 'edit' ? (old('active', '0') ? 'true' : 'false') : 'true' }},
                 menu_visibility: {{ old('form_action') === 'edit' ? (old('menu_visibility', '0') ? 'true' : 'false') : 'true' }},
                 media_id: '{{ old('form_action') === 'edit' ? old('media_id', '') : '' }}',
                 primary_media: @js(old('form_action') === 'edit' ? $oldMedia : null)
@@ -61,6 +62,7 @@
                     icon: category.icon || '',
                     color: category.color || '',
                     sort_order: category.sort_order ?? '',
+                    active: category.active !== false,
                     menu_visibility: category.menu_visibility !== false,
                     media_id: category.media_id || '',
                     primary_media: category.primary_media || null
@@ -169,7 +171,7 @@
                                     type="button"
                                     class="action-btn edit"
                                     title="Edit Category"
-                                    @click.stop="openEdit(@js(array_merge($category->only(['id', 'name', 'description', 'icon', 'color', 'sort_order', 'menu_visibility']), ['media_id' => $primaryMedia?->id, 'primary_media' => $primaryMedia ? $mediaPresenter->present($primaryMedia) : null])))"
+                                    @click.stop="openEdit(@js(array_merge($category->only(['id', 'name', 'description', 'icon', 'color', 'sort_order', 'active', 'menu_visibility']), ['media_id' => $primaryMedia?->id, 'primary_media' => $primaryMedia ? $mediaPresenter->present($primaryMedia) : null])))"
                                 >
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -340,6 +342,7 @@
                                     @enderror
                                 @endif
                             </div>
+
                         </div>
 
                         <div class="md:col-span-2">
@@ -539,6 +542,29 @@
                                 </div>
                                 @if(old('form_action') === 'edit')
                                     @error('color')
+                                        <p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>
+                                    @enderror
+                                @endif
+                            </div>
+
+                            <div>
+                                <input type="hidden" name="active" value="0">
+                                <label for="edit_category_active" class="flex cursor-pointer items-start gap-3 rounded-xl border border-white/15 bg-white/5 px-4 py-3 transition-colors hover:bg-white/10">
+                                    <input
+                                        type="checkbox"
+                                        id="edit_category_active"
+                                        name="active"
+                                        value="1"
+                                        class="mt-0.5 h-4 w-4 rounded border-white/30 bg-white/10 text-[var(--color-sage)] focus:ring-[var(--color-sage)] focus:ring-offset-[var(--color-forest)]"
+                                        v-model="editCategory.active"
+                                    >
+                                    <span>
+                                        <span class="block text-sm font-medium text-white">Active Category</span>
+                                        <span class="mt-0.5 block text-xs leading-5 text-white/60">Turn this off to mark the category as inactive.</span>
+                                    </span>
+                                </label>
+                                @if(old('form_action') === 'edit')
+                                    @error('active')
                                         <p class="mt-1.5 text-sm text-red-400">{{ $message }}</p>
                                     @enderror
                                 @endif
