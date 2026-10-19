@@ -73,6 +73,8 @@ Route::middleware(['auth:sanctum', 'customer'])->prefix('me')->group(function ()
     Route::get('/referral-code', [ReferralCodeController::class, 'show']);
     Route::get('/delivery-windows/today', DeliveryWindowTodayController::class);
     Route::post('/orders', [CustomerOrderController::class, 'store']);
+    Route::get('/orders', [CustomerOrderController::class, 'index']);
+    Route::get('/orders/{number}', [CustomerOrderController::class, 'show']);
 });
 
 // Staff-only (POS / admin) routes
