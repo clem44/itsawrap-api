@@ -64,11 +64,13 @@ class MealDealAvailability
     {
         if (($group['kind'] ?? 'option') === 'item') {
             return Item::query()->where('category_id', $group['category_id'] ?? null)
-                ->whereIn('id', $group['allowed_ids'] ?? [])->where('active', true)->orderBy('name')->get();
+                ->whereIn('id', $group['allowed_ids'] ?? [])->where('active', true)
+                ->withMedia(Item::IMAGE_TAG)->orderBy('name')->get();
         }
 
         return OptionValue::query()->where('option_id', $group['option_id'] ?? null)
-            ->whereIn('id', $group['allowed_ids'] ?? [])->orderBy('name')->get();
+            ->whereIn('id', $group['allowed_ids'] ?? [])
+            ->withMedia(OptionValue::IMAGE_TAG)->orderBy('name')->get();
     }
 
     private function presentItem(Item $item, MealDeal $deal, array $groups, array $choiceSets): array
@@ -89,12 +91,21 @@ class MealDealAvailability
                 'max' => (int) $group['max'],
                 'allow_duplicates' => (bool) ($group['allow_duplicates'] ?? false),
                 'type' => (int) $group['max'] > 1 ? 'multiple' : 'single',
-                'item_option_values' => $choices->map(fn ($choice) => [
-                    'id' => 'meal-deal-choice-'.$key.'-'.$choice->id,
-                    'choice_id' => $choice->id,
-                    'option_value' => ['id' => $choice->id, 'name' => $choice->name],
-                    'price' => ($group['paid_extra'] ?? false) ? (float) ($kind === 'item' ? $choice->cost : $choice->price) : 0,
-                ])->values()->all(),
+                'item_option_values' => $choices->map(function ($choice) use ($key, $group, $kind) {
+                    $choice->includePrimaryImageMedia();
+
+                    return [
+                        'id' => 'meal-deal-choice-'.$key.'-'.$choice->id,
+                        'choice_id' => $choice->id,
+                        'option_value' => [
+                            'id' => $choice->id,
+                            'name' => $choice->name,
+                            'primary_image_url' => $choice->primary_image_url,
+                            'primary_media' => $choice->primary_media,
+                        ],
+                        'price' => ($group['paid_extra'] ?? false) ? (float) ($kind === 'item' ? $choice->cost : $choice->price) : 0,
+                    ];
+                })->values()->all(),
             ];
         })->all();
 
