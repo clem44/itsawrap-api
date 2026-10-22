@@ -1461,6 +1461,71 @@
             }
         },
         "/me/orders": {
+            "get": {
+                "tags": [
+                    "Customer",
+                    "Orders"
+                ],
+                "summary": "List the authenticated customer's past orders",
+                "description": "Returns the authenticated customer's own orders, most recent first. Returns an empty list when the authenticated user has no linked Customer record yet (never placed an order).",
+                "operationId": "df1979bc8bd3a9e0269d8f35bb9f3ee3",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated order history",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/CustomerOrder"
+                                            }
+                                        },
+                                        "meta": {
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer"
+                                                },
+                                                "last_page": {
+                                                    "type": "integer"
+                                                },
+                                                "total": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Not a customer token"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
             "post": {
                 "tags": [
                     "Customer",
@@ -1703,6 +1768,201 @@
                     },
                     "409": {
                         "description": "Duplicate order is already being processed"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/me/orders/{number}": {
+            "get": {
+                "tags": [
+                    "Customer",
+                    "Orders"
+                ],
+                "summary": "Get one of the authenticated customer's own orders by number",
+                "description": "Fetch order details and live status for an order belonging to the authenticated customer. Unlike /guest/orders/{number}, no lookup token is needed — ownership is established by the Sanctum token.",
+                "operationId": "2f184962ab45e69de452802276c40a8e",
+                "parameters": [
+                    {
+                        "name": "number",
+                        "in": "path",
+                        "description": "Order number returned when the order was created.",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "IAW-000123"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Order details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CustomerOrder"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Not a customer token"
+                    },
+                    "404": {
+                        "description": "Order not found, or does not belong to the authenticated customer"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/me/profile": {
+            "patch": {
+                "tags": [
+                    "Customers"
+                ],
+                "summary": "Update the authenticated customer profile",
+                "operationId": "3e44ce56d4dec726487289d68288e16f",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "firstname": {
+                                        "type": "string",
+                                        "example": "Jordan"
+                                    },
+                                    "lastname": {
+                                        "type": "string",
+                                        "example": "Baptiste"
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "example": "264-555-0199",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Profile updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "firstname": {
+                                            "type": "string",
+                                            "example": "Jordan"
+                                        },
+                                        "lastname": {
+                                            "type": "string",
+                                            "example": "Baptiste"
+                                        },
+                                        "phone": {
+                                            "type": "string",
+                                            "example": "264-555-0199",
+                                            "nullable": true
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Customer access required"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/me/password": {
+            "put": {
+                "tags": [
+                    "Customers"
+                ],
+                "summary": "Update the authenticated customer password",
+                "operationId": "bbbbd240effa0188177d8cfff5b2e058",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "current_password",
+                                    "password",
+                                    "password_confirmation"
+                                ],
+                                "properties": {
+                                    "current_password": {
+                                        "type": "string",
+                                        "format": "password"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "minLength": 8
+                                    },
+                                    "password_confirmation": {
+                                        "type": "string",
+                                        "format": "password"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Password updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Password updated successfully."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Customer access required"
                     },
                     "422": {
                         "description": "Validation error"
@@ -7994,6 +8254,177 @@
                         "type": "object"
                     }
                 ]
+            },
+            "CustomerOrder": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "number": {
+                        "type": "string",
+                        "example": "IAW-000123"
+                    },
+                    "status": {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "name": {
+                                "type": "string",
+                                "example": "pending"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "subtotal": {
+                        "type": "string",
+                        "example": "13.50"
+                    },
+                    "discount": {
+                        "type": "string",
+                        "example": "0.00",
+                        "nullable": true
+                    },
+                    "service_charge": {
+                        "type": "string",
+                        "example": "0.00"
+                    },
+                    "meal_deal_service_charge": {
+                        "type": "string",
+                        "example": "0.00"
+                    },
+                    "delivery_fee": {
+                        "type": "string",
+                        "example": "0.00"
+                    },
+                    "total": {
+                        "type": "string",
+                        "example": "13.50"
+                    },
+                    "comments": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "is_delivery": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "placed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "delivery": {
+                        "properties": {
+                            "delivery_date": {
+                                "type": "string",
+                                "format": "date"
+                            },
+                            "window_start_at": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "window_end_at": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "address": {
+                                "type": "string"
+                            },
+                            "delivery_instructions": {
+                                "type": "string",
+                                "nullable": true
+                            },
+                            "status": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "order_items": {
+                        "type": "array",
+                        "items": {
+                            "properties": {
+                                "id": {
+                                    "type": "integer"
+                                },
+                                "item_id": {
+                                    "type": "integer"
+                                },
+                                "item": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer"
+                                        },
+                                        "name": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object",
+                                    "nullable": true
+                                },
+                                "price": {
+                                    "type": "string"
+                                },
+                                "quantity": {
+                                    "type": "integer"
+                                },
+                                "comment": {
+                                    "type": "string",
+                                    "nullable": true
+                                },
+                                "line_total": {
+                                    "type": "number",
+                                    "format": "float"
+                                },
+                                "options": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "option_value_id": {
+                                                "type": "integer"
+                                            },
+                                            "name": {
+                                                "type": "string",
+                                                "nullable": true
+                                            },
+                                            "price": {
+                                                "type": "string"
+                                            },
+                                            "qty": {
+                                                "type": "integer",
+                                                "nullable": true
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            },
+                            "type": "object"
+                        }
+                    },
+                    "meal_deals": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PurchasedMealDeal"
+                        }
+                    }
+                },
+                "type": "object"
             },
             "RewardProgram": {
                 "properties": {
