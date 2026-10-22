@@ -292,12 +292,54 @@ Looks up a guest order status/detail response by public order number and valid l
 
 Require customer token.
 
+- `PATCH /api/me/profile` updates the authenticated customer's `firstname`, `lastname`, and/or `phone`.
+- `PUT /api/me/password` changes the authenticated customer's password after verifying their current password.
 - `GET /api/me/rewards` returns the authenticated customer's purchase/referral reward summary.
 - `GET /api/me/referral-code` returns the customer's referral link/code data.
 - `GET /api/me/offers` returns active offers available to customers.
 - `GET /api/me/bundles` returns active bundles.
 - `GET /api/me/delivery-windows/today` returns customer delivery windows.
 - `POST /api/me/orders` creates an order for the authenticated customer.
+
+### Update customer profile
+
+`PATCH /api/me/profile`
+
+Send at least one field. Names are written to both the authenticated `users` row and its linked `customers` row; `name` on the customer row is regenerated from the first and last name. Phone is stored on the linked customer row.
+
+```json
+{
+  "firstname": "Jordan",
+  "lastname": "Baptiste",
+  "phone": "+12645550199"
+}
+```
+
+Successful response:
+
+```json
+{
+  "firstname": "Jordan",
+  "lastname": "Baptiste",
+  "phone": "+12645550199"
+}
+```
+
+Each field is optional when another field is present. `phone` may be `null` to clear it. The endpoint returns `422` when no update field is supplied.
+
+### Update customer password
+
+`PUT /api/me/password`
+
+```json
+{
+  "current_password": "existing-password",
+  "password": "new-password-456",
+  "password_confirmation": "new-password-456"
+}
+```
+
+The current password must match. The new password must be confirmed and contain at least eight characters. Validation failures return `422` without changing the password.
 
 Customer order request is similar to guest order but identity is resolved from the token, not `customer_id`.
 

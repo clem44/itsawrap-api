@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\CashSessionController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\CustomerOrderController;
+use App\Http\Controllers\Api\CustomerProfileController;
 use App\Http\Controllers\Api\CustomerRewardController;
 use App\Http\Controllers\Api\DeliveryWindowTodayController;
 use App\Http\Controllers\Api\GuestCustomerController;
@@ -17,15 +18,15 @@ use App\Http\Controllers\Api\GuestSliderController;
 use App\Http\Controllers\Api\ItemController;
 use App\Http\Controllers\Api\ItemOptionController;
 use App\Http\Controllers\Api\ItemOptionValueController;
+use App\Http\Controllers\Api\MealDealController;
+use App\Http\Controllers\Api\OfferController;
 use App\Http\Controllers\Api\OptionController;
 use App\Http\Controllers\Api\OptionDependencyController;
 use App\Http\Controllers\Api\OptionValueController;
 use App\Http\Controllers\Api\OrderController;
-use App\Http\Controllers\Api\MealDealController;
 use App\Http\Controllers\Api\OrderItemController;
 use App\Http\Controllers\Api\OrderReferralRewardController;
 use App\Http\Controllers\Api\OrderRewardController;
-use App\Http\Controllers\Api\OfferController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PushSubscriptionController;
 use App\Http\Controllers\Api\ReferralCodeController;
@@ -65,6 +66,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // Customer self-service routes — identity resolved from the token, never from a route parameter
 Route::middleware(['auth:sanctum', 'customer'])->prefix('me')->group(function () {
+    Route::patch('/profile', [CustomerProfileController::class, 'update']);
+    Route::put('/password', [CustomerProfileController::class, 'updatePassword']);
     Route::get('/rewards', [CustomerRewardController::class, 'me']);
     Route::get('/offers', [OfferController::class, 'index']);
     Route::get('/bundles', [BundleController::class, 'index']);
