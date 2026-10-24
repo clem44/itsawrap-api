@@ -12,7 +12,7 @@ class CustomerBranchController extends Controller
     #[OA\Get(
         path: '/me/branches',
         summary: 'List active branches',
-        description: 'Minimal branch list the customer apps use to resolve which branch to attach to an order (e.g. selecting the branch named "Main").',
+        description: 'Branch list the customer apps use to resolve which branch to attach to an order (e.g. selecting the branch named "Main").',
         tags: ['Customer'],
         security: [['bearerAuth' => []]],
         responses: [
