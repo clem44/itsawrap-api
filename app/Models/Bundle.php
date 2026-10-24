@@ -88,6 +88,7 @@ class Bundle extends Model
             'bundleItems.optionValues.itemOption.option',
             'bundleItems.optionValues.itemOption.itemOptionValues',
             'bundleItems.optionValues.optionValue',
+            'bundleItems.optionValues.optionValue.media',
             'bundleItems.optionValues.parentOptionValue',
         ];
     }

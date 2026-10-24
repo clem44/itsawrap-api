@@ -110,6 +110,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'in_stock', type: 'boolean', example: true),
         new OA\Property(property: 'qty', type: 'integer', nullable: true, example: 1),
         new OA\Property(property: 'option_dependency_id', type: 'integer', nullable: true, example: 2),
+        new OA\Property(property: 'option_value', ref: '#/components/schemas/OptionValue'),
         new OA\Property(property: 'option_dependency', ref: '#/components/schemas/OptionDependency'),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),
         new OA\Property(property: 'updated_at', type: 'string', format: 'date-time'),
@@ -363,6 +364,59 @@ use OpenApi\Attributes as OA;
     ]
 )]
 #[OA\Schema(
+    schema: 'CustomerOrder',
+    properties: [
+        new OA\Property(property: 'id', type: 'integer', example: 123),
+        new OA\Property(property: 'number', type: 'string', example: 'IAW-000123'),
+        new OA\Property(property: 'status', type: 'object', nullable: true, properties: [
+            new OA\Property(property: 'id', type: 'integer', example: 1),
+            new OA\Property(property: 'name', type: 'string', example: 'pending'),
+        ]),
+        new OA\Property(property: 'subtotal', type: 'string', example: '13.50'),
+        new OA\Property(property: 'discount', type: 'string', nullable: true, example: '0.00'),
+        new OA\Property(property: 'service_charge', type: 'string', example: '0.00'),
+        new OA\Property(property: 'meal_deal_service_charge', type: 'string', example: '0.00'),
+        new OA\Property(property: 'delivery_fee', type: 'string', example: '0.00'),
+        new OA\Property(property: 'total', type: 'string', example: '13.50'),
+        new OA\Property(property: 'comments', type: 'string', nullable: true),
+        new OA\Property(property: 'is_delivery', type: 'boolean', example: false),
+        new OA\Property(property: 'placed_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'updated_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'delivery', type: 'object', nullable: true, properties: [
+            new OA\Property(property: 'delivery_date', type: 'string', format: 'date'),
+            new OA\Property(property: 'window_start_at', type: 'string', format: 'date-time'),
+            new OA\Property(property: 'window_end_at', type: 'string', format: 'date-time'),
+            new OA\Property(property: 'address', type: 'string'),
+            new OA\Property(property: 'delivery_instructions', type: 'string', nullable: true),
+            new OA\Property(property: 'status', type: 'string'),
+        ]),
+        new OA\Property(property: 'order_items', type: 'array', items: new OA\Items(
+            properties: [
+                new OA\Property(property: 'id', type: 'integer'),
+                new OA\Property(property: 'item_id', type: 'integer'),
+                new OA\Property(property: 'item', type: 'object', nullable: true, properties: [
+                    new OA\Property(property: 'id', type: 'integer'),
+                    new OA\Property(property: 'name', type: 'string'),
+                ]),
+                new OA\Property(property: 'price', type: 'string'),
+                new OA\Property(property: 'quantity', type: 'integer'),
+                new OA\Property(property: 'comment', type: 'string', nullable: true),
+                new OA\Property(property: 'line_total', type: 'number', format: 'float'),
+                new OA\Property(property: 'options', type: 'array', items: new OA\Items(
+                    properties: [
+                        new OA\Property(property: 'option_value_id', type: 'integer'),
+                        new OA\Property(property: 'name', type: 'string', nullable: true),
+                        new OA\Property(property: 'price', type: 'string'),
+                        new OA\Property(property: 'qty', type: 'integer', nullable: true),
+                    ]
+                )),
+            ]
+        )),
+        new OA\Property(property: 'meal_deals', type: 'array', items: new OA\Items(ref: '#/components/schemas/PurchasedMealDeal')),
+    ]
+)]
+#[OA\Schema(
     schema: 'RewardProgram',
     properties: [
         new OA\Property(property: 'id', type: 'integer', example: 1),
@@ -497,6 +551,8 @@ use OpenApi\Attributes as OA;
                 new OA\Property(property: 'option_name', type: 'string', nullable: true, example: 'Sauce'),
                 new OA\Property(property: 'option_value_id', type: 'integer', example: 30),
                 new OA\Property(property: 'name', type: 'string', nullable: true, example: 'BBQ'),
+                new OA\Property(property: 'primary_image_url', type: 'string', nullable: true, example: 'https://itsawrap.ai/storage/media-library/bbq.jpg'),
+                new OA\Property(property: 'primary_media', ref: '#/components/schemas/PrimaryMedia', nullable: true),
                 new OA\Property(property: 'quantity', type: 'integer', example: 1),
                 new OA\Property(property: 'parent_option_value_id', type: 'integer', nullable: true, example: null),
                 new OA\Property(property: 'price_override', type: 'number', format: 'float', nullable: true, example: null),

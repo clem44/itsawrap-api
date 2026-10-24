@@ -117,14 +117,27 @@
                             </div>
                         </div>
 
-                        <div class="flex justify-end gap-3 border-t border-white/10 px-6 py-4">
-                            <button type="button" class="rounded-lg border border-white/20 bg-transparent px-5 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition-colors" @click="close">
-                                Cancel
+                        <div class="flex flex-col-reverse gap-3 border-t border-white/10 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+                            <button
+                                type="submit"
+                                form="edit-option-value-delete-form"
+                                class="rounded-lg border border-red-400/60 bg-transparent px-5 py-2.5 text-sm font-medium text-red-300 transition-colors hover:border-red-400 hover:bg-red-950/40 hover:text-red-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+                            >
+                                Delete Value
                             </button>
-                            <button type="submit" class="rounded-lg bg-[var(--color-forest)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--color-forest-dark)] transition-colors">
-                                Save Changes
-                            </button>
+                            <div class="flex justify-end gap-3">
+                                <button type="button" class="rounded-lg border border-white/20 bg-transparent px-5 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition-colors" @click="close">
+                                    Cancel
+                                </button>
+                                <button type="submit" class="rounded-lg bg-[var(--color-forest)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--color-forest-dark)] transition-colors">
+                                    Save Changes
+                                </button>
+                            </div>
                         </div>
+                    </form>
+                    <form id="edit-option-value-delete-form" method="POST" :action="deleteAction" @submit="confirmDelete">
+                        <input type="hidden" name="_token" :value="csrfToken">
+                        <input type="hidden" name="_method" value="DELETE">
                     </form>
                 </div>
             </div>
@@ -142,6 +155,10 @@ export default {
             required: true,
         },
         csrfToken: {
+            type: String,
+            required: true,
+        },
+        deleteAction: {
             type: String,
             required: true,
         },
@@ -172,6 +189,14 @@ export default {
     methods: {
         close() {
             this.$emit('close');
+        },
+
+        confirmDelete(event) {
+            const valueName = this.value.name || 'this option value';
+
+            if (!window.confirm(`Delete ${valueName}? This action cannot be undone.`)) {
+                event.preventDefault();
+            }
         },
 
         fieldClass(field) {

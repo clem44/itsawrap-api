@@ -2,8 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\Bundle;
 use App\Models\Category;
 use App\Models\Item;
+use App\Models\Option;
+use App\Models\OptionDependency;
+use App\Models\OptionValue;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -53,6 +57,82 @@ class MenuMediaApiTest extends TestCase
             ->assertJsonMissingPath('categories.0.media')
             ->assertJsonMissingPath('items.0.media')
             ->assertJsonMissingPath('items.0.category.media');
+    }
+
+    public function test_guest_menu_includes_primary_media_for_item_and_bundle_option_values(): void
+    {
+        $category = Category::query()->create(['name' => 'Wraps', 'sort_order' => 1]);
+        $item = Item::query()->create([
+            'name' => 'Chicken Wrap',
+            'category_id' => $category->id,
+            'cost' => 12.50,
+            'active' => true,
+        ]);
+        $option = Option::query()->create(['name' => 'Protein']);
+        $optionValue = OptionValue::query()->create([
+            'option_id' => $option->id,
+            'name' => 'Chicken',
+            'price' => 3,
+        ]);
+        $itemOption = $item->itemOptions()->create([
+            'option_id' => $option->id,
+            'required' => true,
+            'type' => 'single',
+        ]);
+        $itemOptionValue = $itemOption->itemOptionValues()->create([
+            'option_value_id' => $optionValue->id,
+            'price' => 3,
+            'in_stock' => true,
+        ]);
+        $media = $this->makeMedia('option-value-chicken.jpg');
+        $optionValue->syncMedia($media, OptionValue::IMAGE_TAG);
+
+        $childOption = Option::query()->create(['name' => 'Sauce']);
+        $childOptionValue = OptionValue::query()->create([
+            'option_id' => $childOption->id,
+            'name' => 'Garlic',
+            'price' => 1,
+        ]);
+        $childItemOption = $item->itemOptions()->create([
+            'option_id' => $childOption->id,
+            'required' => false,
+            'type' => 'dependent',
+        ]);
+        $childItemOption->itemOptionValues()->create([
+            'option_value_id' => $childOptionValue->id,
+            'price' => 1,
+            'in_stock' => true,
+        ]);
+        $dependency = OptionDependency::query()->create([
+            'parent_option_value_id' => $itemOptionValue->id,
+            'child_option_id' => $childItemOption->id,
+        ]);
+        $itemOptionValue->update(['option_dependency_id' => $dependency->id]);
+        $childMedia = $this->makeMedia('option-value-garlic.jpg');
+        $childOptionValue->syncMedia($childMedia, OptionValue::IMAGE_TAG);
+
+        $bundle = Bundle::query()->create(['name' => 'Chicken Bundle', 'is_active' => true]);
+        $bundleItem = $bundle->bundleItems()->create([
+            'item_id' => $item->id,
+            'quantity' => 1,
+            'sort_order' => 0,
+        ]);
+        $bundleItem->optionValues()->create([
+            'item_option_id' => $itemOption->id,
+            'option_value_id' => $optionValue->id,
+            'quantity' => 1,
+        ]);
+
+        $this->getJson('/api/guest/menu')
+            ->assertOk()
+            ->assertJsonPath('items.0.item_options.0.item_option_values.0.option_value.primary_media.id', $media->id)
+            ->assertJsonPath('items.0.item_options.0.item_option_values.0.option_value.primary_media.basename', 'option-value-chicken.jpg')
+            ->assertJsonPath('items.0.item_options.0.item_option_values.0.option_value.primary_image_url', fn (?string $url) => filled($url))
+            ->assertJsonMissingPath('items.0.item_options.0.item_option_values.0.option_value.media')
+            ->assertJsonPath('items.0.item_options.0.item_option_values.0.option_dependency.child_option.item_option_values.0.option_value.primary_media.id', $childMedia->id)
+            ->assertJsonPath('items.0.item_options.0.item_option_values.0.option_dependency.child_option.item_option_values.0.option_value.primary_image_url', fn (?string $url) => filled($url))
+            ->assertJsonPath('bundles.0.items.0.option_values.0.primary_media.id', $media->id)
+            ->assertJsonPath('bundles.0.items.0.option_values.0.primary_image_url', fn (?string $url) => filled($url));
     }
 
     public function test_staff_category_and_item_apis_include_primary_media(): void

@@ -88,6 +88,7 @@ class BundlePresenter
     private function presentOptionValue(BundleItemOptionValue $optionValue): array
     {
         $itemOptionValue = $this->itemOptionValue($optionValue);
+        $presentedOptionValue = $optionValue->optionValue?->includePrimaryImageMedia();
 
         return [
             'id' => $optionValue->id,
@@ -98,7 +99,9 @@ class BundlePresenter
             'option_id' => $optionValue->itemOption?->option_id,
             'option_name' => $optionValue->itemOption?->option?->name,
             'option_value_id' => $optionValue->option_value_id,
-            'name' => $optionValue->optionValue?->name,
+            'name' => $presentedOptionValue?->name,
+            'primary_image_url' => $presentedOptionValue?->primary_image_url,
+            'primary_media' => $presentedOptionValue?->primary_media,
             'quantity' => $optionValue->quantity,
             'parent_option_value_id' => $optionValue->parent_option_value_id,
             'price_override' => $optionValue->price_override,
