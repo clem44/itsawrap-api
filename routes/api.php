@@ -67,6 +67,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // Customer self-service routes — identity resolved from the token, never from a route parameter
 Route::middleware(['auth:sanctum', 'customer'])->prefix('me')->group(function () {
+    // Orders require a branch_id (see StoreCustomerOrderRequest), but the
+    // only other branches route is staff-gated — customers had no way to
+    // discover a valid id at all. BranchController::index exposes nothing
+    // beyond name/address/phone/active, so it's safe to reuse here as-is.
+    Route::get('/branches', [BranchController::class, 'index']);
     Route::get('/rewards', [CustomerRewardController::class, 'me']);
     Route::get('/offers', [OfferController::class, 'index']);
     Route::get('/bundles', [BundleController::class, 'index']);
