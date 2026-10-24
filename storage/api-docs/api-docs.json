@@ -1863,29 +1863,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Profile updated",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "firstname": {
-                                            "type": "string",
-                                            "example": "Jordan"
-                                        },
-                                        "lastname": {
-                                            "type": "string",
-                                            "example": "Baptiste"
-                                        },
-                                        "phone": {
-                                            "type": "string",
-                                            "example": "264-555-0199",
-                                            "nullable": true
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Profile updated"
                     },
                     "401": {
                         "description": "Unauthenticated"
@@ -1943,20 +1921,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Password updated",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Password updated successfully."
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Password updated"
                     },
                     "401": {
                         "description": "Unauthenticated"
@@ -2091,6 +2056,51 @@
                         "bearerAuth": []
                     }
                 ]
+            }
+        },
+        "/guest/menu": {
+            "get": {
+                "tags": [
+                    "Guest"
+                ],
+                "summary": "Get the storefront menu",
+                "description": "Returns menu-visible categories, items with their option values, and active bundles. Option values include their primary media fields.",
+                "operationId": "ad9634422ee9a7e5ece8421975209493",
+                "responses": {
+                    "200": {
+                        "description": "Storefront menu",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "categories": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Category"
+                                            }
+                                        },
+                                        "items": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Item"
+                                            }
+                                        },
+                                        "bundles": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Bundle"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests"
+                    }
+                }
             }
         },
         "/guest/orders": {
@@ -7489,6 +7499,9 @@
                         "example": 2,
                         "nullable": true
                     },
+                    "option_value": {
+                        "$ref": "#/components/schemas/OptionValue"
+                    },
                     "option_dependency": {
                         "$ref": "#/components/schemas/OptionDependency"
                     },
@@ -8876,6 +8889,19 @@
                                 "name": {
                                     "type": "string",
                                     "example": "BBQ",
+                                    "nullable": true
+                                },
+                                "primary_image_url": {
+                                    "type": "string",
+                                    "example": "https://itsawrap.ai/storage/media-library/bbq.jpg",
+                                    "nullable": true
+                                },
+                                "primary_media": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/PrimaryMedia"
+                                        }
+                                    ],
                                     "nullable": true
                                 },
                                 "quantity": {

@@ -156,6 +156,10 @@
                 return this.selectedOption && this.editValue.id ? `{{ route('admin.option-values.update', ['option' => '__OID__', 'optionValue' => '__VID__']) }}`.replace('__OID__', this.selectedOption.id).replace('__VID__', this.editValue.id) : '#';
             },
 
+            getDeleteValueAction() {
+                return this.selectedOption && this.editValue.id ? `{{ route('admin.option-values.destroy', ['option' => '__OID__', 'optionValue' => '__VID__']) }}`.replace('__OID__', this.selectedOption.id).replace('__VID__', this.editValue.id) : '#';
+            },
+
             getEditAction() {
                 return this.editAction.replace('__ID__', this.editOption.id);
             }
@@ -219,21 +223,36 @@
                             <div class="flex flex-wrap gap-2 items-center">
                                 @forelse($option->optionValues as $value)
                                     @php($valueMedia = $value->firstMedia('primary_image'))
-                                    <button
-                                        type="button"
-                                        class="inline-flex items-center gap-2 px-3 py-1 text-sm rounded-full hover:opacity-80 transition-opacity cursor-pointer"
-                                        style="background: rgba(124, 154, 138, 0.2);"
-                                        @click.stop="openEditValue(@js(array_merge($value->only(['id', 'name', 'price']), ['media_id' => $valueMedia?->id, 'primary_media' => $valueMedia ? $mediaPresenter->present($valueMedia) : null])), @js($option->only(['id', 'name'])))"
-                                        title="Click to edit value"
-                                    >
-                                        @if($valueMedia)
-                                            <img src="{{ $valueMedia->getUrl() }}" alt="{{ $valueMedia->alt ?: $value->name }}" class="h-5 w-5 rounded-full object-cover">
-                                        @endif
-                                        {{ $value->name }}
-                                        @if($value->price > 0)
-                                            <span style="color: var(--color-ink); opacity: 0.7;">(+${{ number_format($value->price, 2) }})</span>
-                                        @endif
-                                    </button>
+                                    <span class="inline-flex items-center rounded-full" style="background: rgba(124, 154, 138, 0.2);">
+                                        <button
+                                            type="button"
+                                            class="inline-flex items-center gap-2 rounded-l-full py-1 pl-3 pr-2 text-sm transition-colors hover:bg-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-forest)]"
+                                            @click.stop="openEditValue(@js(array_merge($value->only(['id', 'name', 'price']), ['media_id' => $valueMedia?->id, 'primary_media' => $valueMedia ? $mediaPresenter->present($valueMedia) : null])), @js($option->only(['id', 'name'])))"
+                                            title="Edit {{ $value->name }}"
+                                        >
+                                            @if($valueMedia)
+                                                <img src="{{ $valueMedia->getUrl() }}" alt="{{ $valueMedia->alt ?: $value->name }}" class="h-5 w-5 rounded-full object-cover">
+                                            @endif
+                                            {{ $value->name }}
+                                            @if($value->price > 0)
+                                                <span style="color: var(--color-ink); opacity: 0.7;">(+${{ number_format($value->price, 2) }})</span>
+                                            @endif
+                                        </button>
+                                        <form method="POST" action="{{ route('admin.option-values.destroy', [$option, $value]) }}" class="inline-flex" onsubmit="return confirm('Delete this option value? This action cannot be undone.')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button
+                                                type="submit"
+                                                class="inline-flex h-7 w-7 items-center justify-center rounded-full text-red-700 transition-colors hover:bg-red-700 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-700"
+                                                title="Delete {{ $value->name }}"
+                                                aria-label="Delete {{ $value->name }}"
+                                            >
+                                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
+                                                </svg>
+                                            </button>
+                                        </form>
+                                    </span>
                                 @empty
                                     <span class="user-meta">No values yet</span>
                                 @endforelse
@@ -785,6 +804,7 @@
     <edit-option-value-modal
         :action="getEditValueAction()"
         :csrf-token="csrfToken"
+        :delete-action="getDeleteValueAction()"
         :errors="editValueErrors"
         :open="editValueOpen"
         :selected-option="selectedOption"
