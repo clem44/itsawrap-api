@@ -25,6 +25,7 @@ class StoreCustomerOrderRequest extends FormRequest
     {
         return [
             'number' => ['nullable', 'string', 'max:50'],
+            'branch_id' => ['required', 'integer', 'exists:branches,id'],
             'subtotal' => ['required', 'numeric', 'min:0', 'max:99999.99'],
             'service_charge' => ['nullable', 'numeric', 'min:0', 'max:99999.99'],
             'total' => ['required', 'numeric', 'min:0', 'max:99999.99'],

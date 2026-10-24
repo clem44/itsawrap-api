@@ -2,6 +2,7 @@
 
 namespace App\Services\Orders;
 
+use App\Models\CashSession;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\RewardProgram;
@@ -30,7 +31,7 @@ class OrderCreationService
     /**
      * @param  array<string, mixed>  $validated
      */
-    public function create(array $validated, int $customerId, string $source, ?string $ip = null): Order
+    public function create(array $validated, int $customerId, string $source, ?string $ip = null, ?int $branchId = null): Order
     {
         $idempotencyKey = $validated['idempotency_key'] ?? null;
 
@@ -50,6 +51,26 @@ class OrderCreationService
 
                 return $existingOrder;
             }
+        }
+
+        // An open cash session is what "the shop is open" means. Orders
+        // placed against a branch with no open session are rejected rather
+        // than silently queued with a null session_id.
+        $sessionId = null;
+        if ($branchId !== null) {
+            $session = CashSession::query()
+                ->where('branch_id', $branchId)
+                ->where('is_open', true)
+                ->latest('opened_at')
+                ->first();
+
+            if ($session === null) {
+                throw ValidationException::withMessages([
+                    'branch_id' => 'This location is not currently accepting orders.',
+                ]);
+            }
+
+            $sessionId = $session->id;
         }
 
         $validated = $this->bundleOrderExpander->expand($validated);
@@ -102,7 +123,7 @@ class OrderCreationService
                 ->where('name', 'pending')
                 ->value('id') ?? 1;
 
-            $createOrder = function () use ($validated, $preparedDeals, $customerId, $source, $pendingStatusId, $idempotencyKey): Order {
+            $createOrder = function () use ($validated, $preparedDeals, $customerId, $source, $pendingStatusId, $idempotencyKey, $sessionId): Order {
                 $guestLookupToken = $source === 'guest-web' ? Str::random(64) : null;
 
                 $order = Order::query()->create([
@@ -120,7 +141,7 @@ class OrderCreationService
                     'placed_at' => now(),
                     'is_delivery' => $validated['is_delivery'],
                     'is_reward' => false,
-                    'session_id' => null,
+                    'session_id' => $sessionId,
                     'source' => $source,
                     'idempotency_key' => $idempotencyKey,
                     'guest_access_token' => $guestLookupToken,
