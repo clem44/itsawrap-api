@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Branch;
 use App\Models\CashSession;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,7 +28,7 @@ class CashSessionController extends Controller
     )]
     public function index(Request $request): JsonResponse
     {
-        $query = CashSession::with('user');
+        $query = CashSession::with(['user', 'branch']);
 
         if ($request->has('is_open')) {
             $query->where('is_open', $request->boolean('is_open'));
@@ -51,6 +52,7 @@ class CashSessionController extends Controller
             content: new OA\JsonContent(
                 properties: [
                     new OA\Property(property: 'opening_amount', type: 'number', example: 100.00),
+                    new OA\Property(property: 'branch_id', type: 'integer', nullable: true, description: 'Defaults to the "Main" branch when omitted.', example: 1),
                 ]
             )
         ),
@@ -64,15 +66,19 @@ class CashSessionController extends Controller
     {
         $validated = $request->validate([
             'opening_amount' => 'numeric|min:0',
+            'branch_id' => 'nullable|integer|exists:branches,id',
         ]);
+
+        $branchId = $validated['branch_id'] ?? Branch::query()->where('name', 'Main')->value('id');
 
         $session = CashSession::create([
             'user_id' => $request->user()->id,
+            'branch_id' => $branchId,
             'opening_amount' => $validated['opening_amount'] ?? 0,
             'opened_at' => now(),
         ]);
 
-        return response()->json($session->load('user'), 201);
+        return response()->json($session->load(['user', 'branch']), 201);
     }
 
     #[OA\Get(
@@ -92,7 +98,7 @@ class CashSessionController extends Controller
     )]
     public function show(CashSession $cashSession): JsonResponse
     {
-        return response()->json($cashSession->load(['user', 'orders', 'withdrawals']));
+        return response()->json($cashSession->load(['user', 'branch', 'orders', 'withdrawals']));
     }
 
     #[OA\Post(
@@ -136,7 +142,7 @@ class CashSessionController extends Controller
             'closed_at' => now(),
         ]);
 
-        return response()->json($cashSession->load('user'));
+        return response()->json($cashSession->load(['user', 'branch']));
     }
 
     #[OA\Patch(
@@ -183,7 +189,7 @@ class CashSessionController extends Controller
 
         $cashSession->update($validated);
 
-        return response()->json($cashSession->load('user'));
+        return response()->json($cashSession->load(['user', 'branch']));
     }
 
     #[OA\Get(
@@ -203,6 +209,6 @@ class CashSessionController extends Controller
             ->where('is_open', true)
             ->first();
 
-        return response()->json($session?->load(['user', 'orders', 'withdrawals']));
+        return response()->json($session?->load(['user', 'branch', 'orders', 'withdrawals']));
     }
 }

@@ -31,9 +31,10 @@ class CustomerOrderController extends Controller
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ['subtotal', 'total', 'is_delivery'],
+                required: ['subtotal', 'total', 'is_delivery', 'branch_id'],
                 properties: [
                     new OA\Property(property: 'number', type: 'string', nullable: true, example: 'IAW-000123'),
+                    new OA\Property(property: 'branch_id', type: 'integer', description: 'The branch to order from; must have an open cash session or the order is rejected.', example: 1),
                     new OA\Property(property: 'subtotal', type: 'number', example: 21.50),
                     new OA\Property(property: 'service_charge', type: 'number', nullable: true, example: 0),
                     new OA\Property(property: 'total', type: 'number', example: 21.50),
@@ -128,7 +129,7 @@ class CustomerOrderController extends Controller
             ]
         );
 
-        $order = $orders->create($validated, $customer->id, 'web-customer', $request->ip());
+        $order = $orders->create($validated, $customer->id, 'web-customer', $request->ip(), (int) $validated['branch_id']);
 
         return response()->json($order, $order->wasRecentlyCreated ? 201 : 200);
     }

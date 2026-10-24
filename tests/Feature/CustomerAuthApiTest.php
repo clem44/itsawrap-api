@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\Branch;
 use App\Models\Bundle;
+use App\Models\CashSession;
 use App\Models\Category;
 use App\Models\Customer;
 use App\Models\Item;
@@ -79,10 +81,12 @@ class CustomerAuthApiTest extends TestCase
         $category = Category::query()->create(['name' => 'Wraps', 'sort_order' => 1]);
         $item = Item::query()->create(['name' => 'Chicken Wrap', 'category_id' => $category->id, 'cost' => 12.50, 'active' => true]);
 
+        $branchId = $this->openMainBranchSession();
         $user = $this->makeCustomerUser();
         Sanctum::actingAs($user);
 
         $payload = [
+            'branch_id' => $branchId,
             'subtotal' => 12.50,
             'service_charge' => 0,
             'total' => 12.50,
@@ -108,9 +112,11 @@ class CustomerAuthApiTest extends TestCase
         $category = Category::query()->create(['name' => 'Wraps', 'sort_order' => 1]);
         $item = Item::query()->create(['name' => 'Chicken Wrap', 'category_id' => $category->id, 'cost' => 12.50, 'active' => true]);
 
+        $branchId = $this->openMainBranchSession();
         Sanctum::actingAs($this->makeCustomerUser());
 
         $response = $this->postJson('/api/me/orders', [
+            'branch_id' => $branchId,
             'subtotal' => 12.50,
             'service_charge' => 0,
             'total' => 12.50,
@@ -135,9 +141,11 @@ class CustomerAuthApiTest extends TestCase
         $wrap = Item::query()->create(['name' => 'Chicken Wrap', 'category_id' => $category->id, 'cost' => 12.50, 'active' => true]);
         $bowl = Item::query()->create(['name' => 'Rice Bowl', 'category_id' => $category->id, 'cost' => 9.00, 'active' => true]);
 
+        $branchId = $this->openMainBranchSession();
         Sanctum::actingAs($this->makeCustomerUser());
 
         $response = $this->postJson('/api/me/orders', [
+            'branch_id' => $branchId,
             'subtotal' => 21.50,
             'service_charge' => 0,
             'total' => 21.50,
@@ -200,9 +208,11 @@ class CustomerAuthApiTest extends TestCase
         $bundle->bundleItems()->create(['item_id' => $wrap->id, 'quantity' => 1, 'sort_order' => 0]);
         $bundle->bundleItems()->create(['item_id' => $drink->id, 'quantity' => 1, 'sort_order' => 1]);
 
+        $branchId = $this->openMainBranchSession();
         Sanctum::actingAs($this->makeCustomerUser());
 
         $response = $this->postJson('/api/me/orders', [
+            'branch_id' => $branchId,
             'subtotal' => 13.00,
             'service_charge' => 0,
             'total' => 13.00,
@@ -258,5 +268,24 @@ class CustomerAuthApiTest extends TestCase
             'password' => 'password',
             'role_id' => 3,
         ]);
+    }
+
+    /**
+     * Customer orders are rejected unless their branch has an open cash
+     * session — set one up and return the branch id to put on the payload.
+     */
+    private function openMainBranchSession(): int
+    {
+        $branch = Branch::query()->create(['name' => 'Main', 'active' => true]);
+
+        CashSession::query()->create([
+            'user_id' => $this->makeStaffUser()->id,
+            'branch_id' => $branch->id,
+            'opening_amount' => 0,
+            'is_open' => true,
+            'opened_at' => now(),
+        ]);
+
+        return $branch->id;
     }
 }

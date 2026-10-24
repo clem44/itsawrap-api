@@ -13,6 +13,7 @@ class CashSession extends Model
 
     protected $fillable = [
         'user_id',
+        'branch_id',
         'opening_amount',
         'closing_amount',
         'expected_amount',
@@ -44,6 +45,11 @@ class CashSession extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function orders(): HasMany

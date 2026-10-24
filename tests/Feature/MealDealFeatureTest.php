@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Branch;
+use App\Models\CashSession;
 use App\Models\Customer;
 use App\Models\Item;
 use App\Models\MealDeal;
@@ -386,10 +388,36 @@ class MealDealFeatureTest extends TestCase
             'email' => 'meal-customer@example.com', 'password' => Hash::make('password'), 'role_id' => 3,
         ]);
         Sanctum::actingAs($user);
+        $branchId = $this->openMainBranchSession();
 
         $this->postJson('/api/me/orders', [
+            'branch_id' => $branchId,
             'subtotal' => 0, 'service_charge' => 0, 'total' => 0, 'is_delivery' => false,
             'items' => [], 'meal_deals' => [$this->albenaSelection()],
         ])->assertCreated()->assertJsonPath('meal_deals.0.name', 'The Albena');
+    }
+
+    /**
+     * Customer orders are rejected unless their branch has an open cash
+     * session — set one up and return the branch id to put on the payload.
+     */
+    private function openMainBranchSession(): int
+    {
+        $branch = Branch::query()->firstOrCreate(['name' => 'Main'], ['active' => true]);
+
+        $cashier = User::query()->create([
+            'firstname' => 'Meal', 'lastname' => 'Cashier', 'username' => 'meal-cashier',
+            'email' => 'meal-cashier@example.com', 'password' => Hash::make('password'), 'role_id' => 1,
+        ]);
+
+        CashSession::query()->create([
+            'user_id' => $cashier->id,
+            'branch_id' => $branch->id,
+            'opening_amount' => 0,
+            'is_open' => true,
+            'opened_at' => now(),
+        ]);
+
+        return $branch->id;
     }
 }

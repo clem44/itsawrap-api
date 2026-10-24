@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\BundleController;
+use App\Http\Controllers\Api\CustomerBranchController;
 use App\Http\Controllers\Api\CashSessionController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CustomerController;
@@ -66,8 +67,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // Customer self-service routes — identity resolved from the token, never from a route parameter
 Route::middleware(['auth:sanctum', 'customer'])->prefix('me')->group(function () {
-    Route::patch('/profile', [CustomerProfileController::class, 'update']);
-    Route::put('/password', [CustomerProfileController::class, 'updatePassword']);
     Route::get('/rewards', [CustomerRewardController::class, 'me']);
     Route::get('/offers', [OfferController::class, 'index']);
     Route::get('/bundles', [BundleController::class, 'index']);

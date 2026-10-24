@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Branch;
+use App\Models\CashSession;
 use App\Models\Category;
 use App\Models\Customer;
 use App\Models\Item;
@@ -31,10 +33,11 @@ class CustomerOrderRewardRedemptionTest extends TestCase
     {
         [$user, $customer, $program, $wrap, $chicken] = $this->scenario();
         $this->grantReward($customer, $program);
+        $branchId = $this->openMainBranchSession();
 
         Sanctum::actingAs($user);
 
-        $this->postJson('/api/me/orders', $this->orderPayload($wrap, $chicken, $program))
+        $this->postJson('/api/me/orders', $this->orderPayload($wrap, $chicken, $program, $branchId))
             ->assertCreated();
 
         $orderItem = Order::query()->latest('id')->first()->orderItems()->first();
@@ -49,10 +52,11 @@ class CustomerOrderRewardRedemptionTest extends TestCase
     {
         [$user, $customer, $program, $wrap, $chicken] = $this->scenario();
         $this->grantReward($customer, $program);
+        $branchId = $this->openMainBranchSession();
 
         Sanctum::actingAs($user);
 
-        $this->postJson('/api/me/orders', $this->orderPayload($wrap, $chicken, $program))
+        $this->postJson('/api/me/orders', $this->orderPayload($wrap, $chicken, $program, $branchId))
             ->assertCreated();
 
         $this->assertDatabaseHas('reward_ledger_entries', [
@@ -70,10 +74,11 @@ class CustomerOrderRewardRedemptionTest extends TestCase
     public function test_it_refuses_a_redemption_the_customer_has_not_earned(): void
     {
         [$user, , $program, $wrap, $chicken] = $this->scenario();
+        $branchId = $this->openMainBranchSession();
 
         Sanctum::actingAs($user);
 
-        $this->postJson('/api/me/orders', $this->orderPayload($wrap, $chicken, $program))
+        $this->postJson('/api/me/orders', $this->orderPayload($wrap, $chicken, $program, $branchId))
             ->assertStatus(422);
 
         // The whole order rolls back rather than letting a free wrap through.
@@ -109,10 +114,12 @@ class CustomerOrderRewardRedemptionTest extends TestCase
     public function test_an_ordinary_line_is_untouched(): void
     {
         [$user, , , $wrap, $chicken] = $this->scenario();
+        $branchId = $this->openMainBranchSession();
 
         Sanctum::actingAs($user);
 
         $this->postJson('/api/me/orders', [
+            'branch_id' => $branchId,
             'subtotal' => 12,
             'total' => 12,
             'is_delivery' => false,
@@ -133,9 +140,10 @@ class CustomerOrderRewardRedemptionTest extends TestCase
     /**
      * @return array<string, mixed>
      */
-    private function orderPayload(Item $wrap, ItemOptionValue $chicken, RewardProgram $program): array
+    private function orderPayload(Item $wrap, ItemOptionValue $chicken, RewardProgram $program, int $branchId): array
     {
         return [
+            'branch_id' => $branchId,
             'subtotal' => 0,
             'total' => 0,
             'is_delivery' => false,
@@ -212,5 +220,33 @@ class CustomerOrderRewardRedemptionTest extends TestCase
         ]);
 
         return [$user, $customer, $program, $wrap, $chicken];
+    }
+
+    /**
+     * Customer orders are rejected unless their branch has an open cash
+     * session — set one up and return the branch id to put on the payload.
+     */
+    private function openMainBranchSession(): int
+    {
+        $branch = Branch::query()->create(['name' => 'Main', 'active' => true]);
+
+        $cashier = User::query()->create([
+            'firstname' => 'Cash',
+            'lastname' => 'Ier',
+            'username' => 'cashier',
+            'email' => 'cashier@example.com',
+            'password' => 'password',
+            'role_id' => 1,
+        ]);
+
+        CashSession::query()->create([
+            'user_id' => $cashier->id,
+            'branch_id' => $branch->id,
+            'opening_amount' => 0,
+            'is_open' => true,
+            'opened_at' => now(),
+        ]);
+
+        return $branch->id;
     }
 }
