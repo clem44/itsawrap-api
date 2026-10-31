@@ -13,7 +13,7 @@ class MealDeal extends Model
 {
     use HasPrimaryImageMedia, Mediable, SoftDeletes;
 
-    protected $fillable = ['name', 'description', 'base_price', 'service_charge_rate', 'marketing_max_saving', 'primary_category_id', 'primary_item_id', 'primary_group_key', 'selection_groups', 'fixed_option_value_ids', 'is_active', 'sort_order'];
+    protected $fillable = ['name', 'description', 'allergens', 'additional_info', 'base_price', 'service_charge_rate', 'marketing_max_saving', 'primary_category_id', 'primary_item_id', 'primary_group_key', 'selection_groups', 'fixed_option_value_ids', 'is_active', 'sort_order'];
 
     protected function casts(): array
     {

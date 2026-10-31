@@ -3599,7 +3599,28 @@
                 "operationId": "2adce5d43b059a4b18708e387a246d1c",
                 "responses": {
                     "200": {
-                        "description": "Available deals and diagnostics for active deals that cannot be ordered"
+                        "description": "Available deals and diagnostics for active deals that cannot be ordered",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "meal_deals": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/MealDealDefinition"
+                                            }
+                                        },
+                                        "unavailable_meal_deals": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -7707,6 +7728,81 @@
                     "updated_at": {
                         "type": "string",
                         "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "MealDealDefinition": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "The Albena"
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "allergens": {
+                        "type": "string",
+                        "example": "Contains wheat and milk.",
+                        "nullable": true
+                    },
+                    "additional_info": {
+                        "type": "string",
+                        "example": "Available while supplies last.",
+                        "nullable": true
+                    },
+                    "base_price": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 13
+                    },
+                    "service_charge_rate": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 0.15
+                    },
+                    "service_charge": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 1.95
+                    },
+                    "marketing_max_saving": {
+                        "type": "number",
+                        "format": "float",
+                        "nullable": true
+                    },
+                    "image_url": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "primary_category_id": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "primary_category_name": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "primary_item_id": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "selection_groups": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    },
+                    "eligible_items": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
                     }
                 },
                 "type": "object"

@@ -12,7 +12,21 @@ use OpenApi\Attributes as OA;
 
 class MealDealController extends Controller
 {
-    #[OA\Get(path: '/guest/meal-deals', summary: 'List available Meal Deals', tags: ['Meal Deals'], responses: [new OA\Response(response: 200, description: 'Available deals and diagnostics for active deals that cannot be ordered')])]
+    #[OA\Get(
+        path: '/guest/meal-deals',
+        summary: 'List available Meal Deals',
+        tags: ['Meal Deals'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Available deals and diagnostics for active deals that cannot be ordered',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'meal_deals', type: 'array', items: new OA\Items(ref: '#/components/schemas/MealDealDefinition')),
+                    new OA\Property(property: 'unavailable_meal_deals', type: 'array', items: new OA\Items(type: 'object')),
+                ]),
+            ),
+        ],
+    )]
     public function index(MealDealAvailability $availability): JsonResponse
     {
         $deals = MealDeal::query()->where('is_active', true)->with(['primaryItem', 'primaryCategory'])->withMedia(MealDeal::IMAGE_TAG)->orderBy('sort_order')->orderBy('name')->get();
@@ -24,6 +38,8 @@ class MealDealController extends Controller
                 'id' => $deal->id,
                 'name' => $deal->name,
                 'description' => $deal->description,
+                'allergens' => $deal->allergens,
+                'additional_info' => $deal->additional_info,
                 'base_price' => (float) $deal->base_price,
                 'service_charge_rate' => (float) $deal->service_charge_rate,
                 'service_charge' => round((float) $deal->base_price * (float) $deal->service_charge_rate, 2),

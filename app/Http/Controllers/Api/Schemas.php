@@ -182,6 +182,26 @@ use OpenApi\Attributes as OA;
     ]
 )]
 #[OA\Schema(
+    schema: 'MealDealDefinition',
+    properties: [
+        new OA\Property(property: 'id', type: 'integer', example: 1),
+        new OA\Property(property: 'name', type: 'string', example: 'The Albena'),
+        new OA\Property(property: 'description', type: 'string', nullable: true),
+        new OA\Property(property: 'allergens', type: 'string', nullable: true, example: 'Contains wheat and milk.'),
+        new OA\Property(property: 'additional_info', type: 'string', nullable: true, example: 'Available while supplies last.'),
+        new OA\Property(property: 'base_price', type: 'number', format: 'float', example: 13.00),
+        new OA\Property(property: 'service_charge_rate', type: 'number', format: 'float', example: 0.15),
+        new OA\Property(property: 'service_charge', type: 'number', format: 'float', example: 1.95),
+        new OA\Property(property: 'marketing_max_saving', type: 'number', format: 'float', nullable: true),
+        new OA\Property(property: 'image_url', type: 'string', nullable: true),
+        new OA\Property(property: 'primary_category_id', type: 'integer', nullable: true),
+        new OA\Property(property: 'primary_category_name', type: 'string', nullable: true),
+        new OA\Property(property: 'primary_item_id', type: 'integer', nullable: true),
+        new OA\Property(property: 'selection_groups', type: 'array', items: new OA\Items(type: 'object')),
+        new OA\Property(property: 'eligible_items', type: 'array', items: new OA\Items(type: 'object')),
+    ]
+)]
+#[OA\Schema(
     schema: 'MealDealOrderSelection',
     required: ['meal_deal_id', 'quantity', 'selections'],
     properties: [

@@ -47,6 +47,8 @@
             id: @js($oldForm === 'edit' ? old('edit_id') : null),
             name: @js($oldForm ? old('name', '') : ''),
             description: @js($oldForm ? old('description', '') : ''),
+            allergens: @js($oldForm ? old('allergens', '') : ''),
+            additional_info: @js($oldForm ? old('additional_info', '') : ''),
             base_price: @js($oldForm ? old('base_price', '') : ''),
             marketing_max_saving: @js($oldForm ? old('marketing_max_saving', '') : ''),
             primary_category_id: @js($oldForm ? old('primary_category_id', '') : ''),
@@ -59,7 +61,7 @@
             primary_media: @js($oldForm ? $oldMedia : null),
         },
         blankDeal() {
-            return { id: null, name: '', description: '', base_price: '', marketing_max_saving: '',
+            return { id: null, name: '', description: '', allergens: '', additional_info: '', base_price: '', marketing_max_saving: '',
                 primary_category_id: '', primary_item_id: '', selection_groups: [], fixed_option_value_ids: [],
                 sort_order: 0, is_active: true, media_id: '', primary_media: null };
         },
@@ -200,6 +202,7 @@
                                 <div class="flex justify-end gap-1">
                                     <button type="button" class="action-btn edit" title="Edit Meal Deal" aria-label="Edit {{ $entry->name }}" @click.stop="openEdit(@js([
                                         'id' => $entry->id, 'name' => $entry->name, 'description' => $entry->description,
+                                        'allergens' => $entry->allergens, 'additional_info' => $entry->additional_info,
                                         'base_price' => $entry->base_price, 'marketing_max_saving' => $entry->marketing_max_saving,
                                         'primary_category_id' => $entry->primary_category_id, 'primary_item_id' => $entry->primary_item_id,
                                         'selection_groups' => $entry->selection_groups, 'fixed_option_value_ids' => $entry->fixed_option_value_ids,
@@ -248,6 +251,8 @@
                                     <div class="grid gap-4 sm:grid-cols-2">
                                         <label class="block text-sm font-medium text-white/80 sm:col-span-2">Name <input name="name" v-model="deal.name" required maxlength="255" class="mt-2 w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white focus:border-[var(--color-sage)] focus:ring-[var(--color-sage)]"></label>
                                         <label class="block text-sm font-medium text-white/80 sm:col-span-2">Description <textarea name="description" v-model="deal.description" rows="2" maxlength="2000" class="mt-2 w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white focus:border-[var(--color-sage)] focus:ring-[var(--color-sage)]"></textarea></label>
+                                        <label class="block text-sm font-medium text-white/80 sm:col-span-2">Allergens <textarea name="allergens" v-model="deal.allergens" rows="2" maxlength="2000" placeholder="List known allergens" class="mt-2 w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/50 focus:border-[var(--color-sage)] focus:ring-[var(--color-sage)]"></textarea></label>
+                                        <label class="block text-sm font-medium text-white/80 sm:col-span-2">Additional information <textarea name="additional_info" v-model="deal.additional_info" rows="2" maxlength="2000" placeholder="Add customer-facing details" class="mt-2 w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/50 focus:border-[var(--color-sage)] focus:ring-[var(--color-sage)]"></textarea></label>
                                         <label class="block text-sm font-medium text-white/80">Base price <input name="base_price" v-model="deal.base_price" type="number" step="0.01" min="0" required class="mt-2 w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white focus:border-[var(--color-sage)] focus:ring-[var(--color-sage)]"></label>
                                         <label class="block text-sm font-medium text-white/80">Maximum saving callout <input name="marketing_max_saving" v-model="deal.marketing_max_saving" type="number" step="0.01" min="0" class="mt-2 w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white focus:border-[var(--color-sage)] focus:ring-[var(--color-sage)]"></label>
                                         <label class="block text-sm font-medium text-white/80">Food category <admin-tom-select name="primary_category_id" v-model="deal.primary_category_id" :options="[{ value: '', text: 'Choose a category' }, ...categoryChoices.map(category => ({ value: category.id, text: category.name }))]" required class="meal-deal-select mt-2 w-full rounded-lg border border-white/20 px-4 py-2.5" @change="changePrimaryCategory()"></admin-tom-select></label>

@@ -12,12 +12,30 @@ use App\Models\Status;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class MealDealFeatureTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_meal_deals_store_and_expose_allergens_and_additional_information(): void
+    {
+        $this->assertTrue(Schema::hasColumns('meal_deals', ['allergens', 'additional_info']));
+
+        $this->seed();
+        $deal = MealDeal::query()->where('name', 'The Albena')->firstOrFail();
+        $deal->update([
+            'allergens' => 'Contains wheat and milk.',
+            'additional_info' => 'Available while supplies last.',
+        ]);
+
+        $this->getJson('/api/guest/meal-deals')
+            ->assertOk()
+            ->assertJsonPath('meal_deals.0.allergens', 'Contains wheat and milk.')
+            ->assertJsonPath('meal_deals.0.additional_info', 'Available while supplies last.');
+    }
 
     public function test_admin_can_manage_meal_deal_definition(): void
     {
@@ -33,7 +51,9 @@ class MealDealFeatureTest extends TestCase
             ->assertSee('The Albena')
             ->assertSee('Create Meal Deal')
             ->assertSee('Edit Meal Deal')
-            ->assertSee('Delete Meal Deal');
+            ->assertSee('Delete Meal Deal')
+            ->assertSee('name="allergens"', false)
+            ->assertSee('name="additional_info"', false);
         $this->actingAs($admin)->from(route('admin.meal-deals.index'))->post(route('admin.meal-deals.store'), [
             'form_action' => 'create',
             'name' => '',
@@ -41,6 +61,8 @@ class MealDealFeatureTest extends TestCase
         $this->actingAs($admin)->get(route('admin.meal-deals.index'))->assertOk()->assertSee('modalOpen: true', false);
         $this->actingAs($admin)->post(route('admin.meal-deals.store'), [
             'name' => 'Test Deal',
+            'allergens' => 'Contains sesame.',
+            'additional_info' => 'Best enjoyed fresh.',
             'base_price' => 12,
             'service_charge_rate' => 0.15,
             'primary_category_id' => $deal->primary_category_id,
@@ -48,9 +70,15 @@ class MealDealFeatureTest extends TestCase
             'selection_groups' => $deal->selection_groups,
             'is_active' => 1,
         ])->assertRedirect(route('admin.meal-deals.index'));
-        $this->assertDatabaseHas('meal_deals', ['name' => 'Test Deal']);
+        $this->assertDatabaseHas('meal_deals', [
+            'name' => 'Test Deal',
+            'allergens' => 'Contains sesame.',
+            'additional_info' => 'Best enjoyed fresh.',
+        ]);
         $this->actingAs($admin)->put(route('admin.meal-deals.update', $deal), [
             'name' => 'The Albena',
+            'allergens' => 'Contains wheat.',
+            'additional_info' => 'Customization subject to availability.',
             'base_price' => 13,
             'service_charge_rate' => 0.15,
             'marketing_max_saving' => 4,
@@ -60,7 +88,10 @@ class MealDealFeatureTest extends TestCase
             'sort_order' => 2,
             'is_active' => 1,
         ])->assertRedirect(route('admin.meal-deals.index'));
-        $this->assertSame(2, $deal->fresh()->sort_order);
+        $deal->refresh();
+        $this->assertSame(2, $deal->sort_order);
+        $this->assertSame('Contains wheat.', $deal->allergens);
+        $this->assertSame('Customization subject to availability.', $deal->additional_info);
 
         $this->actingAs($admin)->post(route('admin.meal-deals.store'), [
             'name' => 'Choose a Wrap Deal',

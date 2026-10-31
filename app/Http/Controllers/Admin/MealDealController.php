@@ -68,6 +68,8 @@ class MealDealController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:2000'],
+            'allergens' => ['nullable', 'string', 'max:2000'],
+            'additional_info' => ['nullable', 'string', 'max:2000'],
             'base_price' => ['required', 'numeric', 'min:0', 'max:99999.99'],
             'service_charge_rate' => ['required', 'numeric', Rule::in([0.15])],
             'marketing_max_saving' => ['nullable', 'numeric', 'min:0', 'max:99999.99'],
