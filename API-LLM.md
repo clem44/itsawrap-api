@@ -191,6 +191,90 @@ Returns currently active, orderable bundles.
 
 Returns currently active customer-facing offers.
 
+### `GET /api/guest/meal-deals`
+
+Returns available Meal Deals and the item/option structure needed to build a client-side deal customizer. The authenticated customer equivalent is `GET /api/me/meal-deals`.
+
+Each entry in `eligible_items[*].item_options` is a Meal Deal selection group. Use its `meal_deal_key` as a key in the order or quote `selections` object. A value in `item_option_values` may contain `option_dependency`; when it is not `null`, selecting that parent value should reveal `option_dependency.child_option`.
+
+Example dependency shape for Steak -> Temperature:
+
+```json
+{
+  "meal_deal_key": "option_4",
+  "option": {
+    "name": "Protein",
+    "title": "Protein"
+  },
+  "item_option_values": [
+    {
+      "choice_id": 12,
+      "option_value": {
+        "id": 12,
+        "name": "Steak"
+      },
+      "price": 0,
+      "option_dependency": {
+        "parent_option_value_id": 12,
+        "child_option": {
+          "meal_deal_key": "dependency_option_4_12_8",
+          "option_id": 8,
+          "option": {
+            "name": "temperature",
+            "title": "Temperature"
+          },
+          "required": false,
+          "min": 0,
+          "max": 1,
+          "type": "single",
+          "item_option_values": [
+            {
+              "choice_id": 30,
+              "option_value": {
+                "id": 30,
+                "name": "Medium rare"
+              },
+              "price": 1.5
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
+```
+
+Dependency behavior:
+
+- `option_dependency` is `null` for choices that do not trigger another option.
+- Show the child option only while its parent `choice_id` is selected.
+- Use `child_option.meal_deal_key` as a second key in `selections`.
+- The dependent value is optional and single-select (`min: 0`, `max: 1`).
+- The server rejects a dependent selection when its parent choice is not selected.
+- Dependent value prices are included in the server-calculated extras price.
+
+### `POST /api/guest/meal-deals/quote`
+
+Validates and prices Meal Deal selections. The authenticated customer equivalent is `POST /api/me/meal-deals/quote`.
+
+```json
+{
+  "meal_deals": [
+    {
+      "meal_deal_id": 1,
+      "item_id": 5,
+      "quantity": 1,
+      "selections": {
+        "option_4": [12],
+        "dependency_option_4_12_8": [30]
+      }
+    }
+  ]
+}
+```
+
+The same `meal_deals` array can be included in guest or customer order creation. Selection keys map to arrays of item IDs or option-value IDs. For a dependent option, submit the child value ID under the child option's `meal_deal_key`; the server persists its `parent_option_value_id` on the resulting order item option.
+
 ### `GET /api/guest/delivery-windows/today`
 
 Returns delivery windows for today in restaurant timezone, with availability flags.

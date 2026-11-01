@@ -182,6 +182,135 @@ use OpenApi\Attributes as OA;
     ]
 )]
 #[OA\Schema(
+    schema: 'MealDealSelectionGroup',
+    properties: [
+        new OA\Property(property: 'key', type: 'string', example: 'option_4'),
+        new OA\Property(property: 'label', type: 'string', example: 'Protein'),
+        new OA\Property(property: 'kind', type: 'string', enum: ['option', 'item'], example: 'option'),
+        new OA\Property(property: 'option_id', type: 'integer', nullable: true, example: 4),
+        new OA\Property(property: 'category_id', type: 'integer', nullable: true),
+        new OA\Property(property: 'min', type: 'integer', example: 1),
+        new OA\Property(property: 'max', type: 'integer', example: 1),
+        new OA\Property(property: 'allow_duplicates', type: 'boolean', example: false),
+        new OA\Property(property: 'paid_extra', type: 'boolean', example: false),
+        new OA\Property(property: 'allowed_ids', type: 'array', items: new OA\Items(type: 'integer')),
+        new OA\Property(
+            property: 'dependencies',
+            description: 'Conditional child options keyed to a choice in this group.',
+            type: 'array',
+            items: new OA\Items(
+                properties: [
+                    new OA\Property(property: 'key', type: 'string', example: 'dependency_option_4_12_8'),
+                    new OA\Property(property: 'parent_choice_id', type: 'integer', example: 12),
+                    new OA\Property(property: 'option_id', type: 'integer', example: 8),
+                    new OA\Property(property: 'allowed_ids', type: 'array', items: new OA\Items(type: 'integer')),
+                    new OA\Property(property: 'prices', type: 'object', additionalProperties: new OA\AdditionalProperties(type: 'number', format: 'float')),
+                ],
+                type: 'object'
+            )
+        ),
+        new OA\Property(
+            property: 'choices',
+            type: 'array',
+            items: new OA\Items(properties: [
+                new OA\Property(property: 'id', type: 'integer', example: 12),
+                new OA\Property(property: 'name', type: 'string', example: 'Steak'),
+            ], type: 'object')
+        ),
+    ]
+)]
+#[OA\Schema(
+    schema: 'MealDealDependentOption',
+    description: 'A conditional option shown after its parent Meal Deal choice is selected.',
+    properties: [
+        new OA\Property(property: 'id', type: 'string', example: 'meal-deal-dependent-option-dependency_option_4_12_8'),
+        new OA\Property(property: 'meal_deal_key', type: 'string', description: 'Use this key in the selections object when submitting the dependent value.', example: 'dependency_option_4_12_8'),
+        new OA\Property(property: 'option_id', type: 'integer', description: 'Underlying catalog Option ID.', example: 8),
+        new OA\Property(property: 'option', type: 'object', properties: [
+            new OA\Property(property: 'name', type: 'string', example: 'temperature'),
+            new OA\Property(property: 'title', type: 'string', example: 'Temperature'),
+        ]),
+        new OA\Property(property: 'required', type: 'boolean', example: false),
+        new OA\Property(property: 'min', type: 'integer', example: 0),
+        new OA\Property(property: 'max', type: 'integer', example: 1),
+        new OA\Property(property: 'type', type: 'string', enum: ['single'], example: 'single'),
+        new OA\Property(
+            property: 'item_option_values',
+            type: 'array',
+            items: new OA\Items(properties: [
+                new OA\Property(property: 'id', type: 'string', example: 'meal-deal-dependent-choice-dependency_option_4_12_8-30'),
+                new OA\Property(property: 'choice_id', type: 'integer', example: 30),
+                new OA\Property(property: 'option_value', type: 'object', properties: [
+                    new OA\Property(property: 'id', type: 'integer', example: 30),
+                    new OA\Property(property: 'name', type: 'string', example: 'Medium rare'),
+                    new OA\Property(property: 'primary_image_url', type: 'string', nullable: true),
+                    new OA\Property(property: 'primary_media', ref: '#/components/schemas/PrimaryMedia', nullable: true),
+                ]),
+                new OA\Property(property: 'price', type: 'number', format: 'float', example: 1.50),
+            ], type: 'object')
+        ),
+    ]
+)]
+#[OA\Schema(
+    schema: 'MealDealItemOptionValue',
+    properties: [
+        new OA\Property(property: 'id', type: 'string', example: 'meal-deal-choice-option_4-12'),
+        new OA\Property(property: 'choice_id', type: 'integer', example: 12),
+        new OA\Property(property: 'option_value', type: 'object', properties: [
+            new OA\Property(property: 'id', type: 'integer', example: 12),
+            new OA\Property(property: 'name', type: 'string', example: 'Steak'),
+            new OA\Property(property: 'primary_image_url', type: 'string', nullable: true),
+            new OA\Property(property: 'primary_media', ref: '#/components/schemas/PrimaryMedia', nullable: true),
+        ]),
+        new OA\Property(property: 'price', type: 'number', format: 'float', example: 0),
+        new OA\Property(
+            property: 'option_dependency',
+            description: 'Present when this choice triggers a dependent option; otherwise null.',
+            type: 'object',
+            nullable: true,
+            properties: [
+                new OA\Property(property: 'id', type: 'string', example: 'meal-deal-dependency-dependency_option_4_12_8'),
+                new OA\Property(property: 'parent_option_value_id', type: 'integer', example: 12),
+                new OA\Property(property: 'child_option_id', type: 'string', example: 'meal-deal-dependent-option-dependency_option_4_12_8'),
+                new OA\Property(property: 'child_option', ref: '#/components/schemas/MealDealDependentOption'),
+            ]
+        ),
+    ]
+)]
+#[OA\Schema(
+    schema: 'MealDealItemOption',
+    properties: [
+        new OA\Property(property: 'id', type: 'string', example: 'meal-deal-group-option_4'),
+        new OA\Property(property: 'meal_deal_key', type: 'string', example: 'option_4'),
+        new OA\Property(property: 'meal_deal_kind', type: 'string', enum: ['option', 'item'], example: 'option'),
+        new OA\Property(property: 'option_id', type: 'integer', nullable: true, example: 4),
+        new OA\Property(property: 'option', type: 'object', properties: [
+            new OA\Property(property: 'name', type: 'string', example: 'Protein'),
+            new OA\Property(property: 'title', type: 'string', example: 'Protein'),
+        ]),
+        new OA\Property(property: 'required', type: 'boolean', example: true),
+        new OA\Property(property: 'min', type: 'integer', example: 1),
+        new OA\Property(property: 'max', type: 'integer', example: 1),
+        new OA\Property(property: 'allow_duplicates', type: 'boolean', example: false),
+        new OA\Property(property: 'type', type: 'string', enum: ['single', 'multiple'], example: 'single'),
+        new OA\Property(property: 'item_option_values', type: 'array', items: new OA\Items(ref: '#/components/schemas/MealDealItemOptionValue')),
+    ]
+)]
+#[OA\Schema(
+    schema: 'MealDealEligibleItem',
+    properties: [
+        new OA\Property(property: 'id', type: 'integer', example: 5),
+        new OA\Property(property: 'name', type: 'string', example: 'Build Your Wrap'),
+        new OA\Property(property: 'description', type: 'string', nullable: true),
+        new OA\Property(property: 'cost', type: 'number', format: 'float', example: 13.00),
+        new OA\Property(property: 'category', type: 'object', properties: [
+            new OA\Property(property: 'id', type: 'integer', example: 2),
+            new OA\Property(property: 'name', type: 'string', example: 'Wraps'),
+        ]),
+        new OA\Property(property: 'item_options', type: 'array', items: new OA\Items(ref: '#/components/schemas/MealDealItemOption')),
+    ]
+)]
+#[OA\Schema(
     schema: 'MealDealDefinition',
     properties: [
         new OA\Property(property: 'id', type: 'integer', example: 1),
@@ -197,8 +326,8 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'primary_category_id', type: 'integer', nullable: true),
         new OA\Property(property: 'primary_category_name', type: 'string', nullable: true),
         new OA\Property(property: 'primary_item_id', type: 'integer', nullable: true),
-        new OA\Property(property: 'selection_groups', type: 'array', items: new OA\Items(type: 'object')),
-        new OA\Property(property: 'eligible_items', type: 'array', items: new OA\Items(type: 'object')),
+        new OA\Property(property: 'selection_groups', type: 'array', items: new OA\Items(ref: '#/components/schemas/MealDealSelectionGroup')),
+        new OA\Property(property: 'eligible_items', type: 'array', items: new OA\Items(ref: '#/components/schemas/MealDealEligibleItem')),
     ]
 )]
 #[OA\Schema(
@@ -206,9 +335,10 @@ use OpenApi\Attributes as OA;
     required: ['meal_deal_id', 'quantity', 'selections'],
     properties: [
         new OA\Property(property: 'meal_deal_id', type: 'integer', example: 1),
+        new OA\Property(property: 'item_id', type: 'integer', nullable: true, example: 5),
         new OA\Property(property: 'quantity', type: 'integer', example: 1),
         new OA\Property(property: 'participant_client_id', type: 'string', nullable: true, example: 'person-0'),
-        new OA\Property(property: 'selections', type: 'object', description: 'Selection group keys map to arrays of chosen item or option value IDs.', additionalProperties: new OA\AdditionalProperties(type: 'array', items: new OA\Items(type: 'integer'))),
+        new OA\Property(property: 'selections', type: 'object', description: 'Meal Deal group keys and dependent child_option.meal_deal_key values map to arrays of chosen item or option value IDs.', additionalProperties: new OA\AdditionalProperties(type: 'array', items: new OA\Items(type: 'integer'))),
     ]
 )]
 #[OA\Schema(

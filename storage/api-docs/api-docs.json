@@ -676,6 +676,12 @@
                                     "opening_amount": {
                                         "type": "number",
                                         "example": 100
+                                    },
+                                    "branch_id": {
+                                        "description": "Defaults to the \"Main\" branch when omitted.",
+                                        "type": "integer",
+                                        "example": 1,
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -1191,6 +1197,47 @@
                 ]
             }
         },
+        "/me/branches": {
+            "get": {
+                "tags": [
+                    "Customer"
+                ],
+                "summary": "List active branches",
+                "description": "Branch list the customer apps use to resolve which branch to attach to an order (e.g. selecting the branch named \"Main\").",
+                "operationId": "65e4bd76d95f4591ca4f7acff440d0fb",
+                "responses": {
+                    "200": {
+                        "description": "Active branches",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "id": {
+                                                "type": "integer"
+                                            },
+                                            "name": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/customers": {
             "get": {
                 "tags": [
@@ -1554,13 +1601,19 @@
                                 "required": [
                                     "subtotal",
                                     "total",
-                                    "is_delivery"
+                                    "is_delivery",
+                                    "branch_id"
                                 ],
                                 "properties": {
                                     "number": {
                                         "type": "string",
                                         "example": "IAW-000123",
                                         "nullable": true
+                                    },
+                                    "branch_id": {
+                                        "description": "The branch to order from; must have an open cash session or the order is rejected.",
+                                        "type": "integer",
+                                        "example": 1
                                     },
                                     "subtotal": {
                                         "type": "number",
@@ -1863,7 +1916,29 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Profile updated"
+                        "description": "Profile updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "firstname": {
+                                            "type": "string",
+                                            "example": "Jordan"
+                                        },
+                                        "lastname": {
+                                            "type": "string",
+                                            "example": "Baptiste"
+                                        },
+                                        "phone": {
+                                            "type": "string",
+                                            "example": "264-555-0199",
+                                            "nullable": true
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "401": {
                         "description": "Unauthenticated"
@@ -1921,7 +1996,20 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Password updated"
+                        "description": "Password updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Password updated successfully."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "401": {
                         "description": "Unauthenticated"
@@ -7732,6 +7820,381 @@
                 },
                 "type": "object"
             },
+            "MealDealSelectionGroup": {
+                "properties": {
+                    "key": {
+                        "type": "string",
+                        "example": "option_4"
+                    },
+                    "label": {
+                        "type": "string",
+                        "example": "Protein"
+                    },
+                    "kind": {
+                        "type": "string",
+                        "enum": [
+                            "option",
+                            "item"
+                        ],
+                        "example": "option"
+                    },
+                    "option_id": {
+                        "type": "integer",
+                        "example": 4,
+                        "nullable": true
+                    },
+                    "category_id": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "min": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "max": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "allow_duplicates": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "paid_extra": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "allowed_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        }
+                    },
+                    "dependencies": {
+                        "description": "Conditional child options keyed to a choice in this group.",
+                        "type": "array",
+                        "items": {
+                            "properties": {
+                                "key": {
+                                    "type": "string",
+                                    "example": "dependency_option_4_12_8"
+                                },
+                                "parent_choice_id": {
+                                    "type": "integer",
+                                    "example": 12
+                                },
+                                "option_id": {
+                                    "type": "integer",
+                                    "example": 8
+                                },
+                                "allowed_ids": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "prices": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "number",
+                                        "format": "float"
+                                    }
+                                }
+                            },
+                            "type": "object"
+                        }
+                    },
+                    "choices": {
+                        "type": "array",
+                        "items": {
+                            "properties": {
+                                "id": {
+                                    "type": "integer",
+                                    "example": 12
+                                },
+                                "name": {
+                                    "type": "string",
+                                    "example": "Steak"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "MealDealDependentOption": {
+                "description": "A conditional option shown after its parent Meal Deal choice is selected.",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "example": "meal-deal-dependent-option-dependency_option_4_12_8"
+                    },
+                    "meal_deal_key": {
+                        "description": "Use this key in the selections object when submitting the dependent value.",
+                        "type": "string",
+                        "example": "dependency_option_4_12_8"
+                    },
+                    "option_id": {
+                        "description": "Underlying catalog Option ID.",
+                        "type": "integer",
+                        "example": 8
+                    },
+                    "option": {
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "example": "temperature"
+                            },
+                            "title": {
+                                "type": "string",
+                                "example": "Temperature"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "required": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "min": {
+                        "type": "integer",
+                        "example": 0
+                    },
+                    "max": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "single"
+                        ],
+                        "example": "single"
+                    },
+                    "item_option_values": {
+                        "type": "array",
+                        "items": {
+                            "properties": {
+                                "id": {
+                                    "type": "string",
+                                    "example": "meal-deal-dependent-choice-dependency_option_4_12_8-30"
+                                },
+                                "choice_id": {
+                                    "type": "integer",
+                                    "example": 30
+                                },
+                                "option_value": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "example": 30
+                                        },
+                                        "name": {
+                                            "type": "string",
+                                            "example": "Medium rare"
+                                        },
+                                        "primary_image_url": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "primary_media": {
+                                            "oneOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/PrimaryMedia"
+                                                }
+                                            ],
+                                            "nullable": true
+                                        }
+                                    },
+                                    "type": "object"
+                                },
+                                "price": {
+                                    "type": "number",
+                                    "format": "float",
+                                    "example": 1.5
+                                }
+                            },
+                            "type": "object"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "MealDealItemOptionValue": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "example": "meal-deal-choice-option_4-12"
+                    },
+                    "choice_id": {
+                        "type": "integer",
+                        "example": 12
+                    },
+                    "option_value": {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 12
+                            },
+                            "name": {
+                                "type": "string",
+                                "example": "Steak"
+                            },
+                            "primary_image_url": {
+                                "type": "string",
+                                "nullable": true
+                            },
+                            "primary_media": {
+                                "oneOf": [
+                                    {
+                                        "$ref": "#/components/schemas/PrimaryMedia"
+                                    }
+                                ],
+                                "nullable": true
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "price": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 0
+                    },
+                    "option_dependency": {
+                        "description": "Present when this choice triggers a dependent option; otherwise null.",
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "example": "meal-deal-dependency-dependency_option_4_12_8"
+                            },
+                            "parent_option_value_id": {
+                                "type": "integer",
+                                "example": 12
+                            },
+                            "child_option_id": {
+                                "type": "string",
+                                "example": "meal-deal-dependent-option-dependency_option_4_12_8"
+                            },
+                            "child_option": {
+                                "$ref": "#/components/schemas/MealDealDependentOption"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "MealDealItemOption": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "example": "meal-deal-group-option_4"
+                    },
+                    "meal_deal_key": {
+                        "type": "string",
+                        "example": "option_4"
+                    },
+                    "meal_deal_kind": {
+                        "type": "string",
+                        "enum": [
+                            "option",
+                            "item"
+                        ],
+                        "example": "option"
+                    },
+                    "option_id": {
+                        "type": "integer",
+                        "example": 4,
+                        "nullable": true
+                    },
+                    "option": {
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "example": "Protein"
+                            },
+                            "title": {
+                                "type": "string",
+                                "example": "Protein"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "required": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "min": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "max": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "allow_duplicates": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "single",
+                            "multiple"
+                        ],
+                        "example": "single"
+                    },
+                    "item_option_values": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/MealDealItemOptionValue"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "MealDealEligibleItem": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 5
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Build Your Wrap"
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "cost": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 13
+                    },
+                    "category": {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 2
+                            },
+                            "name": {
+                                "type": "string",
+                                "example": "Wraps"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "item_options": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/MealDealItemOption"
+                        }
+                    }
+                },
+                "type": "object"
+            },
             "MealDealDefinition": {
                 "properties": {
                     "id": {
@@ -7795,13 +8258,13 @@
                     "selection_groups": {
                         "type": "array",
                         "items": {
-                            "type": "object"
+                            "$ref": "#/components/schemas/MealDealSelectionGroup"
                         }
                     },
                     "eligible_items": {
                         "type": "array",
                         "items": {
-                            "type": "object"
+                            "$ref": "#/components/schemas/MealDealEligibleItem"
                         }
                     }
                 },
@@ -7818,6 +8281,11 @@
                         "type": "integer",
                         "example": 1
                     },
+                    "item_id": {
+                        "type": "integer",
+                        "example": 5,
+                        "nullable": true
+                    },
                     "quantity": {
                         "type": "integer",
                         "example": 1
@@ -7828,7 +8296,7 @@
                         "nullable": true
                     },
                     "selections": {
-                        "description": "Selection group keys map to arrays of chosen item or option value IDs.",
+                        "description": "Meal Deal group keys and dependent child_option.meal_deal_key values map to arrays of chosen item or option value IDs.",
                         "type": "object",
                         "additionalProperties": {
                             "type": "array",
