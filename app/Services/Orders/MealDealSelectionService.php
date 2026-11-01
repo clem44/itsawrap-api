@@ -41,7 +41,13 @@ class MealDealSelectionService
             throw ValidationException::withMessages(["{$path}.selections" => 'Selections must be an object.']);
         }
         $groups = $deal->selection_groups ?? [];
-        $allowedKeys = array_column($groups, 'key');
+        $dependencies = collect($groups)->flatMap(function (array $group): array {
+            return collect($group['dependencies'] ?? [])->map(fn (array $dependency) => [
+                ...$dependency,
+                'parent_group_key' => $group['key'],
+            ])->all();
+        })->values();
+        $allowedKeys = array_merge(array_column($groups, 'key'), $dependencies->pluck('key')->all());
         foreach (array_keys($submitted) as $key) {
             if (! in_array($key, $allowedKeys, true)) {
                 throw ValidationException::withMessages(["{$path}.selections.{$key}" => 'This choice is not part of the Meal Deal.']);
@@ -93,6 +99,48 @@ class MealDealSelectionService
             }
             if (($group['kind'] ?? 'option') === 'option') {
                 $chosen[$group['option_id']] = $ids;
+            }
+        }
+
+        foreach ($dependencies as $dependency) {
+            $key = $dependency['key'];
+            $parentChoiceId = (int) $dependency['parent_choice_id'];
+            $parentSelected = in_array($parentChoiceId, array_map('intval', $submitted[$dependency['parent_group_key']] ?? []), true);
+            $ids = $submitted[$key] ?? [];
+
+            if (! $parentSelected) {
+                if ($ids !== []) {
+                    throw ValidationException::withMessages(["{$path}.selections.{$key}" => 'This dependent option is only available for its parent choice.']);
+                }
+
+                continue;
+            }
+            if (! is_array($ids) || count($ids) > 1) {
+                throw ValidationException::withMessages(["{$path}.selections.{$key}" => 'Choose no more than one dependent option.']);
+            }
+
+            $snapshot[$key] = [];
+            foreach ($ids as $id) {
+                if (filter_var($id, FILTER_VALIDATE_INT) === false || ! in_array((int) $id, $dependency['allowed_ids'], true)) {
+                    throw ValidationException::withMessages(["{$path}.selections.{$key}" => 'Select a valid dependent option.']);
+                }
+                $value = OptionValue::query()
+                    ->whereKey((int) $id)
+                    ->where('option_id', $dependency['option_id'])
+                    ->first();
+                if ($value === null) {
+                    throw ValidationException::withMessages(["{$path}.selections.{$key}" => 'This dependent option is unavailable.']);
+                }
+
+                $price = (float) ($dependency['prices'][(string) $value->id] ?? $value->price);
+                $snapshot[$key][] = ['kind' => 'option', 'id' => $value->id, 'name' => $value->name, 'price' => $price];
+                $primaryOptions[] = [
+                    'option_value_id' => $value->id,
+                    'parent_option_value_id' => $parentChoiceId,
+                    'price' => $price,
+                    'qty' => 1,
+                ];
+                $extrasPrice += $price;
             }
         }
 

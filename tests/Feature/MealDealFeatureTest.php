@@ -52,6 +52,8 @@ class MealDealFeatureTest extends TestCase
             ->assertSee('Create Meal Deal')
             ->assertSee('Edit Meal Deal')
             ->assertSee('Delete Meal Deal')
+            ->assertSee('Dependent options')
+            ->assertSee('Add dependency')
             ->assertSee('name="allergens"', false)
             ->assertSee('name="additional_info"', false);
         $this->actingAs($admin)->from(route('admin.meal-deals.index'))->post(route('admin.meal-deals.store'), [
@@ -252,6 +254,94 @@ class MealDealFeatureTest extends TestCase
         $selection['selections']['item_category_'.$side->category_id] = [$flatbreadValue->id];
         $this->postJson('/api/guest/meal-deals/quote', ['meal_deals' => [$selection]])
             ->assertUnprocessable()->assertJsonValidationErrors(['meal_deals.0.selections.item_category_'.$side->category_id]);
+    }
+
+    public function test_meal_deal_option_choices_can_trigger_dependent_options(): void
+    {
+        $this->seed();
+        $deal = MealDeal::query()->where('name', 'The Albena')->firstOrFail();
+        $protein = Option::query()->where('name', 'Protein')->firstOrFail();
+        $steak = $protein->optionValues()->where('name', 'Steak')->firstOrFail();
+        $temperature = Option::query()->create(['name' => 'Temperature', 'title' => 'Choose a temperature']);
+        $mediumRare = $temperature->optionValues()->create(['name' => 'Medium rare', 'price' => 0]);
+        $wellDone = $temperature->optionValues()->create(['name' => 'Well done', 'price' => 1.5]);
+        $groups = $deal->selection_groups;
+        $proteinIndex = collect($groups)->search(fn (array $group) => ($group['key'] ?? null) === 'protein');
+        $groups[$proteinIndex]['dependencies'] = [[
+            'parent_choice_id' => $steak->id,
+            'option_id' => $temperature->id,
+            'allowed_ids' => [$mediumRare->id, $wellDone->id],
+            'prices' => [$mediumRare->id => 0, $wellDone->id => 1.5],
+        ]];
+
+        $admin = User::query()->create([
+            'firstname' => 'Admin', 'lastname' => 'User', 'username' => 'meal-dependency-admin',
+            'email' => 'meal-dependency-admin@example.com', 'password' => Hash::make('password'), 'role_id' => 1,
+        ]);
+
+        $this->actingAs($admin)->put(route('admin.meal-deals.update', $deal), [
+            'name' => $deal->name,
+            'base_price' => $deal->base_price,
+            'service_charge_rate' => 0.15,
+            'primary_category_id' => $deal->primary_category_id,
+            'primary_item_id' => $deal->primary_item_id,
+            'selection_groups' => $groups,
+            'is_active' => 1,
+        ])->assertRedirect(route('admin.meal-deals.index'))->assertSessionHasNoErrors();
+
+        $deal->refresh();
+        $savedGroups = $deal->selection_groups;
+        $dependency = $savedGroups[$proteinIndex]['dependencies'][0];
+        $dependencyKey = $dependency['key'];
+        $this->assertSame("dependency_{$savedGroups[$proteinIndex]['key']}_{$steak->id}_{$temperature->id}", $dependencyKey);
+        $this->assertSame($temperature->id, $dependency['option_id']);
+
+        $definition = $this->getJson('/api/guest/meal-deals')->assertOk()->json('meal_deals.0');
+        $proteinOption = collect($definition['eligible_items'][0]['item_options'])
+            ->firstWhere('meal_deal_key', $savedGroups[$proteinIndex]['key']);
+        $steakChoice = collect($proteinOption['item_option_values'])
+            ->firstWhere('choice_id', $steak->id);
+        $this->assertSame($dependencyKey, $steakChoice['option_dependency']['child_option']['meal_deal_key']);
+        $this->assertSame('Choose a temperature', $steakChoice['option_dependency']['child_option']['option']['title']);
+        $this->assertSame('Well done', $steakChoice['option_dependency']['child_option']['item_option_values'][1]['option_value']['name']);
+
+        $selection = [
+            'meal_deal_id' => $deal->id,
+            'item_id' => $deal->primary_item_id,
+            'quantity' => 1,
+            'selections' => collect($savedGroups)->mapWithKeys(function (array $group): array {
+                $ids = array_slice($group['allowed_ids'], 0, (int) $group['min']);
+                while (($group['allow_duplicates'] ?? false) && count($ids) < (int) $group['min'] && $group['allowed_ids'] !== []) {
+                    $ids[] = $group['allowed_ids'][0];
+                }
+
+                return [$group['key'] => $ids];
+            })->all(),
+        ];
+        $selection['selections'][$savedGroups[$proteinIndex]['key']] = [$steak->id];
+        $selection['selections'][$dependencyKey] = [$wellDone->id];
+        $this->postJson('/api/guest/meal-deals/quote', ['meal_deals' => [$selection]])
+            ->assertOk()
+            ->assertJsonPath("meal_deals.0.selections.{$dependencyKey}.0.name", 'Well done')
+            ->assertJsonPath('meal_deals.0.extras_price', 1.5);
+
+        Status::query()->firstOrCreate(['name' => 'pending']);
+        $customer = Customer::query()->create(['name' => 'Guest', 'source' => 'guest-web']);
+        $order = $this->postJson('/api/guest/orders', [
+            'customer_id' => $customer->id,
+            'subtotal' => 0,
+            'service_charge' => 0,
+            'total' => 0,
+            'is_delivery' => false,
+            'meal_deals' => [$selection],
+        ])->assertCreated();
+
+        $this->assertDatabaseHas('order_item_options', [
+            'order_item_id' => $order->json('order_items.0.id'),
+            'option_value_id' => $wellDone->id,
+            'parent_option_value_id' => $steak->id,
+            'price' => 1.5,
+        ]);
     }
 
     public function test_albena_is_quoted_and_ordered_with_persistent_identity(): void

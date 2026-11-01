@@ -10,7 +10,7 @@
         'id' => $option->id,
         'name' => $option->name,
         'title' => $option->title,
-        'values' => $option->optionValues->map(fn ($value) => ['id' => $value->id, 'name' => $value->name])->values(),
+        'values' => $option->optionValues->map(fn ($value) => ['id' => $value->id, 'name' => $value->name, 'price' => (float) $value->price])->values(),
     ])->values();
     $oldForm = old('form_action');
     $oldGroups = collect(old('selection_groups', []))->map(fn ($group, $index) => [
@@ -21,6 +21,14 @@
         'expanded' => true,
         'allow_duplicates' => (bool) ($group['allow_duplicates'] ?? false),
         'paid_extra' => (bool) ($group['paid_extra'] ?? false),
+        'dependencies' => collect($group['dependencies'] ?? [])->map(fn ($dependency, $dependencyIndex) => [
+            ...$dependency,
+            'uid' => "old-{$index}-dependency-{$dependencyIndex}",
+            'parent_choice_id' => (string) $dependency['parent_choice_id'],
+            'option_id' => (string) $dependency['option_id'],
+            'allowed_ids' => array_map('strval', $dependency['allowed_ids'] ?? []),
+            'prices' => collect($dependency['prices'] ?? [])->mapWithKeys(fn ($price, $id) => [(string) $id => $price])->all(),
+        ])->values(),
     ])->values();
 @endphp
 
@@ -47,6 +55,7 @@
         groupUidSeed: 0,
         draggedGroupIndex: null,
         dragOverGroupIndex: null,
+        dependencyDrafts: {},
         deal: {
             id: @js($oldForm === 'edit' ? old('edit_id') : null),
             name: @js($oldForm ? old('name', '') : ''),
@@ -91,6 +100,14 @@
                     option_id: group.option_id ? String(group.option_id) : '',
                     category_id: group.category_id ? String(group.category_id) : '',
                     allowed_ids: (group.allowed_ids || []).map(String),
+                    dependencies: (group.dependencies || []).map(dependency => ({
+                        ...dependency,
+                        uid: `d-${++this.groupUidSeed}`,
+                        parent_choice_id: String(dependency.parent_choice_id),
+                        option_id: String(dependency.option_id),
+                        allowed_ids: (dependency.allowed_ids || []).map(String),
+                        prices: Object.fromEntries(Object.entries(dependency.prices || {}).map(([id, price]) => [String(id), price])),
+                    })),
                     expanded: false,
                 })),
                 fixed_option_value_ids: (value.fixed_option_value_ids || []).map(String),
@@ -115,7 +132,7 @@
             else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
         },
         addMealDealGroup() {
-            this.deal.selection_groups.push({ uid: `g-${++this.groupUidSeed}`, kind: 'option', option_id: '', category_id: '', allowed_ids: [], min: 1, max: 1, allow_duplicates: false, paid_extra: false, expanded: true });
+            this.deal.selection_groups.push({ uid: `g-${++this.groupUidSeed}`, kind: 'option', option_id: '', category_id: '', allowed_ids: [], min: 1, max: 1, allow_duplicates: false, paid_extra: false, dependencies: [], expanded: true });
         },
         startDraggingGroup(index, event) {
             this.draggedGroupIndex = index;
@@ -156,8 +173,45 @@
             const term = (group.search || '').trim().toLowerCase();
             return term ? choices.filter(choice => choice.name.toLowerCase().includes(term)) : choices;
         },
-        changeGroupSource(group) { group.option_id = ''; group.category_id = ''; group.allowed_ids = []; },
-        changeGroupOption(group) { group.allowed_ids = []; },
+        changeGroupSource(group) { group.option_id = ''; group.category_id = ''; group.allowed_ids = []; group.dependencies = []; },
+        changeGroupOption(group) { group.allowed_ids = []; group.dependencies = []; },
+        selectedOptionChoices(group) {
+            if (group.kind !== 'option') return [];
+
+            return this.optionValues(group.option_id).filter(choice => group.allowed_ids.includes(String(choice.id)));
+        },
+        dependencyFor(group, parentChoiceId) {
+            return (group.dependencies || []).find(dependency => String(dependency.parent_choice_id) === String(parentChoiceId));
+        },
+        dependencyDraftKey(group, parentChoiceId) { return `${group.uid}-${parentChoiceId}`; },
+        availableDependencyOptions(group) {
+            return this.optionChoices.filter(option => String(option.id) !== String(group.option_id) && option.values.length);
+        },
+        addGroupDependency(group, parentChoiceId) {
+            const draftKey = this.dependencyDraftKey(group, parentChoiceId);
+            const optionId = this.dependencyDrafts[draftKey];
+            const option = this.optionChoices.find(candidate => String(candidate.id) === String(optionId));
+            if (!option) return;
+
+            group.dependencies = (group.dependencies || []).filter(dependency => String(dependency.parent_choice_id) !== String(parentChoiceId));
+            group.dependencies.push({
+                uid: `d-${++this.groupUidSeed}`,
+                parent_choice_id: String(parentChoiceId),
+                option_id: String(option.id),
+                allowed_ids: option.values.map(value => String(value.id)),
+                prices: Object.fromEntries(option.values.map(value => [String(value.id), Number(value.price) || 0])),
+            });
+            this.dependencyDrafts[draftKey] = '';
+        },
+        removeGroupDependency(group, parentChoiceId) {
+            group.dependencies = (group.dependencies || []).filter(dependency => String(dependency.parent_choice_id) !== String(parentChoiceId));
+        },
+        pruneGroupDependencies(group) {
+            group.dependencies = (group.dependencies || []).filter(dependency => group.allowed_ids.includes(String(dependency.parent_choice_id)));
+        },
+        dependencyOption(dependency) {
+            return this.optionChoices.find(option => String(option.id) === String(dependency.option_id));
+        },
         openMealDealMedia() {
             window.MediaLibraryPicker.open({
                 selectedMediaId: this.deal.primary_media?.id || null,
@@ -202,7 +256,7 @@
                                     @if($image)
                                         <div class="user-avatar overflow-hidden" style="background: var(--color-cream)"><img src="{{ $image->getUrl() }}" alt="{{ $image->alt ?: $entry->name }}" class="h-full w-full object-cover"></div>
                                     @else
-                                        <div class="user-avatar" style="background: linear-gradient(135deg, rgba(207,126,95,.18), rgba(207,126,95,.55)); color: var(--color-forest)">{{ strtoupper(substr($entry->name, 0, 2)) }}</div>
+                                        <div class="user-avatar" style="background: linear-gradient(135deg, rgba(196,112,79,.18), rgba(196,112,79,.55)); color: var(--color-forest)">{{ strtoupper(substr($entry->name, 0, 2)) }}</div>
                                     @endif
                                     <div><div class="user-name">{{ $entry->name }}</div><div class="user-meta">{{ \Illuminate\Support\Str::limit($entry->description ?: 'No description', 72) }}</div></div>
                                 </div>
@@ -317,11 +371,55 @@
                                             <div class="sm:col-span-2">
                                                 <label class="block text-sm text-white/80">Allowed choices <input v-model="group.search" type="search" placeholder="Find a choice" class="mt-2 w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/50"></label>
                                                 <div class="mt-2 max-h-44 space-y-1 overflow-y-auto rounded-lg border border-white/20 p-2">
-                                                    <label v-for="choice in availableChoices(group)" :key="choice.id" class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-white/90 hover:bg-white/10"><input :value="String(choice.id)" v-model="group.allowed_ids" type="checkbox" class="rounded border-white/30 text-[var(--color-sage)]"><span v-text="choice.name"></span></label>
+                                                    <label v-for="choice in availableChoices(group)" :key="choice.id" class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-white/90 hover:bg-white/10"><input :value="String(choice.id)" v-model="group.allowed_ids" type="checkbox" class="rounded border-white/30 text-[var(--color-sage)]" @change="pruneGroupDependencies(group)"><span v-text="choice.name"></span></label>
                                                     <p v-if="!availableChoices(group).length" class="p-2 text-sm text-white/60">No matching choices.</p>
                                                 </div>
                                                 <p class="mt-1 text-xs text-white/60" v-text="`${group.allowed_ids.length} selected`"></p>
                                                 <input v-for="id in group.allowed_ids" :key="id" type="hidden" :name="`selection_groups[${index}][allowed_ids][]`" :value="id">
+                                                <div v-if="group.kind === 'option' && selectedOptionChoices(group).length" class="mt-4 border-t border-white/10 pt-4">
+                                                    <div class="mb-3">
+                                                        <h5 class="text-sm font-semibold text-white">Dependent options</h5>
+                                                        <p class="mt-1 text-xs text-white/60">Show another option only when a specific choice is selected.</p>
+                                                    </div>
+                                                    <div class="space-y-3">
+                                                        <div v-for="parentChoice in selectedOptionChoices(group)" :key="parentChoice.id" class="rounded-lg border border-white/15 bg-black/10 p-3">
+                                                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                                                <span class="text-sm font-semibold text-white" v-text="parentChoice.name"></span>
+                                                                <span v-if="dependencyFor(group, parentChoice.id)" class="rounded-full bg-white/10 px-2.5 py-1 text-xs text-white/70">Triggers a dependent option</span>
+                                                            </div>
+                                                            <template v-if="dependencyFor(group, parentChoice.id)">
+                                                                <div class="mt-3 rounded-lg border border-white/15 bg-white/5 p-3">
+                                                                    <div class="flex items-center justify-between gap-3">
+                                                                        <span class="text-sm font-medium text-white" v-text="dependencyOption(dependencyFor(group, parentChoice.id))?.title || dependencyOption(dependencyFor(group, parentChoice.id))?.name"></span>
+                                                                        <button type="button" class="text-xs font-medium text-red-200 underline underline-offset-2 hover:text-white" @click="removeGroupDependency(group, parentChoice.id)">Remove dependency</button>
+                                                                    </div>
+                                                                    <div class="mt-3 space-y-2">
+                                                                        <div v-for="value in (dependencyOption(dependencyFor(group, parentChoice.id))?.values || []).filter(value => dependencyFor(group, parentChoice.id).allowed_ids.includes(String(value.id)))" :key="value.id" class="flex items-center justify-between gap-3 rounded-md bg-black/10 px-3 py-2">
+                                                                            <span class="text-sm text-white/80" v-text="value.name"></span>
+                                                                            <label class="flex items-center gap-2 text-xs text-white/60">Price
+                                                                                <input :name="`selection_groups[${index}][dependencies][${group.dependencies.indexOf(dependencyFor(group, parentChoice.id))}][prices][${value.id}]`" v-model="dependencyFor(group, parentChoice.id).prices[String(value.id)]" type="number" min="0" step="0.01" class="w-24 rounded-lg border border-white/20 bg-white/5 px-2.5 py-1.5 text-right text-sm text-white focus:border-[var(--color-sage)] focus:ring-[var(--color-sage)]">
+                                                                            </label>
+                                                                        </div>
+                                                                    </div>
+                                                                    <template v-for="(dependency, dependencyIndex) in group.dependencies" :key="dependency.uid">
+                                                                        <template v-if="String(dependency.parent_choice_id) === String(parentChoice.id)">
+                                                                            <input type="hidden" :name="`selection_groups[${index}][dependencies][${dependencyIndex}][parent_choice_id]`" :value="dependency.parent_choice_id">
+                                                                            <input type="hidden" :name="`selection_groups[${index}][dependencies][${dependencyIndex}][option_id]`" :value="dependency.option_id">
+                                                                            <input v-for="allowedId in dependency.allowed_ids" :key="allowedId" type="hidden" :name="`selection_groups[${index}][dependencies][${dependencyIndex}][allowed_ids][]`" :value="allowedId">
+                                                                        </template>
+                                                                    </template>
+                                                                </div>
+                                                            </template>
+                                                            <div v-else class="mt-3 flex flex-col gap-2 sm:flex-row">
+                                                                <select v-model="dependencyDrafts[dependencyDraftKey(group, parentChoice.id)]" class="meal-deal-select min-w-0 flex-1 rounded-lg border border-white/20 px-3 py-2 text-sm">
+                                                                    <option value="">Choose a dependent option</option>
+                                                                    <option v-for="option in availableDependencyOptions(group)" :key="option.id" :value="String(option.id)" v-text="option.title || option.name"></option>
+                                                                </select>
+                                                                <button type="button" class="rounded-lg bg-[var(--color-sage)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--color-sage-light)] hover:text-[var(--color-forest)] disabled:cursor-not-allowed disabled:opacity-50" :disabled="!dependencyDrafts[dependencyDraftKey(group, parentChoice.id)]" @click="addGroupDependency(group, parentChoice.id)">Add dependency</button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                             <label class="block text-sm text-white/80">Minimum <input :name="`selection_groups[${index}][min]`" v-model="group.min" type="number" min="0" max="20" required class="mt-2 w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white"></label>
                                             <label class="block text-sm text-white/80">Maximum <input :name="`selection_groups[${index}][max]`" v-model="group.max" type="number" min="1" max="20" required class="mt-2 w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white"></label>
