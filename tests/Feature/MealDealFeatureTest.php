@@ -52,7 +52,7 @@ class MealDealFeatureTest extends TestCase
             ->assertSee('Create Meal Deal')
             ->assertSee('Edit Meal Deal')
             ->assertSee('Delete Meal Deal')
-            ->assertSee('Dependent options')
+            ->assertSee('Set dependent option')
             ->assertSee('Add dependency')
             ->assertSee('name="allergens"', false)
             ->assertSee('name="additional_info"', false);

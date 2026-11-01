@@ -56,6 +56,7 @@
         draggedGroupIndex: null,
         dragOverGroupIndex: null,
         dependencyDrafts: {},
+        dependencyPanels: {},
         deal: {
             id: @js($oldForm === 'edit' ? old('edit_id') : null),
             name: @js($oldForm ? old('name', '') : ''),
@@ -83,6 +84,8 @@
             this.modalTrigger = event?.currentTarget || null;
             this.modalMode = 'create';
             this.modalAction = this.createAction;
+            this.dependencyDrafts = {};
+            this.dependencyPanels = {};
             this.deal = this.blankDeal();
             this.modalOpen = true;
             this.focusMealDealForm();
@@ -91,6 +94,8 @@
             this.modalTrigger = event?.currentTarget || null;
             this.modalMode = 'edit';
             this.modalAction = this.updateAction.replace('__ID__', value.id);
+            this.dependencyDrafts = {};
+            this.dependencyPanels = {};
             this.deal = {
                 ...value,
                 primary_category_id: value.primary_category_id ? String(value.primary_category_id) : '',
@@ -175,15 +180,24 @@
         },
         changeGroupSource(group) { group.option_id = ''; group.category_id = ''; group.allowed_ids = []; group.dependencies = []; },
         changeGroupOption(group) { group.allowed_ids = []; group.dependencies = []; },
-        selectedOptionChoices(group) {
-            if (group.kind !== 'option') return [];
-
-            return this.optionValues(group.option_id).filter(choice => group.allowed_ids.includes(String(choice.id)));
-        },
         dependencyFor(group, parentChoiceId) {
             return (group.dependencies || []).find(dependency => String(dependency.parent_choice_id) === String(parentChoiceId));
         },
         dependencyDraftKey(group, parentChoiceId) { return `${group.uid}-${parentChoiceId}`; },
+        dependencyPanelKey(group, parentChoiceId) { return `${group.uid}-${parentChoiceId}`; },
+        isDependencyPanelExpanded(group, parentChoiceId) {
+            return Boolean(this.dependencyPanels[this.dependencyPanelKey(group, parentChoiceId)]);
+        },
+        toggleDependencyPanel(group, parentChoiceId) {
+            const key = this.dependencyPanelKey(group, parentChoiceId);
+            this.dependencyPanels[key] = !this.dependencyPanels[key];
+        },
+        handleChoiceToggle(group, parentChoiceId) {
+            this.pruneGroupDependencies(group);
+            const key = this.dependencyPanelKey(group, parentChoiceId);
+            if (group.allowed_ids.includes(String(parentChoiceId))) this.dependencyPanels[key] = true;
+            else delete this.dependencyPanels[key];
+        },
         availableDependencyOptions(group) {
             return this.optionChoices.filter(option => String(option.id) !== String(group.option_id) && option.values.length);
         },
@@ -211,6 +225,19 @@
         },
         dependencyOption(dependency) {
             return this.optionChoices.find(option => String(option.id) === String(dependency.option_id));
+        },
+        dependencyOptionFor(group, parentChoiceId) {
+            const dependency = this.dependencyFor(group, parentChoiceId);
+            return dependency ? this.dependencyOption(dependency) : null;
+        },
+        dependencyValuesFor(group, parentChoiceId) {
+            const dependency = this.dependencyFor(group, parentChoiceId);
+            const option = dependency ? this.dependencyOption(dependency) : null;
+            return (option?.values || []).filter(value => dependency.allowed_ids.includes(String(value.id)));
+        },
+        updateGroupDependencyPrice(group, parentChoiceId, valueId, price) {
+            const dependency = this.dependencyFor(group, parentChoiceId);
+            if (dependency) dependency.prices[String(valueId)] = price;
         },
         openMealDealMedia() {
             window.MediaLibraryPicker.open({
@@ -370,56 +397,72 @@
                                             <label v-else class="block text-sm text-white/80">Item option <admin-tom-select :name="`selection_groups[${index}][option_id]`" v-model="group.option_id" :options="[{ value: '', text: 'Select an option' }, ...optionChoices.map(option => ({ value: option.id, text: option.title || option.name }))]" required class="meal-deal-select mt-2 w-full rounded-lg border border-white/20 px-4 py-2.5" @change="changeGroupOption(group)"></admin-tom-select></label>
                                             <div class="sm:col-span-2">
                                                 <label class="block text-sm text-white/80">Allowed choices <input v-model="group.search" type="search" placeholder="Find a choice" class="mt-2 w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/50"></label>
-                                                <div class="mt-2 max-h-44 space-y-1 overflow-y-auto rounded-lg border border-white/20 p-2">
-                                                    <label v-for="choice in availableChoices(group)" :key="choice.id" class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-white/90 hover:bg-white/10"><input :value="String(choice.id)" v-model="group.allowed_ids" type="checkbox" class="rounded border-white/30 text-[var(--color-sage)]" @change="pruneGroupDependencies(group)"><span v-text="choice.name"></span></label>
+                                                <div class="mt-2 max-h-96 space-y-2 overflow-y-auto rounded-lg border border-white/20 p-2">
+                                                    <div v-for="choice in availableChoices(group)" :key="choice.id" class="overflow-hidden rounded-lg border border-white/10 bg-black/10">
+                                                        <div class="flex min-h-11 items-center gap-2 px-3 py-2">
+                                                            <label class="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-sm text-white/90">
+                                                                <input :value="String(choice.id)" v-model="group.allowed_ids" type="checkbox" class="rounded border-white/30 text-[var(--color-sage)]" @change="handleChoiceToggle(group, choice.id)">
+                                                                <span class="truncate font-medium" v-text="choice.name"></span>
+                                                            </label>
+                                                            <button
+                                                                v-if="group.kind === 'option' && group.allowed_ids.includes(String(choice.id))"
+                                                                type="button"
+                                                                class="flex shrink-0 items-center gap-2 rounded-md p-2 text-xs text-white/65 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:px-2 sm:py-1"
+                                                                :aria-expanded="isDependencyPanelExpanded(group, choice.id)"
+                                                                :aria-controls="`meal-deal-dependency-${group.uid}-${choice.id}`"
+                                                                :aria-label="dependencyOptionFor(group, choice.id) ? `Edit ${dependencyOptionFor(group, choice.id).title || dependencyOptionFor(group, choice.id).name} dependency for ${choice.name}` : `Set dependent option for ${choice.name}`"
+                                                                @click="toggleDependencyPanel(group, choice.id)"
+                                                            >
+                                                                <span class="hidden sm:inline" v-text="dependencyOptionFor(group, choice.id)?.title || dependencyOptionFor(group, choice.id)?.name || 'Set dependent option'"></span>
+                                                                <span v-if="dependencyOptionFor(group, choice.id)" class="h-2 w-2 rounded-full bg-[var(--color-sage-light)] sm:hidden" aria-hidden="true"></span>
+                                                                <svg class="h-3.5 w-3.5 transition-transform duration-200" :class="isDependencyPanelExpanded(group, choice.id) ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 18 6-6-6-6"/></svg>
+                                                            </button>
+                                                        </div>
+                                                        <div
+                                                            v-if="group.kind === 'option' && group.allowed_ids.includes(String(choice.id))"
+                                                            v-show="isDependencyPanelExpanded(group, choice.id)"
+                                                            :id="`meal-deal-dependency-${group.uid}-${choice.id}`"
+                                                            class="border-t border-white/10 bg-white/5 px-3 py-3"
+                                                        >
+                                                            <template v-if="dependencyFor(group, choice.id)">
+                                                                <div class="flex items-center justify-between gap-3">
+                                                                    <div class="min-w-0">
+                                                                        <p class="text-xs text-white/55">Dependent option</p>
+                                                                        <p class="truncate text-sm font-semibold text-white" v-text="dependencyOptionFor(group, choice.id)?.title || dependencyOptionFor(group, choice.id)?.name"></p>
+                                                                    </div>
+                                                                    <button type="button" class="shrink-0 rounded-md px-2 py-1 text-xs font-medium text-red-200 underline underline-offset-2 hover:bg-white/10 hover:text-white" @click="removeGroupDependency(group, choice.id)">Remove</button>
+                                                                </div>
+                                                                <div class="mt-3 space-y-2">
+                                                                    <div v-for="value in dependencyValuesFor(group, choice.id)" :key="value.id" class="flex items-center justify-between gap-3 rounded-md bg-black/10 px-3 py-2">
+                                                                        <span class="min-w-0 truncate text-sm text-white/80" v-text="value.name"></span>
+                                                                        <label class="flex shrink-0 items-center gap-2 text-xs text-white/60">Price
+                                                                            <input :value="dependencyFor(group, choice.id).prices[String(value.id)]" type="number" min="0" step="0.01" class="w-24 rounded-lg border border-white/20 bg-white/5 px-2.5 py-1.5 text-right text-sm text-white focus:border-[var(--color-sage)] focus:ring-[var(--color-sage)]" @input="updateGroupDependencyPrice(group, choice.id, value.id, $event.target.value)">
+                                                                        </label>
+                                                                    </div>
+                                                                </div>
+                                                            </template>
+                                                            <div v-else>
+                                                                <p class="mb-2 text-xs text-white/60">Choose an option to show when <span class="font-semibold text-white/80" v-text="choice.name"></span> is selected.</p>
+                                                                <div class="flex flex-col gap-2 sm:flex-row">
+                                                                    <select v-model="dependencyDrafts[dependencyDraftKey(group, choice.id)]" class="meal-deal-select min-w-0 flex-1 rounded-lg border border-white/20 px-3 py-2 text-sm">
+                                                                        <option value="">Choose a dependent option</option>
+                                                                        <option v-for="option in availableDependencyOptions(group)" :key="option.id" :value="String(option.id)" v-text="option.title || option.name"></option>
+                                                                    </select>
+                                                                    <button type="button" class="rounded-lg bg-[var(--color-sage)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--color-sage-light)] hover:text-[var(--color-forest)] disabled:cursor-not-allowed disabled:opacity-50" :disabled="!dependencyDrafts[dependencyDraftKey(group, choice.id)]" @click="addGroupDependency(group, choice.id)">Add dependency</button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                     <p v-if="!availableChoices(group).length" class="p-2 text-sm text-white/60">No matching choices.</p>
                                                 </div>
                                                 <p class="mt-1 text-xs text-white/60" v-text="`${group.allowed_ids.length} selected`"></p>
                                                 <input v-for="id in group.allowed_ids" :key="id" type="hidden" :name="`selection_groups[${index}][allowed_ids][]`" :value="id">
-                                                <div v-if="group.kind === 'option' && selectedOptionChoices(group).length" class="mt-4 border-t border-white/10 pt-4">
-                                                    <div class="mb-3">
-                                                        <h5 class="text-sm font-semibold text-white">Dependent options</h5>
-                                                        <p class="mt-1 text-xs text-white/60">Show another option only when a specific choice is selected.</p>
-                                                    </div>
-                                                    <div class="space-y-3">
-                                                        <div v-for="parentChoice in selectedOptionChoices(group)" :key="parentChoice.id" class="rounded-lg border border-white/15 bg-black/10 p-3">
-                                                            <div class="flex flex-wrap items-center justify-between gap-2">
-                                                                <span class="text-sm font-semibold text-white" v-text="parentChoice.name"></span>
-                                                                <span v-if="dependencyFor(group, parentChoice.id)" class="rounded-full bg-white/10 px-2.5 py-1 text-xs text-white/70">Triggers a dependent option</span>
-                                                            </div>
-                                                            <template v-if="dependencyFor(group, parentChoice.id)">
-                                                                <div class="mt-3 rounded-lg border border-white/15 bg-white/5 p-3">
-                                                                    <div class="flex items-center justify-between gap-3">
-                                                                        <span class="text-sm font-medium text-white" v-text="dependencyOption(dependencyFor(group, parentChoice.id))?.title || dependencyOption(dependencyFor(group, parentChoice.id))?.name"></span>
-                                                                        <button type="button" class="text-xs font-medium text-red-200 underline underline-offset-2 hover:text-white" @click="removeGroupDependency(group, parentChoice.id)">Remove dependency</button>
-                                                                    </div>
-                                                                    <div class="mt-3 space-y-2">
-                                                                        <div v-for="value in (dependencyOption(dependencyFor(group, parentChoice.id))?.values || []).filter(value => dependencyFor(group, parentChoice.id).allowed_ids.includes(String(value.id)))" :key="value.id" class="flex items-center justify-between gap-3 rounded-md bg-black/10 px-3 py-2">
-                                                                            <span class="text-sm text-white/80" v-text="value.name"></span>
-                                                                            <label class="flex items-center gap-2 text-xs text-white/60">Price
-                                                                                <input :name="`selection_groups[${index}][dependencies][${group.dependencies.indexOf(dependencyFor(group, parentChoice.id))}][prices][${value.id}]`" v-model="dependencyFor(group, parentChoice.id).prices[String(value.id)]" type="number" min="0" step="0.01" class="w-24 rounded-lg border border-white/20 bg-white/5 px-2.5 py-1.5 text-right text-sm text-white focus:border-[var(--color-sage)] focus:ring-[var(--color-sage)]">
-                                                                            </label>
-                                                                        </div>
-                                                                    </div>
-                                                                    <template v-for="(dependency, dependencyIndex) in group.dependencies" :key="dependency.uid">
-                                                                        <template v-if="String(dependency.parent_choice_id) === String(parentChoice.id)">
-                                                                            <input type="hidden" :name="`selection_groups[${index}][dependencies][${dependencyIndex}][parent_choice_id]`" :value="dependency.parent_choice_id">
-                                                                            <input type="hidden" :name="`selection_groups[${index}][dependencies][${dependencyIndex}][option_id]`" :value="dependency.option_id">
-                                                                            <input v-for="allowedId in dependency.allowed_ids" :key="allowedId" type="hidden" :name="`selection_groups[${index}][dependencies][${dependencyIndex}][allowed_ids][]`" :value="allowedId">
-                                                                        </template>
-                                                                    </template>
-                                                                </div>
-                                                            </template>
-                                                            <div v-else class="mt-3 flex flex-col gap-2 sm:flex-row">
-                                                                <select v-model="dependencyDrafts[dependencyDraftKey(group, parentChoice.id)]" class="meal-deal-select min-w-0 flex-1 rounded-lg border border-white/20 px-3 py-2 text-sm">
-                                                                    <option value="">Choose a dependent option</option>
-                                                                    <option v-for="option in availableDependencyOptions(group)" :key="option.id" :value="String(option.id)" v-text="option.title || option.name"></option>
-                                                                </select>
-                                                                <button type="button" class="rounded-lg bg-[var(--color-sage)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--color-sage-light)] hover:text-[var(--color-forest)] disabled:cursor-not-allowed disabled:opacity-50" :disabled="!dependencyDrafts[dependencyDraftKey(group, parentChoice.id)]" @click="addGroupDependency(group, parentChoice.id)">Add dependency</button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                                <template v-for="(dependency, dependencyIndex) in group.dependencies" :key="dependency.uid">
+                                                    <input type="hidden" :name="`selection_groups[${index}][dependencies][${dependencyIndex}][parent_choice_id]`" :value="dependency.parent_choice_id">
+                                                    <input type="hidden" :name="`selection_groups[${index}][dependencies][${dependencyIndex}][option_id]`" :value="dependency.option_id">
+                                                    <input v-for="allowedId in dependency.allowed_ids" :key="allowedId" type="hidden" :name="`selection_groups[${index}][dependencies][${dependencyIndex}][allowed_ids][]`" :value="allowedId">
+                                                    <input v-for="(price, valueId) in dependency.prices" :key="valueId" type="hidden" :name="`selection_groups[${index}][dependencies][${dependencyIndex}][prices][${valueId}]`" :value="price">
+                                                </template>
                                             </div>
                                             <label class="block text-sm text-white/80">Minimum <input :name="`selection_groups[${index}][min]`" v-model="group.min" type="number" min="0" max="20" required class="mt-2 w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white"></label>
                                             <label class="block text-sm text-white/80">Maximum <input :name="`selection_groups[${index}][max]`" v-model="group.max" type="number" min="1" max="20" required class="mt-2 w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white"></label>
