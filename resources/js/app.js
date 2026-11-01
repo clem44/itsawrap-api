@@ -70,6 +70,7 @@ function mountAdminApp() {
 
         mounted() {
             this.initDatepickers?.();
+            this.initPage?.();
         },
 
         methods: {

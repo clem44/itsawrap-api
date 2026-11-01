@@ -74,7 +74,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('statuses', StatusController::class, ['only' => ['index', 'store', 'update', 'destroy']]);
 
         // Sessions management
-        Route::resource('sessions', CashSessionController::class, ['only' => ['index', 'show', 'destroy']]);
+        Route::post('/sessions/{session}/close', [CashSessionController::class, 'close'])->name('sessions.close');
+        Route::resource('sessions', CashSessionController::class, ['only' => ['index', 'store', 'show', 'destroy']]);
 
         // Customers management
         Route::resource('customers', CustomerController::class, ['only' => ['index', 'store', 'show', 'update', 'destroy']]);
