@@ -13,8 +13,9 @@
         'values' => $option->optionValues->map(fn ($value) => ['id' => $value->id, 'name' => $value->name])->values(),
     ])->values();
     $oldForm = old('form_action');
-    $oldGroups = collect(old('selection_groups', []))->map(fn ($group) => [
+    $oldGroups = collect(old('selection_groups', []))->map(fn ($group, $index) => [
         ...$group,
+        'uid' => "old-{$index}",
         'kind' => $group['kind'] ?? 'option',
         'allowed_ids' => array_map('strval', $group['allowed_ids'] ?? []),
         'expanded' => true,
@@ -43,6 +44,9 @@
         categoryChoices: @js($categoryChoices),
         optionChoices: @js($optionChoices),
         modalTrigger: null,
+        groupUidSeed: 0,
+        draggedGroupIndex: null,
+        dragOverGroupIndex: null,
         deal: {
             id: @js($oldForm === 'edit' ? old('edit_id') : null),
             name: @js($oldForm ? old('name', '') : ''),
@@ -83,7 +87,7 @@
                 primary_category_id: value.primary_category_id ? String(value.primary_category_id) : '',
                 primary_item_id: value.primary_item_id ? String(value.primary_item_id) : '',
                 selection_groups: (value.selection_groups || []).map(group => ({
-                    ...group, kind: group.kind || 'option',
+                    ...group, uid: `g-${++this.groupUidSeed}`, kind: group.kind || 'option',
                     option_id: group.option_id ? String(group.option_id) : '',
                     category_id: group.category_id ? String(group.category_id) : '',
                     allowed_ids: (group.allowed_ids || []).map(String),
@@ -111,7 +115,24 @@
             else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
         },
         addMealDealGroup() {
-            this.deal.selection_groups.push({ kind: 'option', option_id: '', category_id: '', allowed_ids: [], min: 1, max: 1, allow_duplicates: false, paid_extra: false, expanded: true });
+            this.deal.selection_groups.push({ uid: `g-${++this.groupUidSeed}`, kind: 'option', option_id: '', category_id: '', allowed_ids: [], min: 1, max: 1, allow_duplicates: false, paid_extra: false, expanded: true });
+        },
+        startDraggingGroup(index, event) {
+            this.draggedGroupIndex = index;
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', String(index));
+            const card = event.currentTarget.closest('[data-choice-card]');
+            if (card) event.dataTransfer.setDragImage(card, 20, 20);
+        },
+        stopDraggingGroup() { this.draggedGroupIndex = null; this.dragOverGroupIndex = null; },
+        dropGroupAt(index) {
+            if (this.draggedGroupIndex !== null) this.moveGroup(this.draggedGroupIndex, index);
+            this.stopDraggingGroup();
+        },
+        moveGroup(from, to) {
+            const groups = this.deal.selection_groups;
+            if (from === to || to < 0 || to >= groups.length) return;
+            groups.splice(to, 0, groups.splice(from, 1)[0]);
         },
         revealInvalidChoices() {
             document.querySelectorAll('#meal-deal-dialog [data-choice-card]').forEach((card, index) => {
@@ -274,13 +295,20 @@
                                 </div>
                                 <div v-if="!deal.selection_groups.length" class="mt-4 rounded-xl border border-dashed border-white/25 p-5 text-sm text-white/70">No choice groups yet. Add at least one to make this Meal Deal configurable.</div>
                                 <div class="mt-4 space-y-4">
-                                    <div v-for="(group, index) in deal.selection_groups" :key="index" data-choice-card class="rounded-xl border border-white/15 bg-white/5 p-4">
+                                    <div v-for="(group, index) in deal.selection_groups" :key="group.uid" data-choice-card class="rounded-xl border border-white/15 bg-white/5 p-4 transition-shadow" :class="{ 'opacity-50': draggedGroupIndex === index, 'ring-2 ring-white/60': dragOverGroupIndex === index && draggedGroupIndex !== index }" @dragover.prevent="draggedGroupIndex !== null && (dragOverGroupIndex = index)" @drop.prevent="dropGroupAt(index)">
                                         <div class="flex items-start justify-between gap-3">
+                                            <span class="mt-0.5 shrink-0 cursor-grab text-white/50 hover:text-white active:cursor-grabbing" draggable="true" title="Drag to reorder" aria-hidden="true" @dragstart="startDraggingGroup(index, $event)" @dragend="stopDraggingGroup()">
+                                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 6h.01M8 12h.01M8 18h.01M16 6h.01M16 12h.01M16 18h.01"/></svg>
+                                            </span>
                                             <button type="button" class="flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" :aria-expanded="Boolean(group.expanded)" :aria-controls="`meal-deal-choice-${index}`" @click="group.expanded = !group.expanded">
                                                 <svg class="h-5 w-5 shrink-0 text-white/70 transition-transform duration-200" :class="group.expanded ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 18 6-6-6-6"/></svg>
                                                 <span class="min-w-0"><span role="heading" aria-level="4" class="block truncate font-semibold text-white" v-text="groupName(group)"></span><span class="block text-sm text-white/65" v-text="`${(group.allowed_ids || []).length} selected · choose ${group.min}–${group.max}`"></span></span>
                                             </button>
-                                            <button type="button" class="shrink-0 text-sm text-red-200 underline hover:text-white" @click="deal.selection_groups.splice(index, 1)">Remove group</button>
+                                            <div class="flex shrink-0 items-center gap-2">
+                                                <button type="button" class="rounded p-1 text-white/60 hover:text-white disabled:opacity-30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white" :disabled="index === 0" aria-label="Move choice group up" @click="moveGroup(index, index - 1)"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 15 6-6 6 6"/></svg></button>
+                                                <button type="button" class="rounded p-1 text-white/60 hover:text-white disabled:opacity-30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white" :disabled="index === deal.selection_groups.length - 1" aria-label="Move choice group down" @click="moveGroup(index, index + 1)"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 9 6 6 6-6"/></svg></button>
+                                                <button type="button" class="text-sm text-red-200 underline hover:text-white" @click="deal.selection_groups.splice(index, 1)">Remove group</button>
+                                            </div>
                                         </div>
                                         <div :id="`meal-deal-choice-${index}`" data-choice-body v-show="group.expanded" class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                             <label class="block text-sm text-white/80">Choose from <admin-tom-select :name="`selection_groups[${index}][kind]`" v-model="group.kind" :options="[{ value: 'option', text: 'Item option values' }, { value: 'item', text: 'Menu items' }]" class="meal-deal-select mt-2 w-full rounded-lg border border-white/20 px-4 py-2.5" @change="changeGroupSource(group)"></admin-tom-select></label>

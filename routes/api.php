@@ -72,6 +72,8 @@ Route::middleware(['auth:sanctum', 'customer'])->prefix('me')->group(function ()
     // discover a valid id at all. BranchController::index exposes nothing
     // beyond name/address/phone/active, so it's safe to reuse here as-is.
     Route::get('/branches', [BranchController::class, 'index']);
+    Route::patch('/profile', [CustomerProfileController::class, 'update']);
+    Route::put('/password', [CustomerProfileController::class, 'updatePassword']);
     Route::get('/rewards', [CustomerRewardController::class, 'me']);
     Route::get('/offers', [OfferController::class, 'index']);
     Route::get('/bundles', [BundleController::class, 'index']);

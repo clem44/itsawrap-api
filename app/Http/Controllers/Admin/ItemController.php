@@ -234,12 +234,12 @@ class ItemController extends Controller
     {
         $validated = $request->validate([
             'values' => 'required|array',
-            'values.*' => 'numeric|min:0|decimal:0,2',
+            'values.*' => 'nullable|numeric|min:0|decimal:0,2',
             'dependencies' => 'nullable|array',
             'dependencies.*' => 'array',
             'dependencies.*.*' => 'integer|exists:options,id',
             'dependency_values' => 'nullable|array',
-            'dependency_values.*' => 'numeric|min:0|decimal:0,2',
+            'dependency_values.*' => 'nullable|numeric|min:0|decimal:0,2',
             'dependency_value_overrides' => 'nullable|array',
         ]);
 
@@ -260,14 +260,14 @@ class ItemController extends Controller
 
             $itemOption->itemOptionValues()->updateOrCreate(
                 ['option_value_id' => $optionValueId],
-                ['price' => $price]
+                ['price' => $price ?? 0]
             );
         }
 
         // Update dependent item option value prices if provided
         if (! empty($validated['dependency_values'])) {
             foreach ($validated['dependency_values'] as $itemOptionValueId => $price) {
-                ItemOptionValue::where('id', $itemOptionValueId)->update(['price' => $price]);
+                ItemOptionValue::where('id', $itemOptionValueId)->update(['price' => $price ?? 0]);
             }
         }
 
@@ -522,7 +522,6 @@ class ItemController extends Controller
             ->values();
 
         $existing = $item->itemOptions()
-            ->whereNull('type')
             ->get()
             ->keyBy('option_id');
 

@@ -41,6 +41,8 @@
             expandedOptions: {},
             expandedValues: {},
             selectedOptionInModal: null,
+            optionValuesError: '',
+            optionValuesSaving: false,
             newDependencyOptions: {},
             createOptions: @js(old('form_action') === 'create' ? collect(old('options', []))->map(fn ($optionId) => (int) $optionId)->all() : []),
             createItem: {
@@ -133,6 +135,7 @@
                 };
                 const firstPrimaryOption = normalizedOptions.find(option => option.type !== 'dependent');
                 this.selectedOptionInModal = firstPrimaryOption ? firstPrimaryOption.id : null;
+                this.optionValuesError = '';
                 this.expandedOptions = {};
                 // Initialize expandedValues for all values
                 this.expandedValues = {};
@@ -479,14 +482,22 @@
                 }
             },
 
+            normalizeOptionPrice(price) {
+                const normalized = Number.parseFloat(price);
+
+                return Number.isFinite(normalized) ? normalized : 0;
+            },
+
             async saveEditedOptions() {
+                this.optionValuesError = '';
+                this.optionValuesSaving = true;
                 const updatedValues = {};
                 const dependencies = {};
                 const dependencyValues = {};
                 const dependencyValueOverrides = {};
                 this.getVisibleItemOptions().forEach(option => {
                     option.optionValues.forEach(value => {
-                        updatedValues[value.id] = parseFloat(value.price);
+                        updatedValues[value.id] = this.normalizeOptionPrice(value.price);
                         if (value.optionDependencies && value.optionDependencies.length > 0) {
                             dependencies[value.id] = value.optionDependencies.map(d => d.childOptionId);
                             value.optionDependencies.forEach(dep => {
@@ -498,9 +509,9 @@
                                 }
                                 (dep.optionValues || []).forEach(depValue => {
                                     if (depValue.itemOptionValueId) {
-                                        dependencyValues[depValue.itemOptionValueId] = parseFloat(depValue.price);
+                                        dependencyValues[depValue.itemOptionValueId] = this.normalizeOptionPrice(depValue.price);
                                     } else {
-                                        dependencyValueOverrides[value.id][dep.childOptionId][depValue.id] = parseFloat(depValue.price);
+                                        dependencyValueOverrides[value.id][dep.childOptionId][depValue.id] = this.normalizeOptionPrice(depValue.price);
                                     }
                                 });
                             });
@@ -513,6 +524,7 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
+                            'Accept': 'application/json',
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                         },
                         body: JSON.stringify({
@@ -523,24 +535,32 @@
                         })
                     });
 
-                    if (response.ok) {
-                        this.closeEditOptions();
-                        const categoryFilter = document.getElementById('category_filter');
-                        if (categoryFilter) {
-                            const url = new URL(window.location.href);
-                            if (categoryFilter.value) {
-                                url.searchParams.set('category_id', categoryFilter.value);
-                            } else {
-                                url.searchParams.delete('category_id');
-                            }
-                            location.href = url.toString();
+                    if (!response.ok) {
+                        const result = await response.json().catch(() => ({}));
+                        const validationMessage = Object.values(result.errors || {}).flat()[0];
+                        this.optionValuesError = validationMessage || result.message || 'The option values could not be saved.';
+
+                        return;
+                    }
+
+                    this.closeEditOptions();
+                    const categoryFilter = document.getElementById('category_filter');
+                    if (categoryFilter) {
+                        const url = new URL(window.location.href);
+                        if (categoryFilter.value) {
+                            url.searchParams.set('category_id', categoryFilter.value);
                         } else {
-                            location.reload();
+                            url.searchParams.delete('category_id');
                         }
+                        location.href = url.toString();
+                    } else {
+                        location.reload();
                     }
                 } catch (error) {
                     console.error('Error saving option values:', error);
-                    alert('Error saving option values. Please try again.');
+                    this.optionValuesError = 'The option values could not be saved. Please try again.';
+                } finally {
+                    this.optionValuesSaving = false;
                 }
             },
 
@@ -1249,13 +1269,15 @@
                         </div>
                     </div>
 
+                    <div v-if="optionValuesError" class="mx-6 mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert" v-text="optionValuesError"></div>
+
                     <!-- Footer -->
                     <div class="flex justify-end gap-3 border-t border-gray-200 px-6 py-4">
                         <button type="button" class="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors" @click="closeEditOptions()">
                             Cancel
                         </button>
-                        <button type="button" @click="saveEditedOptions()" class="rounded-lg bg-[var(--color-forest)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--color-forest-light)] transition-colors">
-                            Save Changes
+                        <button type="button" :disabled="optionValuesSaving" @click="saveEditedOptions()" class="rounded-lg bg-[var(--color-forest)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--color-forest-light)] disabled:cursor-wait disabled:opacity-60 transition-colors">
+                            <span v-text="optionValuesSaving ? 'Saving…' : 'Save Changes'"></span>
                         </button>
                     </div>
                 </div>

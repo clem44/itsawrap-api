@@ -77,6 +77,75 @@ class AdminItemOptionPreservationTest extends TestCase
         $this->assertSame(1, ItemOptionValue::query()->count());
     }
 
+    public function test_removing_a_single_type_option_drops_that_group(): void
+    {
+        [$admin, $item, $protein] = $this->scenario();
+        $item->itemOptions()->where('option_id', $protein->id)->update(['type' => 'single']);
+
+        $this->actingAs($admin)->put(route('admin.items.update', $item), [
+            'name' => 'Spinach Wrap',
+            'cost' => 0,
+            'category_id' => $item->category_id,
+            'active' => '1',
+            'options' => [],
+        ])->assertRedirect();
+
+        $this->assertDatabaseMissing('item_options', [
+            'item_id' => $item->id,
+            'option_id' => $protein->id,
+        ]);
+    }
+
+    public function test_saving_an_unattached_option_value_adds_it_to_the_item_with_its_price(): void
+    {
+        [$admin, $item, $protein] = $this->scenario();
+        $beef = OptionValue::query()->create([
+            'option_id' => $protein->id,
+            'name' => 'Beef',
+            'price' => 3,
+        ]);
+
+        $this->actingAs($admin)->postJson(route('admin.items.update-option-values', $item), [
+            'values' => [
+                $beef->id => 4.50,
+            ],
+            'dependencies' => [],
+            'dependency_values' => [],
+            'dependency_value_overrides' => [],
+        ])->assertOk();
+
+        $this->assertDatabaseHas('item_option_values', [
+            'item_option_id' => $item->itemOptions()->where('option_id', $protein->id)->value('id'),
+            'option_value_id' => $beef->id,
+            'price' => 4.50,
+        ]);
+    }
+
+    public function test_saving_an_unattached_option_value_with_a_blank_price_uses_zero(): void
+    {
+        [$admin, $item, $protein] = $this->scenario();
+        $beef = OptionValue::query()->create([
+            'option_id' => $protein->id,
+            'name' => 'Beef',
+            'price' => 0,
+        ]);
+
+        $this->actingAs($admin)->postJson(route('admin.items.update-option-values', $item), [
+            'values' => [
+                $beef->id => null,
+            ],
+            'dependencies' => [],
+            'dependency_values' => [],
+            'dependency_value_overrides' => [],
+        ])->assertOk();
+
+        $this->assertDatabaseHas('item_option_values', [
+            'item_option_id' => $item->itemOptions()->where('option_id', $protein->id)->value('id'),
+            'option_value_id' => $beef->id,
+            'price' => 0,
+        ]);
+    }
+
     public function test_adding_an_option_creates_a_group_beside_the_existing_one(): void
     {
         [$admin, $item, $protein] = $this->scenario();
@@ -97,7 +166,7 @@ class AdminItemOptionPreservationTest extends TestCase
         $this->assertSame(1, ItemOptionValue::query()->count());
     }
 
-    public function test_a_dependent_group_is_left_to_the_dependency_editor(): void
+    public function test_removing_a_dependent_option_drops_that_group(): void
     {
         [$admin, $item, $protein] = $this->scenario();
 
@@ -117,7 +186,30 @@ class AdminItemOptionPreservationTest extends TestCase
             'options' => [$protein->id],
         ])->assertRedirect();
 
-        $this->assertNotNull(ItemOption::query()->find($dependent->id), 'Dependent groups are not managed by this form.');
+        $this->assertNull(ItemOption::query()->find($dependent->id));
+    }
+
+    public function test_a_selected_dependent_option_is_preserved(): void
+    {
+        [$admin, $item, $protein] = $this->scenario();
+
+        $temperature = Option::query()->create(['name' => 'Temperature']);
+        $dependent = $item->itemOptions()->create([
+            'option_id' => $temperature->id,
+            'sort_order' => 9,
+            'required' => false,
+            'type' => 'dependent',
+        ]);
+
+        $this->actingAs($admin)->put(route('admin.items.update', $item), [
+            'name' => 'Spinach Wrap',
+            'cost' => 0,
+            'category_id' => $item->category_id,
+            'active' => '1',
+            'options' => [$protein->id, $temperature->id],
+        ])->assertRedirect();
+
+        $this->assertNotNull(ItemOption::query()->find($dependent->id));
     }
 
     /**
