@@ -25,7 +25,8 @@ class SaveMealDealRequest extends FormRequest
             'allergens' => ['nullable', 'string', 'max:2000'],
             'additional_info' => ['nullable', 'string', 'max:2000'],
             'base_price' => ['required', 'numeric', 'min:0', 'max:99999.99'],
-            'service_charge_rate' => ['required', 'numeric', Rule::in([0.15])],
+            'service_charge_percent' => ['required_without:service_charge_rate', 'numeric', 'min:0', 'max:100', 'decimal:0,2'],
+            'service_charge_rate' => ['required_without:service_charge_percent', 'numeric', 'min:0', 'max:1', 'decimal:0,4'],
             'marketing_max_saving' => ['nullable', 'numeric', 'min:0', 'max:99999.99'],
             'primary_category_id' => ['required', 'integer', 'exists:categories,id'],
             'primary_item_id' => ['nullable', 'integer', 'exists:items,id'],
@@ -56,6 +57,11 @@ class SaveMealDealRequest extends FormRequest
     public function mealDealData(): array
     {
         $data = $this->validated();
+
+        if (array_key_exists('service_charge_percent', $data)) {
+            $data['service_charge_rate'] = round((float) $data['service_charge_percent'] / 100, 4);
+        }
+        unset($data['service_charge_percent']);
 
         if (! empty($data['primary_item_id']) && ! Item::query()->whereKey($data['primary_item_id'])->where('category_id', $data['primary_category_id'])->exists()) {
             throw ValidationException::withMessages(['primary_item_id' => 'Choose an item from the selected category.']);

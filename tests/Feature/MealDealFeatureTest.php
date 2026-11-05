@@ -55,7 +55,9 @@ class MealDealFeatureTest extends TestCase
             ->assertSee('Set dependent option')
             ->assertSee('Add dependency')
             ->assertSee('name="allergens"', false)
-            ->assertSee('name="additional_info"', false);
+            ->assertSee('name="additional_info"', false)
+            ->assertSee('name="service_charge_percent"', false)
+            ->assertSee('Set to 0 to remove the service charge.');
         $this->actingAs($admin)->from(route('admin.meal-deals.index'))->post(route('admin.meal-deals.store'), [
             'form_action' => 'create',
             'name' => '',
@@ -120,6 +122,44 @@ class MealDealFeatureTest extends TestCase
 
         $this->actingAs($admin)->delete(route('admin.meal-deals.destroy', $deal))->assertRedirect();
         $this->assertSoftDeleted($deal);
+    }
+
+    public function test_admin_can_change_or_remove_a_meal_deal_service_charge(): void
+    {
+        $this->seed();
+        $admin = User::query()->create([
+            'firstname' => 'Admin', 'lastname' => 'User', 'username' => 'meal-charge-admin',
+            'email' => 'meal-charge-admin@example.com', 'password' => Hash::make('password'), 'role_id' => 1,
+        ]);
+        $deal = MealDeal::query()->where('name', 'The Albena')->firstOrFail();
+        $payload = [
+            'name' => $deal->name,
+            'base_price' => $deal->base_price,
+            'primary_category_id' => $deal->primary_category_id,
+            'primary_item_id' => $deal->primary_item_id,
+            'selection_groups' => $deal->selection_groups,
+            'is_active' => 1,
+        ];
+
+        $this->actingAs($admin)->put(route('admin.meal-deals.update', $deal), [
+            ...$payload,
+            'service_charge_percent' => 7.5,
+        ])->assertRedirect(route('admin.meal-deals.index'))->assertSessionHasNoErrors();
+
+        $this->getJson('/api/guest/meal-deals')
+            ->assertOk()
+            ->assertJsonPath('meal_deals.0.service_charge_rate', 0.075)
+            ->assertJsonPath('meal_deals.0.service_charge', 0.98);
+
+        $this->actingAs($admin)->put(route('admin.meal-deals.update', $deal), [
+            ...$payload,
+            'service_charge_percent' => 0,
+        ])->assertRedirect(route('admin.meal-deals.index'))->assertSessionHasNoErrors();
+
+        $this->getJson('/api/guest/meal-deals')
+            ->assertOk()
+            ->assertJsonPath('meal_deals.0.service_charge_rate', 0)
+            ->assertJsonPath('meal_deals.0.service_charge', 0);
     }
 
     public function test_unavailable_active_deal_reports_why_it_is_missing_from_customer_list(): void

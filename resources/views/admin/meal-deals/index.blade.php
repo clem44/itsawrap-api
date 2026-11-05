@@ -64,6 +64,7 @@
             allergens: @js($oldForm ? old('allergens', '') : ''),
             additional_info: @js($oldForm ? old('additional_info', '') : ''),
             base_price: @js($oldForm ? old('base_price', '') : ''),
+            service_charge_percent: @js($oldForm ? old('service_charge_percent', (float) old('service_charge_rate', 0.15) * 100) : 15),
             marketing_max_saving: @js($oldForm ? old('marketing_max_saving', '') : ''),
             primary_category_id: @js($oldForm ? old('primary_category_id', '') : ''),
             primary_item_id: @js($oldForm ? old('primary_item_id', '') : ''),
@@ -75,7 +76,7 @@
             primary_media: @js($oldForm ? $oldMedia : null),
         },
         blankDeal() {
-            return { id: null, name: '', description: '', allergens: '', additional_info: '', base_price: '', marketing_max_saving: '',
+            return { id: null, name: '', description: '', allergens: '', additional_info: '', base_price: '', service_charge_percent: 15, marketing_max_saving: '',
                 primary_category_id: '', primary_item_id: '', selection_groups: [], fixed_option_value_ids: [],
                 sort_order: 0, is_active: true, media_id: '', primary_media: null };
         },
@@ -98,6 +99,7 @@
             this.dependencyPanels = {};
             this.deal = {
                 ...value,
+                service_charge_percent: Number(value.service_charge_rate || 0) * 100,
                 primary_category_id: value.primary_category_id ? String(value.primary_category_id) : '',
                 primary_item_id: value.primary_item_id ? String(value.primary_item_id) : '',
                 selection_groups: (value.selection_groups || []).map(group => ({
@@ -288,7 +290,7 @@
                                     <div><div class="user-name">{{ $entry->name }}</div><div class="user-meta">{{ \Illuminate\Support\Str::limit($entry->description ?: 'No description', 72) }}</div></div>
                                 </div>
                             </td>
-                            <td><span class="user-name tabular-nums">${{ number_format((float) $entry->base_price, 2) }}</span><div class="user-meta">+ 15% service charge</div></td>
+                            <td><span class="user-name tabular-nums">${{ number_format((float) $entry->base_price, 2) }}</span><div class="user-meta">{{ (float) $entry->service_charge_rate > 0 ? '+ '.rtrim(rtrim(number_format((float) $entry->service_charge_rate * 100, 2, '.', ''), '0'), '.').'% service charge' : 'No service charge' }}</div></td>
                             <td><span class="user-meta">{{ count($entry->selection_groups ?? []) }} option {{ count($entry->selection_groups ?? []) === 1 ? 'group' : 'groups' }}</span><div class="user-meta">{{ $entry->primaryCategory?->name ?? 'No category' }} · {{ $entry->primaryItem?->name ?? 'Any item' }}</div></td>
                             <td>
                                 @if($entry->is_active && ($availabilityIssues[$entry->id] ?? []))
@@ -305,7 +307,7 @@
                                     <button type="button" class="action-btn edit" title="Edit Meal Deal" aria-label="Edit {{ $entry->name }}" @click.stop="openEdit(@js([
                                         'id' => $entry->id, 'name' => $entry->name, 'description' => $entry->description,
                                         'allergens' => $entry->allergens, 'additional_info' => $entry->additional_info,
-                                        'base_price' => $entry->base_price, 'marketing_max_saving' => $entry->marketing_max_saving,
+                                        'base_price' => $entry->base_price, 'service_charge_rate' => $entry->service_charge_rate, 'marketing_max_saving' => $entry->marketing_max_saving,
                                         'primary_category_id' => $entry->primary_category_id, 'primary_item_id' => $entry->primary_item_id,
                                         'selection_groups' => $entry->selection_groups, 'fixed_option_value_ids' => $entry->fixed_option_value_ids,
                                         'sort_order' => $entry->sort_order, 'is_active' => $entry->is_active,
@@ -338,7 +340,6 @@
                         <input v-if="modalMode === 'edit'" type="hidden" name="_method" value="PUT">
                         <input type="hidden" name="form_action" :value="modalMode">
                         <input type="hidden" name="edit_id" :value="deal.id">
-                        <input type="hidden" name="service_charge_rate" value="0.15">
                         <input type="hidden" name="media_id" :value="deal.media_id">
                         <div class="flex shrink-0 items-center justify-between border-b border-white/10 px-6 py-4">
                             <div><h2 id="meal-deal-modal-title" class="heading-serif text-xl font-semibold" v-text="modalMode === 'edit' ? 'Edit Meal Deal' : 'Create Meal Deal'"></h2><p class="mt-1 text-sm text-white/70">Set the price, included items and choices customers can make.</p></div>
@@ -356,12 +357,13 @@
                                         <label class="block text-sm font-medium text-white/80 sm:col-span-2">Allergens <textarea name="allergens" v-model="deal.allergens" rows="2" maxlength="2000" placeholder="List known allergens" class="mt-2 w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/50 focus:border-[var(--color-sage)] focus:ring-[var(--color-sage)]"></textarea></label>
                                         <label class="block text-sm font-medium text-white/80 sm:col-span-2">Additional information <textarea name="additional_info" v-model="deal.additional_info" rows="2" maxlength="2000" placeholder="Add customer-facing details" class="mt-2 w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder-white/50 focus:border-[var(--color-sage)] focus:ring-[var(--color-sage)]"></textarea></label>
                                         <label class="block text-sm font-medium text-white/80">Base price <input name="base_price" v-model="deal.base_price" type="number" step="0.01" min="0" required class="mt-2 w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white focus:border-[var(--color-sage)] focus:ring-[var(--color-sage)]"></label>
+                                        <label class="block text-sm font-medium text-white/80">Service charge <span class="font-normal text-white/60">(%)</span><input name="service_charge_percent" v-model="deal.service_charge_percent" type="number" step="0.01" min="0" max="100" required class="mt-2 w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white focus:border-[var(--color-sage)] focus:ring-[var(--color-sage)]"><span class="mt-1 block text-xs font-normal text-white/60">Set to 0 to remove the service charge.</span></label>
                                         <label class="block text-sm font-medium text-white/80">Maximum saving callout <input name="marketing_max_saving" v-model="deal.marketing_max_saving" type="number" step="0.01" min="0" class="mt-2 w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white focus:border-[var(--color-sage)] focus:ring-[var(--color-sage)]"></label>
                                         <label class="block text-sm font-medium text-white/80">Food category <admin-tom-select name="primary_category_id" v-model="deal.primary_category_id" :options="[{ value: '', text: 'Choose a category' }, ...categoryChoices.map(category => ({ value: category.id, text: category.name }))]" required class="meal-deal-select mt-2 w-full rounded-lg border border-white/20 px-4 py-2.5" @change="changePrimaryCategory()"></admin-tom-select></label>
                                         <label class="block text-sm font-medium text-white/80">Limit to one item <span class="font-normal text-white/60">(optional)</span> <admin-tom-select name="primary_item_id" v-model="deal.primary_item_id" :options="[{ value: '', text: 'Any available item in category' }, ...itemChoices.filter(item => String(item.category_id) === String(deal.primary_category_id)).map(item => ({ value: item.id, text: item.name }))]" class="meal-deal-select mt-2 w-full rounded-lg border border-white/20 px-4 py-2.5"></admin-tom-select></label>
                                     </div>
                                     <p class="text-sm text-white/70">Customers can choose any available item in the category, unless you limit this deal to one item. The choices below are configured for the deal itself and do not need to be attached to every menu item.</p>
-                                    <p class="text-sm text-white/70">The service charge is 15% of the base price. Paid extras keep their regular menu prices.</p>
+                                    <p class="text-sm text-white/70">The service charge is calculated from the base price. Paid extras keep their regular menu prices.</p>
                                 </div>
                                 <div class="space-y-5">
                                     <div><label class="mb-2 block text-sm font-medium text-white/80">Featured image</label><div class="media-dropzone-wrap"><button type="button" class="media-dropzone" :class="{'has-image': deal.primary_media}" @click="openMealDealMedia()"><span v-if="deal.primary_media" class="media-dropzone__image-wrap"><img v-if="deal.primary_media.preview_url" :src="deal.primary_media.preview_url" :alt="deal.primary_media.alt || deal.name"><span class="media-dropzone__overlay">Replace image</span></span><template v-else><span class="media-dropzone__title">Choose an image</span><span class="media-dropzone__hint">From the Media Library</span></template></button><button v-if="deal.primary_media" type="button" class="media-dropzone__remove" aria-label="Remove Meal Deal image" @click="clearMealDealMedia()"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12"/></svg></button></div></div>
