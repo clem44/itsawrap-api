@@ -3,7 +3,6 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\BundleController;
-use App\Http\Controllers\Api\CustomerBranchController;
 use App\Http\Controllers\Api\CashSessionController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CustomerController;
@@ -34,6 +33,7 @@ use App\Http\Controllers\Api\ReferralCodeController;
 use App\Http\Controllers\Api\RewardProgramController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\StatusController;
+use App\Http\Controllers\Api\StoreStatusController;
 use App\Http\Controllers\Api\TaxController;
 use App\Http\Controllers\Api\TipController;
 use App\Http\Controllers\Api\UserController;
@@ -47,6 +47,7 @@ Route::prefix('guest')->group(function () {
     Route::get('/sliders/{slug}', [GuestSliderController::class, 'show']);
     Route::middleware('throttle:guest-menu')->get('/menu', GuestMenuController::class);
     Route::middleware('throttle:guest-delivery-windows')->get('/delivery-windows/today', DeliveryWindowTodayController::class);
+    Route::middleware('throttle:guest-store-status')->get('/store-status', StoreStatusController::class);
     Route::get('/bundles', [BundleController::class, 'index']);
     Route::get('/meal-deals', [MealDealController::class, 'index']);
     Route::post('/meal-deals/quote', [MealDealController::class, 'quote']);

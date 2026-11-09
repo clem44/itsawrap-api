@@ -5,11 +5,11 @@ namespace App\Providers;
 use App\Models\Bundle;
 use App\Models\BundleItem;
 use App\Models\BundleItemOptionValue;
-use App\Models\MealDeal;
 use App\Models\Category;
 use App\Models\Item;
 use App\Models\ItemOption;
 use App\Models\ItemOptionValue;
+use App\Models\MealDeal;
 use App\Models\Offer;
 use App\Models\Option;
 use App\Models\OptionValue;
@@ -118,6 +118,22 @@ class AppServiceProvider extends ServiceProvider
 
                     return response()->json([
                         'message' => 'Too many guest delivery window requests.',
+                    ], 429);
+                });
+        });
+
+        RateLimiter::for('guest-store-status', function (Request $request): Limit {
+            return Limit::perMinute(120)
+                ->by($request->ip())
+                ->response(function () use ($request) {
+                    Log::warning('guest-store-status-throttled', [
+                        'ip' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                        'path' => $request->path(),
+                    ]);
+
+                    return response()->json([
+                        'message' => 'Too many store status requests.',
                     ], 429);
                 });
         });
