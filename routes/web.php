@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\ReferralProgramController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RewardController;
+use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\StatusController;
 use App\Http\Controllers\Admin\TipController;
 use App\Http\Controllers\Admin\UserController;
@@ -95,6 +96,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Rewards
         Route::resource('bundles', BundleController::class, ['only' => ['index', 'store', 'update', 'destroy']]);
         Route::resource('meal-deals', MealDealController::class, ['only' => ['index', 'store', 'update', 'destroy']]);
+        Route::resource('settings', SettingsController::class, ['only' => ['index', 'store', 'update']]);
         Route::resource('offers', OfferController::class, ['only' => ['index', 'store', 'update', 'destroy']]);
         Route::get('/rewards', [RewardController::class, 'index'])->name('rewards.index');
         Route::post('/rewards', [RewardController::class, 'store'])->name('rewards.store');

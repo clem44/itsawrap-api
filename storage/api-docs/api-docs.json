@@ -6449,6 +6449,21 @@
                 ]
             }
         },
+        "/guest/store-status": {
+            "get": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Get whether the store is currently taking orders",
+                "description": "Public check of opening hours and till staffing, for gating guest checkout. Exposes no session or sales detail.",
+                "operationId": "7b2b7c3d81f68ffd32d96a5136a63590",
+                "responses": {
+                    "200": {
+                        "description": "Store status"
+                    }
+                }
+            }
+        },
         "/taxes": {
             "get": {
                 "tags": [

@@ -134,6 +134,10 @@
                         <i class="bi bi-download" aria-hidden="true"></i>
                         <span class="sidebar-label">Downloads</span>
                     </a>
+                    <a href="{{ route('admin.settings.index') }}" class="sidebar-nav-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
+                        <i class="bi bi-gear" aria-hidden="true"></i>
+                        <span class="sidebar-label">Settings</span>
+                    </a>
 
                 </nav>
                 <div class="flex-shrink-0 p-4 sidebar-footer relative z-10">
@@ -235,6 +239,10 @@
                     <a href="{{ route('admin.downloads.index') }}" class="sidebar-nav-link {{ request()->routeIs('admin.downloads.*') ? 'active' : '' }}">
                         <i class="bi bi-download" aria-hidden="true"></i>
                         Downloads
+                    </a>
+                    <a href="{{ route('admin.settings.index') }}" class="sidebar-nav-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
+                        <i class="bi bi-gear" aria-hidden="true"></i>
+                        Settings
                     </a>
 
                 </nav>
