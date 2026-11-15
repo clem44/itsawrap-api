@@ -11,6 +11,13 @@ class GuestSettingController extends Controller
 {
     private const PUBLIC_KEYS = [
         'service_charge',
+        'delivery_fee',
+        'open_time',
+        'close_time',
+        'business_phone',
+        'business_address',
+        'currency',
+        'selected_branch_id',
     ];
 
     #[OA\Get(
@@ -19,7 +26,13 @@ class GuestSettingController extends Controller
         description: 'Returns the value of an allowlisted setting that is safe to expose to customers.',
         tags: ['Settings'],
         parameters: [
-            new OA\Parameter(name: 'key', in: 'path', required: true, schema: new OA\Schema(type: 'string'), example: 'service_charge'),
+            new OA\Parameter(
+                name: 'key',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'string', enum: self::PUBLIC_KEYS),
+                example: 'service_charge'
+            ),
         ],
         responses: [
             new OA\Response(

@@ -2591,7 +2591,17 @@
                         "in": "path",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "enum": [
+                                "service_charge",
+                                "delivery_fee",
+                                "open_time",
+                                "close_time",
+                                "business_phone",
+                                "business_address",
+                                "currency",
+                                "selected_branch_id"
+                            ]
                         },
                         "example": "service_charge"
                     }
