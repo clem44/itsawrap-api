@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\GuestCustomerController;
 use App\Http\Controllers\Api\GuestMenuController;
 use App\Http\Controllers\Api\GuestOrderController;
 use App\Http\Controllers\Api\GuestRegistrationController;
+use App\Http\Controllers\Api\GuestSettingController;
 use App\Http\Controllers\Api\GuestSliderController;
 use App\Http\Controllers\Api\ItemController;
 use App\Http\Controllers\Api\ItemOptionController;
@@ -44,6 +45,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('/login', [AuthController::class, 'login']);
 
 Route::prefix('guest')->group(function () {
+    Route::get('/settings/{key}', GuestSettingController::class);
     Route::get('/sliders/{slug}', [GuestSliderController::class, 'show']);
     Route::middleware('throttle:guest-menu')->get('/menu', GuestMenuController::class);
     Route::middleware('throttle:guest-delivery-windows')->get('/delivery-windows/today', DeliveryWindowTodayController::class);

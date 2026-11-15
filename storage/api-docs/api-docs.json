@@ -2577,6 +2577,51 @@
                 }
             }
         },
+        "/guest/settings/{key}": {
+            "get": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Get a public setting",
+                "description": "Returns the value of an allowlisted setting that is safe to expose to customers.",
+                "operationId": "03576fc8708565e8376d8b74bc9f186f",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "service_charge"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Public setting value",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "required": [
+                                        "value"
+                                    ],
+                                    "properties": {
+                                        "value": {
+                                            "type": "string",
+                                            "example": "0"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Setting not found"
+                    }
+                }
+            }
+        },
         "/guest/sliders/{slug}": {
             "get": {
                 "tags": [
