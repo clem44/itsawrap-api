@@ -96,6 +96,37 @@ Returns active storefront menu data: categories, items, options, option values, 
 
 Category objects include the boolean `menu_visibility` field. The endpoint returns the field as stored; menu clients should use it to decide whether to display a category.
 
+### `GET /api/guest/settings/{key}`
+
+Returns one customer-safe setting without requiring Bearer authentication. The response intentionally contains only the setting value; it does not expose the setting id, timestamps, or the full settings collection.
+
+Public setting keys:
+
+- `service_charge`
+- `delivery_fee`
+- `open_time`
+- `close_time`
+- `business_phone`
+- `business_address`
+- `currency`
+- `selected_branch_id`
+
+Example request:
+
+```http
+GET /api/guest/settings/delivery_fee
+```
+
+Example response:
+
+```json
+{
+  "value": "3.50"
+}
+```
+
+Returns `404` when the key is not public, does not exist, or has no value. Do not use the staff-only `/api/settings` collection from customer applications.
+
 ### `GET /api/guest/sliders/{slug}`
 
 Returns one published hero slider by slug. This endpoint is public and does not require Bearer authentication.
@@ -922,6 +953,8 @@ Request:
 ## Settings, Statuses, Rewards, Notifications
 
 ### Settings
+
+The following endpoints are staff-only and require `auth:sanctum` plus the `staff` middleware. Customer and guest applications must use `GET /api/guest/settings/{key}`, which exposes only explicitly allowlisted values.
 
 - `GET /api/settings`
 - `GET /api/settings/{key}`
