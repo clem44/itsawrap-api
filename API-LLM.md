@@ -127,6 +127,34 @@ Example response:
 
 Returns `404` when the key is not public, does not exist, or has no value. Do not use the staff-only `/api/settings` collection from customer applications.
 
+### `GET /api/guest/store-status`
+
+Returns the current storefront availability and whether the selected branch has an open cash session. This endpoint is public and exposes no cash totals or session details.
+
+Optional query parameter:
+
+- `branch_id`: integer branch id to check. When omitted, the endpoint checks the branch named `Main`.
+
+Example request:
+
+```http
+GET /api/guest/store-status?branch_id=2
+```
+
+Example response:
+
+```json
+{
+  "branch_id": 2,
+  "is_open": true,
+  "cash_session_open": true,
+  "open_time": "11:00:00",
+  "close_time": "21:30:00"
+}
+```
+
+`is_open` is `true` only when the request is within the configured opening hours and the selected branch has an open cash session. `cash_session_open` reports the cash-session condition independently, so it can remain `true` outside opening hours. When no `branch_id` is supplied and no `Main` branch exists, `branch_id` is `null` and both status booleans are `false`. An unknown `branch_id` returns `422`.
+
 ### `GET /api/guest/sliders/{slug}`
 
 Returns one published hero slider by slug. This endpoint is public and does not require Bearer authentication.

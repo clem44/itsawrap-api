@@ -55,14 +55,24 @@ class GuestStoreStatusTest extends TestCase
 
         $this->getJson('/api/guest/store-status')
             ->assertOk()
-            ->assertJson(['is_open' => true, 'open_time' => '11:00:00', 'close_time' => '21:30:00']);
+            ->assertJson([
+                'branch_id' => $branch->id,
+                'is_open' => true,
+                'cash_session_open' => true,
+                'open_time' => '11:00:00',
+                'close_time' => '21:30:00',
+            ]);
     }
 
     public function test_it_is_closed_without_an_open_main_branch_session(): void
     {
         $this->getJson('/api/guest/store-status')
             ->assertOk()
-            ->assertJson(['is_open' => false]);
+            ->assertJson([
+                'branch_id' => null,
+                'is_open' => false,
+                'cash_session_open' => false,
+            ]);
     }
 
     public function test_it_is_closed_outside_hours_even_with_an_open_session(): void
@@ -80,7 +90,11 @@ class GuestStoreStatusTest extends TestCase
 
         $this->getJson('/api/guest/store-status')
             ->assertOk()
-            ->assertJson(['is_open' => false]);
+            ->assertJson([
+                'branch_id' => $branch->id,
+                'is_open' => false,
+                'cash_session_open' => true,
+            ]);
     }
 
     public function test_it_ignores_a_session_open_for_a_different_branch(): void
@@ -97,5 +111,35 @@ class GuestStoreStatusTest extends TestCase
         $this->getJson('/api/guest/store-status')
             ->assertOk()
             ->assertJson(['is_open' => false]);
+    }
+
+    public function test_it_reports_cash_session_status_for_the_requested_branch(): void
+    {
+        $this->branch();
+        $airport = $this->branch('Airport');
+        CashSession::query()->create([
+            'user_id' => $this->cashier()->id,
+            'branch_id' => $airport->id,
+            'opening_amount' => 0,
+            'is_open' => true,
+            'opened_at' => now(),
+        ]);
+
+        $this->getJson("/api/guest/store-status?branch_id={$airport->id}")
+            ->assertOk()
+            ->assertJson([
+                'branch_id' => $airport->id,
+                'is_open' => true,
+                'cash_session_open' => true,
+                'open_time' => '11:00:00',
+                'close_time' => '21:30:00',
+            ]);
+    }
+
+    public function test_it_rejects_an_unknown_branch(): void
+    {
+        $this->getJson('/api/guest/store-status?branch_id=999999')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('branch_id');
     }
 }

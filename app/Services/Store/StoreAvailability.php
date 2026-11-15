@@ -32,11 +32,16 @@ class StoreAvailability
     /**
      * Whether the storefront should accept orders right now: within the
      * configured opening hours, and with someone actually staffing the
-     * till (an open cash session for the Main branch).
+     * till (an open cash session for the selected branch, or Main by default).
      */
-    public function isOpen(): bool
+    public function isOpen(?int $branchId = null): bool
     {
-        return $this->isWithinHours() && $this->hasOpenCashSession();
+        return $this->isWithinHours() && $this->hasOpenCashSession($branchId);
+    }
+
+    public function resolveBranchId(?int $branchId = null): ?int
+    {
+        return $branchId ?? Branch::query()->where('name', self::MAIN_BRANCH_NAME)->value('id');
     }
 
     protected function isWithinHours(): bool
@@ -49,9 +54,9 @@ class StoreAvailability
         return $now->between($opensAt, $closesAt);
     }
 
-    protected function hasOpenCashSession(): bool
+    public function hasOpenCashSession(?int $branchId = null): bool
     {
-        $branchId = Branch::query()->where('name', self::MAIN_BRANCH_NAME)->value('id');
+        $branchId = $this->resolveBranchId($branchId);
 
         if ($branchId === null) {
             return false;

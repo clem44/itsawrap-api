@@ -6512,9 +6512,60 @@
                 "summary": "Get whether the store is currently taking orders",
                 "description": "Public check of opening hours and till staffing, for gating guest checkout. Exposes no session or sales detail.",
                 "operationId": "7b2b7c3d81f68ffd32d96a5136a63590",
+                "parameters": [
+                    {
+                        "name": "branch_id",
+                        "in": "query",
+                        "description": "Branch to check. Defaults to the Main branch.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "Store status"
+                        "description": "Store status",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "required": [
+                                        "branch_id",
+                                        "is_open",
+                                        "cash_session_open",
+                                        "open_time",
+                                        "close_time"
+                                    ],
+                                    "properties": {
+                                        "branch_id": {
+                                            "type": "integer",
+                                            "example": 1,
+                                            "nullable": true
+                                        },
+                                        "is_open": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "cash_session_open": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "open_time": {
+                                            "type": "string",
+                                            "example": "11:00:00"
+                                        },
+                                        "close_time": {
+                                            "type": "string",
+                                            "example": "21:30:00"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid branch id"
                     }
                 }
             }
