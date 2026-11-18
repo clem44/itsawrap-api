@@ -88,6 +88,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('tips', TipController::class, ['only' => ['index', 'show']]);
 
         // Payments management
+        Route::post('/orders/{order}/payments', [PaymentController::class, 'store'])->name('orders.payments.store');
         Route::resource('payments', PaymentController::class, ['only' => ['index', 'show', 'destroy']]);
 
         // Reports

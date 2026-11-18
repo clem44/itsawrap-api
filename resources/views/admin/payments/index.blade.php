@@ -41,7 +41,12 @@
                             <span class="user-meta">{{ $payment->order?->customer?->name ?: 'Walk-in' }}</span>
                         </td>
                         <td>
-                            <span class="user-meta">{{ ucfirst($payment->method) }}</span>
+                            <span class="user-meta">
+                                {{ ucfirst($payment->method) }}
+                                @if($payment->method === 'card' && $payment->card_last_four)
+                                    ···· {{ $payment->card_last_four }}
+                                @endif
+                            </span>
                         </td>
                         <td>
                             <span class="user-meta">{{ ucfirst($payment->status) }}</span>

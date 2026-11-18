@@ -14,6 +14,7 @@ class Payment extends Model
         'order_id',
         'amount',
         'method',
+        'card_last_four',
         'status',
         'type',
         'charges',

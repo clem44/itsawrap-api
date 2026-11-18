@@ -16,6 +16,7 @@ class GuestSettingController extends Controller
         'close_time',
         'business_phone',
         'business_address',
+        'business_name',
         'currency',
         'selected_branch_id',
     ];

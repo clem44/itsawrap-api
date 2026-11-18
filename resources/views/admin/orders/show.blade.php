@@ -3,6 +3,63 @@
 @section('title', "Order #" . $order->number)
 @section('header', "Order #" . $order->number)
 
+@push('scripts')
+<script>
+    window.AdminVuePage = () => ({
+        paymentModalOpen: @js($errors->payment->any()),
+        paymentModalTrigger: null,
+        paymentSubmitting: false,
+        payment: {
+            amount: @js(old('amount', number_format((float) $order->total, 2, '.', ''))),
+            method: @js(old('method', 'cash')),
+            cardLastFour: @js(old('card_last_four', '')),
+        },
+
+        initPage() {
+            if (this.paymentModalOpen) this.focusPaymentForm();
+        },
+
+        openPaymentModal(event) {
+            this.paymentModalTrigger = event?.currentTarget || null;
+            this.payment = {
+                amount: @js(number_format((float) $order->total, 2, '.', '')),
+                method: 'cash',
+                cardLastFour: '',
+            };
+            this.paymentSubmitting = false;
+            this.paymentModalOpen = true;
+            this.focusPaymentForm();
+        },
+
+        closePaymentModal() {
+            if (this.paymentSubmitting) return;
+            this.paymentModalOpen = false;
+            this.$nextTick(() => this.paymentModalTrigger?.focus());
+        },
+
+        focusPaymentForm() {
+            this.$nextTick(() => document.getElementById('payment-amount')?.focus());
+        },
+
+        trapPaymentFocus(event) {
+            const dialog = document.getElementById('payment-dialog');
+            const controls = [...dialog.querySelectorAll('button, input')]
+                .filter(element => !element.disabled && element.getClientRects().length);
+            if (!controls.length) return;
+            const first = controls[0];
+            const last = controls[controls.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        },
+    });
+</script>
+@endpush
+
 @section('content')
 <div class="animate-in">
     <!-- Header with back button -->
@@ -194,22 +251,58 @@
             </div>
 
             <!-- Payments -->
-            @if($order->payments->count() > 0)
-                <div class="rounded-2xl p-6 bg-white border border-gray-200 shadow-sm">
-                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Payments</h2>
+            <div class="rounded-2xl p-6 bg-white border border-gray-200 shadow-sm">
+                <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-900">Payments</h2>
+                        @if($order->payments->isNotEmpty())
+                            <p class="mt-1 text-sm text-gray-600">
+                                ${{ number_format($order->payments->sum('amount'), 2) }} recorded across {{ $order->payments->count() }} {{ \Illuminate\Support\Str::plural('payment', $order->payments->count()) }}
+                            </p>
+                        @else
+                            <p class="mt-1 text-sm text-gray-600">No payment has been recorded for this order.</p>
+                        @endif
+                    </div>
+                    <button type="button" class="btn btn-primary shrink-0 justify-center" @click.stop="openPaymentModal($event)">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m6-6H6" />
+                        </svg>
+                        Add Payment
+                    </button>
+                </div>
+
+                @if($order->payments->isNotEmpty())
                     <div class="space-y-3">
                         @foreach($order->payments as $payment)
                             <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50 border border-gray-200">
-                                <div>
-                                    <p class="text-gray-900 font-medium">{{ $payment->method ?? 'Payment' }}</p>
-                                    <p class="text-sm text-gray-600">{{ $payment->created_at->format('M d, Y H:i') }}</p>
+                                <div class="flex min-w-0 items-center gap-3">
+                                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--color-cream)] text-[var(--color-forest)]" aria-hidden="true">
+                                        @if($payment->method === 'card')
+                                            <i class="bi bi-credit-card text-lg"></i>
+                                        @else
+                                            <i class="bi bi-cash-stack text-lg"></i>
+                                        @endif
+                                    </span>
+                                    <div class="min-w-0">
+                                        <p class="text-gray-900 font-medium">
+                                            {{ ucfirst($payment->method ?? 'Payment') }}
+                                            @if($payment->method === 'card' && $payment->card_last_four)
+                                                <span class="font-normal text-gray-500">ending in {{ $payment->card_last_four }}</span>
+                                            @endif
+                                        </p>
+                                        <p class="text-sm text-gray-600">{{ $payment->created_at->format('M d, Y H:i') }}</p>
+                                    </div>
                                 </div>
-                                <p class="text-gray-900 font-semibold">${{ number_format($payment->amount, 2) }}</p>
+                                <p class="ml-4 shrink-0 text-gray-900 font-semibold tabular-nums">${{ number_format($payment->amount, 2) }}</p>
                             </div>
                         @endforeach
                     </div>
-                </div>
-            @endif
+                @else
+                    <div class="rounded-xl border border-dashed border-[var(--color-cream-dark)] bg-[var(--color-cream)] px-5 py-6 text-center">
+                        <p class="text-sm text-[var(--color-ink-light)]">Use “Add Payment” to record cash or card received.</p>
+                    </div>
+                @endif
+            </div>
         </div>
 
         <!-- Right column: Order Summary -->
@@ -300,5 +393,119 @@
             </div>
         </div>
     </div>
+
+    <teleport to="body">
+        <div
+            v-show="paymentModalOpen"
+            v-cloak
+            class="fixed inset-0 z-50 overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="payment-modal-title"
+            @keydown.esc="closePaymentModal()"
+            @keydown.tab="trapPaymentFocus($event)"
+        >
+            <div class="flex min-h-full items-end justify-center p-4 sm:items-center">
+                <div class="fixed inset-0 bg-black/60" aria-hidden="true" @click="closePaymentModal()"></div>
+
+                <div id="payment-dialog" class="modal-card relative max-w-lg" @click.stop>
+                    <form method="POST" action="{{ route('admin.orders.payments.store', $order) }}" v-on:submit="paymentSubmitting = true">
+                        @csrf
+
+                        <div class="modal-header">
+                            <div>
+                                <h2 id="payment-modal-title" class="modal-title">Add Payment</h2>
+                                <p class="mt-1 text-sm text-[var(--color-ink-light)]">Record a payment for order #{{ $order->number }}.</p>
+                            </div>
+                            <button type="button" class="modal-close" aria-label="Close payment form" :disabled="paymentSubmitting" @click="closePaymentModal()">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="modal-body space-y-6">
+                            <div class="flex items-center justify-between rounded-xl bg-[var(--color-cream)] px-4 py-3">
+                                <span class="text-sm text-[var(--color-ink-light)]">Order total</span>
+                                <span class="heading-serif text-xl font-semibold text-[var(--color-forest)] tabular-nums">${{ number_format($order->total, 2) }}</span>
+                            </div>
+
+                            <fieldset>
+                                <legend class="mb-2 block text-sm font-medium text-[var(--color-ink)]">Payment method</legend>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <label class="cursor-pointer rounded-xl border p-4 transition-colors has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-[rgba(124,154,138,0.15)]" :class="payment.method === 'cash' ? 'border-[var(--color-forest)] bg-[var(--color-cream)]' : 'border-[var(--color-cream-dark)] bg-white hover:bg-[var(--color-cream)]'">
+                                        <input v-model="payment.method" class="sr-only" type="radio" name="method" value="cash">
+                                        <span class="flex items-center gap-3">
+                                            <i class="bi bi-cash-stack text-xl text-[var(--color-forest)]" aria-hidden="true"></i>
+                                            <span class="text-sm font-semibold text-[var(--color-ink)]">Cash</span>
+                                        </span>
+                                    </label>
+                                    <label class="cursor-pointer rounded-xl border p-4 transition-colors has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-[rgba(124,154,138,0.15)]" :class="payment.method === 'card' ? 'border-[var(--color-forest)] bg-[var(--color-cream)]' : 'border-[var(--color-cream-dark)] bg-white hover:bg-[var(--color-cream)]'">
+                                        <input v-model="payment.method" class="sr-only" type="radio" name="method" value="card">
+                                        <span class="flex items-center gap-3">
+                                            <i class="bi bi-credit-card text-xl text-[var(--color-forest)]" aria-hidden="true"></i>
+                                            <span class="text-sm font-semibold text-[var(--color-ink)]">Card</span>
+                                        </span>
+                                    </label>
+                                </div>
+                                @error('method', 'payment')
+                                    <p class="mt-2 text-sm text-[var(--color-error)]">{{ $message }}</p>
+                                @enderror
+                            </fieldset>
+
+                            <div>
+                                <label for="payment-amount" class="mb-2 block text-sm font-medium text-[var(--color-ink)]">Amount</label>
+                                <div class="relative">
+                                    <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 font-semibold text-[var(--color-ink-light)]">$</span>
+                                    <input
+                                        id="payment-amount"
+                                        v-model="payment.amount"
+                                        name="amount"
+                                        type="number"
+                                        min="0.01"
+                                        step="0.01"
+                                        inputmode="decimal"
+                                        class="w-full rounded-xl border border-[var(--color-cream-dark)] bg-[var(--color-cream)] py-3 pl-8 pr-4 text-[var(--color-ink)] tabular-nums focus:border-[var(--color-sage)] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[rgba(124,154,138,0.15)] @error('amount', 'payment') border-[var(--color-error)] bg-[var(--color-error-light)] @enderror"
+                                        required
+                                    >
+                                </div>
+                                @error('amount', 'payment')
+                                    <p class="mt-1.5 text-sm text-[var(--color-error)]">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <div v-if="payment.method === 'card'">
+                                <label for="card-last-four" class="mb-2 block text-sm font-medium text-[var(--color-ink)]">Last four digits</label>
+                                <input
+                                    id="card-last-four"
+                                    v-model="payment.cardLastFour"
+                                    name="card_last_four"
+                                    type="text"
+                                    inputmode="numeric"
+                                    pattern="[0-9]{4}"
+                                    maxlength="4"
+                                    autocomplete="off"
+                                    placeholder="4242"
+                                    class="w-full rounded-xl border border-[var(--color-cream-dark)] bg-[var(--color-cream)] px-4 py-3 text-[var(--color-ink)] tabular-nums placeholder:text-[var(--color-ink-light)] focus:border-[var(--color-sage)] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[rgba(124,154,138,0.15)] @error('card_last_four', 'payment') border-[var(--color-error)] bg-[var(--color-error-light)] @enderror"
+                                    :required="payment.method === 'card'"
+                                >
+                                <p class="mt-1.5 text-xs text-[var(--color-ink-light)]">Only the final four digits are stored—never the full card number.</p>
+                                @error('card_last_four', 'payment')
+                                    <p class="mt-1.5 text-sm text-[var(--color-error)]">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" :disabled="paymentSubmitting" @click="closePaymentModal()">Cancel</button>
+                            <button type="submit" class="btn btn-primary min-w-36 justify-center disabled:cursor-wait disabled:opacity-70" :disabled="paymentSubmitting">
+                                <span v-text="paymentSubmitting ? 'Adding…' : 'Add Payment'"></span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </teleport>
 </div>
 @endsection

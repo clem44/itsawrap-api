@@ -50,7 +50,12 @@
                         </svg>
                         Method
                     </div>
-                    <div class="stat-value">{{ ucfirst($payment->method) }}</div>
+                    <div class="stat-value">
+                        {{ ucfirst($payment->method) }}
+                        @if($payment->method === 'card' && $payment->card_last_four)
+                            ···· {{ $payment->card_last_four }}
+                        @endif
+                    </div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">
