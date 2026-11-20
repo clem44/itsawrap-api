@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Category;
 use App\Models\Customer;
 use App\Models\Item;
+use App\Models\MealDeal;
 use App\Models\Option;
 use App\Models\OptionValue;
 use App\Models\Order;
@@ -92,6 +93,69 @@ class CustomerOrderHistoryApiTest extends TestCase
             ->assertJsonPath('status.name', 'active')
             ->assertJsonPath('order_items.0.item.name', 'Spinach Wrap')
             ->assertJsonPath('order_items.0.item_id', $item->id);
+    }
+
+    /**
+     * `order_items[].order_meal_deal_id` lets a client tell a Meal Deal's
+     * own underlying item row apart from a genuinely separate item in the
+     * same order — added specifically because the mobile app's "Reorder"
+     * previously had no way to exclude the deal's own row and would have
+     * re-added it as a wrongly-priced a-la-carte item.
+     */
+    public function test_order_items_expose_which_meal_deal_they_belong_to(): void
+    {
+        [$user, $customer] = $this->customerScenario();
+        $status = Status::query()->create(['name' => 'pending']);
+        $item = $this->wrapItem();
+
+        $order = Order::query()->create([
+            'number' => 'IAW-'.str_pad((string) random_int(1, 999999), 6, '0', STR_PAD_LEFT),
+            'customer_id' => $customer->id,
+            'status_id' => $status->id,
+            'subtotal' => 25.00,
+            'service_charge' => 0,
+            'total' => 25.00,
+            'is_delivery' => false,
+            'source' => 'web-customer',
+            'placed_at' => now(),
+        ]);
+
+        $mealDeal = MealDeal::query()->create([
+            'name' => 'Big Boy',
+            'base_price' => 25.00,
+            'selection_groups' => [],
+            'is_active' => true,
+        ]);
+
+        $purchasedDeal = $order->mealDeals()->create([
+            'meal_deal_id' => $mealDeal->id,
+            'name' => 'Big Boy',
+            'base_price' => 25.00,
+            'extras_price' => 0,
+            'service_charge' => 0,
+            'quantity' => 1,
+            'selections' => [],
+        ]);
+
+        $order->orderItems()->create([
+            'order_meal_deal_id' => $purchasedDeal->id,
+            'item_id' => $item->id,
+            'price' => 25.00,
+            'quantity' => 1,
+        ]);
+        $order->orderItems()->create([
+            'item_id' => $item->id,
+            'price' => 12.50,
+            'quantity' => 1,
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/me/orders/'.$order->number)
+            ->assertOk()
+            ->assertJsonPath('meal_deals.0.id', $purchasedDeal->id)
+            ->assertJsonPath('order_items.0.order_meal_deal_id', $purchasedDeal->id)
+            ->assertJsonPath('order_items.1.order_meal_deal_id', null);
     }
 
     public function test_customer_cannot_fetch_another_customers_order_by_number(): void

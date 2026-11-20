@@ -272,6 +272,12 @@ class CustomerOrderController extends Controller
             'order_items' => $order->orderItems->map(fn ($orderItem): array => [
                 'id' => $orderItem->id,
                 'item_id' => $orderItem->item_id,
+                // Null for an a-la-carte line; otherwise the id of this
+                // line's entry in the sibling `meal_deals` array below —
+                // lets a client exclude a Meal Deal's own underlying item
+                // row from a plain items summary/reorder instead of
+                // double-counting it alongside the `meal_deals` entry.
+                'order_meal_deal_id' => $orderItem->order_meal_deal_id,
                 'item' => $orderItem->item !== null ? [
                     'id' => $orderItem->item->id,
                     'name' => $orderItem->item->name,

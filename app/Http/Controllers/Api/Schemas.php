@@ -545,6 +545,7 @@ use OpenApi\Attributes as OA;
             properties: [
                 new OA\Property(property: 'id', type: 'integer'),
                 new OA\Property(property: 'item_id', type: 'integer'),
+                new OA\Property(property: 'order_meal_deal_id', type: 'integer', nullable: true, description: 'Set when this line is a Meal Deal\'s own underlying item — the matching entry\'s id in the sibling meal_deals array. Null for an a-la-carte line.'),
                 new OA\Property(property: 'item', type: 'object', nullable: true, properties: [
                     new OA\Property(property: 'id', type: 'integer'),
                     new OA\Property(property: 'name', type: 'string'),
